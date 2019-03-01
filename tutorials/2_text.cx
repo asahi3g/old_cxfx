@@ -1,0 +1,84 @@
+package main
+
+import "app"
+import "gam"
+import "gfx"
+import "gui"
+import "mat"
+
+// Globals ...
+var mesh gfx.MeshId
+var texture gfx.TextureId
+var font str = "skycoinRegular"
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnEvent(controlIndex i32, controlAction i32) {
+	var key i32 = gui.CurrentEvent.keyboard.key
+	var action i32 = gui.CurrentEvent.keyboard.action
+	var mods i32 = gui.CurrentEvent.keyboard.mods
+	if mods == app.MOD_NONE {
+		if key == app.KEYCODE_ESCAPE && action == app.KEY_PRESS {
+			app.Exit()
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnUpdate(controlIndex i32, controlAction i32) {
+	var textWidth i32
+	var textHeight i32
+	textWidth, textHeight = gfx.MeasureText(font, app.Name())
+
+	var w f32 = i32.f32(textWidth)
+	var h f32 = i32.f32(textHeight)
+	var x f32 =  (gfx.gfx_viewportSize.x - w) / 2.0
+	var y f32 = (gfx.gfx_viewportSize.y - h) / 2.0
+
+	gfx.MeshBegin(mesh)
+	gfx.MeshAppendText(mesh, texture, font,
+			mat.v2_(x, y), mat.v2_(1.0, 1.0),
+			mat.v4_(1.0, 0.0, 0.0, 1.0),
+			app.Name(),
+			false, mat.v4_(0.0, 0.0, 0.0, 0.0), mat.v4_(0.0, 0.0, 0.0, 0.0), // TODO remove debug arguments
+			mat.v4_(0.0, 0.0, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y),
+			0.0)
+	gfx.MeshEnd(mesh)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnRender(controlIndex i32, controlAction i32) {
+	gfx.EffectUse(gfx.g_fxTexture)
+	gfx.EffectAssignTexture(gfx.g_fxTexture, 0, texture)
+	gfx.MeshRender(mesh)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func main()() {
+	// init
+	gam.Init("Text Tutorial", 800, 600, 60, "")
+	var nameLen i32 = len(app.Name())
+	mesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, nameLen * 6, nameLen * 4)
+	texture = gfx.TextureCreateFont(font, sprintf("%s/fonts/Skycoin-Regular.ttf", app.DataDir()),
+		64, 32, 127, gfx.TEXT_LEFT_TO_RIGHT, -1)
+
+	// gameScreen
+	var gameScreen gui.ScreenId = gui.ScreenCreate("gameScreen")
+	gui.ControlSetDock(gameScreen.base, gui.DOCK_FILL)
+	gui.ScreenSetDuration(gameScreen, -1.0D)
+	gui.ScreenSetOnEvent(gameScreen, "main", "gameOnEvent")
+	gui.ScreenSetOnUpdate(gameScreen, "main", "gameOnUpdate")
+	gui.ScreenSetOnRender(gameScreen, "main", "gameOnRender")
+
+	// run
+	gui.ScreenShow(gameScreen)
+	gam.Run()
+
+	// destroy
+	gfx.MeshUnlock(mesh)
+	gam.Destroy()
+}
+
