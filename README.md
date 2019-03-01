@@ -1,21 +1,73 @@
 Disclaimer : It’s all wip, api will often change until it matures.
 
-cxfx’s objective is to facilitate the development of games and applications in cx. So that developers can focus on building their apps instead of having to rewrite everything. This is a way to share and factorize knowledge.
-
-At first it’ll be a lib only environment, you access cxfx functionalities from a cx program. Later we could imagine someone build a WYSIWYG game editor with it but that’s really far away.
+Cx game library.
 
 Best way to contribute to cxfx is to fork : https://github.com/skycoin/cxfx/ 
 
 Tutorials can be found here : https://github.com/skycoin/cxfx/tutorials
-Tutorials are numbered and progressing through the functionalities.
-You can launch them from the tutorials dir by running 
 
 ```
 make 0_colored_quad
-...
-make 10_dialog
-...
 ```
+<img width="100%" height="100%" src="screenshots/colored_quad_tutorial.png">
+
+```
+make 1_textured_quad
+```
+<img width="100%" height="100%" src="screenshots/textured_quad_tutorial.png">
+
+```
+make 2_text
+```
+<img width="100%" height="100%" src="screenshots/text_tutorial.png">
+
+```
+make 3_perspective
+```
+<img width="100%" height="100%" src="screenshots/perspective_tutorial.png">
+
+```
+make 4_camera
+```
+<img width="100%" height="100%" src="screenshots/camera_tutorial.png">
+
+```
+make 5_batch
+```
+<img width="100%" height="100%" src="screenshots/batch_tutorial.png">
+
+```
+make 6_model
+```
+<img width="100%" height="100%" src="screenshots/model_tutorial.png">
+
+```
+// TODO : implement pbr
+make pbr
+```
+<img width="100%" height="100%" src="screenshots/pbr_tutorial.png">
+
+```
+make 7_menu
+```
+TODO : add screenshot
+
+```
+make 8_sound
+```
+TODO : add screenshot
+
+```
+make 9_button
+```
+<img width="100%" height="100%" src="screenshots/button_tutorial.png">
+
+```
+make 10_dialog
+```
+<img width="100%" height="100%" src="screenshots/dialog_tutorial.png">
+
+
 
 What’s needed :
 
