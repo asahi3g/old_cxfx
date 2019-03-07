@@ -84,12 +84,13 @@ make 5_batch
 <img width="100%" height="100%" src="screenshots/batch_tutorial.png">
 
 ```
+// WIP skyminer
 make 6_model
 ```
 <img width="100%" height="100%" src="screenshots/model_tutorial.png">
 
 ```
-// TODO : implement pbr
+// WIP pbr
 make pbr
 ```
 <img width="100%" height="100%" src="screenshots/pbr_tutorial.png">
