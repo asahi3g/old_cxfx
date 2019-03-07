@@ -1,0 +1,2362 @@
+package gltf
+
+import "json"
+import "os"
+import "gl"
+// Constants ...
+var HEADER_SIZE i32 = 12
+var CHUNK_HEADER_SIZE i32 = 8
+var VERSION ui32 = 2U
+var MAGIC ui32 = 1179937895U // 0x46546C67
+var MAGIC_JSON_CHUNK ui32 = 1313821514U // 0x4E4F534A
+var MAGIC_BIN_CHUNK ui32 = 5130562U // 0x004E4942
+
+/*var FILE_INVALID i32 = 0
+var FILE_GLTF i32 = 1
+var FILE_GLB i32 = 2
+
+var BUFFER_VIEW_INVALID i32 = 0
+var BUFFER_VIEW_INDICES i32 = 1
+var BUFFER_VIEW_VERTIECS i32 = 2
+*/
+var ATTRIBUTE_INVALID i32 = 0
+var ATTRIBUTE_POSITION i32 = 1
+var ATTRIBUTE_NORMAL i32 = 2
+var ATTRIBUTE_TANGENT i32 = 3
+var ATTRIBUTE_TEXCOORD i32 = 4
+var ATTRIBUTE_COLOR i32 = 5
+var ATTRIBUTE_JOINTS i32 = 6
+var ATTRIBUTE_WEIGHTS i32 = 7
+
+/*
+var COMPONENT_INVALID i32 = 0
+var COMPONENT_R8 i32 = 1
+var COMPONENT_R8U i32 = 2
+var COMPONENT_R16 i32 = 3
+var COMPONENT_R16U i32 = 4
+var COMPONENT_R32U i32 = 5
+var COMPONENT_R32F i32 = 6*/
+
+var TYPE_INVALID i32 = 0
+var TYPE_SCALAR i32 = 1
+var TYPE_VEC2 i32 = 2
+var TYPE_VEC3 i32 = 3
+var TYPE_VEC4 i32 = 4
+var TYPE_MAT2 i32 = 5
+var TYPE_MAT3 i32 = 6
+var TYPE_MAT4 i32 = 7
+
+var PRIMITIVE_POINTS i32 = 0
+var PRIMITIVE_LINES i32 = 1
+var PRIMITIVE_LINE_LOOP i32 = 2
+var PRIMITIVE_LINE_STRIP i32 = 3
+var PRIMITIVE_TRIANGLES i32 = 4
+var PRIMITIVE_TRIANGLE_STRIP i32 = 5
+var PRIMIITVE_TRIANGLE_FAN i32 = 6
+/*
+var ALPHA_OPAQUE i32 = 0
+var ALPHA_MASK i32 = 1
+var ALPHA_BLEND i32 = 2
+
+var ANIMATION_PATH_INVALID i32 = 0
+var ANIMATION_PATH_TRANSLATION i32 = 1
+var ANIMATION_PATH_ROTATION i32 = 2
+var ANIMATION_PATH_SCALE i32 = 3
+var ANIMATION_PATH_WEIGHTS i32 = 4
+*/
+var CAMERA_INVALID i32 = 0
+var CAMERA_PERSPECTIVE i32 = 1
+var CAMERA_ORTHOGRAPHIC i32 = 2
+/*
+var LIGHT_INVALID i32 = 0
+var LIGHT_DIRECTIONAL i32 = 1
+var LIGHT_POINT i32 = 2
+var LIGHT_SPOT i32 = 3
+*/
+
+// Globals ...
+var g_assets []Asset
+var CurrentAsset AssetId // TODO : remove
+
+type Buffer struct {
+	uri str
+	byteLength i32
+	name str
+}
+
+type BufferView struct {
+	buffer i32
+	byteOffset i64
+	byteLength i32
+	byteStride i32
+	target i32
+	name str
+}
+
+/*
+type AccessorSparse struct {
+	count i64
+	indices[]i32
+	values []i32
+}
+*/
+
+type Accessor struct {
+	bufferView i32
+	byteOffset i64
+	componentType i32
+	componentCount i32
+	//normalized bool
+	attributeTypeStr str
+	attributeTypeEnum i32
+	count i32
+	max []f32
+	min []f32
+	//sparse i32
+	name str
+	dataF32 []f32
+	dataUI16 []ui16
+	dataUI32 []ui32
+}
+
+type Attribute struct {
+	name str
+	attributeType i32
+	index i32
+	accessor i32
+}
+
+type Texture struct {
+	sampler i32
+	source i32
+	name str
+}
+
+type Image struct {
+	uri str
+	mimeType str
+	bufferView i32
+	name str
+}
+
+type Sampler struct {
+	magFilter i32
+	minFilter i32
+	wrapS i32
+	wrapT i32
+	name str
+}
+
+/*
+type TextureTransform struct {
+	offset [2]f32
+	rotation f32
+	scale [2]f32
+	texcoord i32
+}
+
+type TextureView struct {
+	texture i32
+	texcoord i32
+	scale f32
+	hasTransform bool
+	transform i32
+}
+*/
+
+type MetallicRoughness struct {
+	baseColorFactor [4]f32
+	baseColorTexture i32
+	metallicFactor f32
+	roughnessFactor f32
+	metallicRoughnessTexture i32
+}
+
+/*
+type SpecularGlossiness struct {
+	diffuse i32
+	specularGlossiness i32
+	diffuseFactor [4]f32
+	specularFactor [3]f32
+	glossinessFactor f32
+}
+*/
+
+type Material struct {
+	name str
+	pbrMetallicRoughness MetallicRoughness
+	//normalTexture i32
+	//occlusionTexture i32
+	//emissiveTexture i32
+	emissiveFactor [4]f32
+	//alphaMode i32
+	//alphaCutoff f32
+	//doubleSided bool
+}
+
+/*
+type MorphTarget struct {
+	attributes []i32
+}
+*/
+
+type Primitive struct {
+	attributes []Attribute
+	indices i32
+	material i32
+	mode i32
+	//targets []i32
+}
+
+type Mesh struct {
+	primitives []Primitive
+	weights []f32
+	name str
+}
+
+/*
+type Skin struct {
+	inverseBindMatrices i32
+	skeleton i32
+	joints []i32
+	name str
+}
+*/
+
+type PerspectiveCamera struct {
+	aspectRatio f32
+	yfov f32
+	znear f32
+	zfar f32
+}
+
+type Camera struct {
+	name str
+	cameraTypeStr str
+	cameraTypeEnum i32
+	perspectiveCamera PerspectiveCamera
+}
+
+/*
+type Light struct {
+	lightType i32
+	name str
+	color [3]f32
+	intensity f32
+	range i32
+	innerConeAngle f32
+	outerConeAngle f32
+}
+
+type AnimationSampler struct {
+	animationSamplerType i32
+	inputA i32 // ISSUE can't be named input
+	outputA i32 // ISSUE can't be named output
+}
+
+type AnimationChannel struct {
+	sampler i32
+	node i32
+	path i32
+}
+
+type Animation struct {
+	channels []i32
+	samplers []i32
+	name str
+}
+*/
+
+type Node struct {
+	camera i32
+	children []i32
+	//skin i32
+	matrix []f32
+	mesh i32
+	//rotation []f32
+	//scale []f32
+	//translation []f32
+	//weights []f32
+	name str
+	//parent i32
+	//light i32
+}
+
+// Scene
+type Scene struct {
+	name str
+	nodes []i32
+}
+
+// AssetId ...
+type AssetId struct {
+	asset i32
+}
+
+// Asset ...
+type Asset struct {
+	//extensionsUsed
+	//extensionsRequired
+	accessors []Accessor
+	//animations []Animation
+	buffers []Buffer
+	bufferViews []BufferView
+	cameras []Camera
+	images []Image
+	materials []Material
+	meshes []Mesh
+	nodes []Node
+	samplers []Sampler
+	scene i32
+	scenes []Scene
+	//skins []Skin
+	textures []Texture
+
+	path str
+
+	copyright str
+	generator str
+	version str
+	minVersion str
+
+	//lights []Light
+
+}
+
+// AssetInvalid ...
+func AssetInvalid() (out AssetId) {
+	out.asset = -1
+}
+
+// AssetIsValid ...
+func AssetIsValid(id AssetId) (out bool) {
+	out = id.asset >= 0 && id.asset <= len(g_assets)
+}
+
+//------------------------------------------------------------------------------
+func debugJson(file i32, t i32) { // TODO : move in json
+	printf("DEBUG_JSON_TYPE %d\n", t)
+	if t == json.TOKEN_DELIM {
+		printf("DEBUG_JSON_DELIM\n")
+		var value i32 = json.Delim(file)
+		if value == JSON_DELIM_LEFT_BRACKET {
+			printf("{\n")
+		} else if value == JSON_DELIM_RIGHT_BRACKET {
+			printf("}\n")
+		} else if value == JSON_DELIM_LEFT_A {
+			printf("[\n")
+		} else if value == JSON_DELIM_RIGHT_A {
+			printf("]\n")
+		}
+	} else if t == json.TOKEN_BOOL {
+		printf("DEBUG_JSON_BOOL\n")
+		var value bool = json.Bool(file)
+		if value {
+			printf("true\n")
+		} else {
+			printf("false\n")
+		}
+	} else if t == json.TOKEN_F64 {
+		printf("DEBUG_JSON_F64\n")
+		var value f64 = json.Float64(file)
+		printf("%f\n", value)
+	} else if t == json.TOKEN_NUMBER {
+		printf("DEBUG_JSON_NUMBER\n")
+		var value f64 = json.Float64(file)
+		printf("%f\n", value)
+	} else if t == json.TOKEN_STR {
+		printf("DEBUG_JSON_STR\n")
+		var value str = json.Str(file)
+		printf("%s\n", value)
+	} else {
+		panicIf(true, sprintf("invalid token type : %d", t))
+	}
+}
+
+func getJsonStr(file i32, value *str) (success bool) { // TODO : move in json
+	t := json.Type(file)
+	if t == json.TOKEN_STR {
+		*value = json.Str(file)
+		success = true
+	} else {
+		debugJson(file, t)
+	}
+}
+
+func getJsonI64(file i32, value *i64) (success bool) { // TODO : move in json
+	t := json.Type(file)
+	if t == json.TOKEN_NUMBER {
+		*value = json.Int64(file)
+		success = true
+	} else {
+		debugJson(file, t)
+	}
+}
+
+func getJsonF64(file i32, value *f64) (success bool) { // TODO : move in json
+	t := json.Type(file)
+	if t == json.TOKEN_NUMBER || t == json.TOKEN_F64 {
+		*value = json.Float64(file)
+		success = true
+	} else {
+		debugJson(file, t)
+	}
+}
+
+func getJsonI32(file i32, value *i32) (success bool) { // TODO : move in json
+	t := json.Type(file)
+	if t == json.TOKEN_NUMBER {
+		*value = i64.i32(json.Int64(file))
+		success = true
+	} else {
+		debugJson(file, t)
+	}
+}
+
+func getJsonF32(file i32, value *f32) (success bool) { // TODO : move in json
+	t := json.Type(file)
+	if t == json.TOKEN_NUMBER || t == json.TOKEN_F64 {
+		*value = f64.f32(json.Float64(file))
+		success = true
+	} else {
+		debugJson(file, t)
+	}
+}
+
+func getJsonDelim(file i32, delim i32) (success bool) { // TODO : move in json
+	t := json.Type(file)
+	if t == json.TOKEN_DELIM {
+		if json.Delim(file) == delim {
+			success = true
+		} else {
+			debugJson(file, t)
+		}
+	} else {
+		debugJson(file, t)
+	}
+}
+
+func getJsonF32Vec4(file i32, array *[4]f32) (success bool) {
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		return
+	}
+
+	var i i32
+	for json.More(file) {
+		json.Next(file)
+		var value f32
+		if getJsonF32(file, &value) == false {
+			return
+		}
+		(*array)[i] = value
+		i++
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		success = true
+		return
+	}
+}
+
+// ISSUE : cx panic if duplicate func signature
+func getJsonF32Vec3(file i32, array *[3]f32) (success bool) { // TODO : refactor with getJsonF32Vec4 
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		return
+	}
+
+	var i i32
+	for json.More(file) {
+		json.Next(file)
+		var value f32
+		if getJsonF32(file, &value) == false {
+			return
+		}
+		(*array)[i] = value
+		i++
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		success = true
+		return
+	}
+}
+
+func parseI32Array(file i32, id AssetId) (out AssetId, array []i32) { // TODO : move in json
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		var value i32
+		if getJsonI32(file, &value) == false {
+			out = AssetInvalid()
+			return
+		}
+		array = append(array, value)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+func parseF32Array(file i32, id AssetId) (out AssetId, array []f32) { // TODO : move in json
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		var value f32
+		if getJsonF32(file, &value) == false {
+			out = AssetInvalid()
+			return
+		}
+		array = append(array, value)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+var JSON_DELIM_LEFT_A i32 = 91
+var JSON_DELIM_RIGHT_A i32 = 93
+var JSON_DELIM_LEFT_BRACKET i32 = 123
+var JSON_DELIM_RIGHT_BRACKET i32 = 125
+
+//------------------------------------------------------------------------------
+func printI32Array(message str, array []i32) {
+	var count i32 = len(array)
+	printf("%s, count : %d [", message, count)
+	for n := 0; n < count; n++ {
+		printf("%d, ", array[n])
+	}
+	printf("]\n")
+}
+
+//------------------------------------------------------------------------------
+func printF32Array(message str, array []f32) {
+	var count i32 = len(array)
+	printf("%s, count : %d [", message, count)
+	for n := 0; n < count; n++ {
+		printf("%f, ", array[n])
+	}
+	printf("]\n")
+}
+
+// ReadBufferF32 ...
+func ReadBufferF32() {
+}
+
+// ReadBufferUI16 ...
+func ReadBufferUI16() {
+}
+
+// AssetPrint ...
+func AssetPrint(id AssetId) { // TODO : format as json
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	printf("asset : %s\n", g_assets[id.asset].path)
+	printf("---- copyright : %s\n", g_assets[id.asset].copyright)
+	printf("---- generator : %s\n", g_assets[id.asset].generator)
+	printf("---- version : %s\n", g_assets[id.asset].version)
+	printf("---- minVersion : %s\n", g_assets[id.asset].minVersion)
+	printf("---- scene : %d\n", g_assets[id.asset].scene.scene)
+	var sceneCount i32 = len(g_assets[id.asset].scenes)
+	printf("scenes, count : %d [\n", sceneCount)
+	for i := 0; i < sceneCount; i++ {
+		printf("---- scene %d, name '%s'\n", i, g_assets[id.asset].scenes[i].name)
+		var nodes []i32 = g_assets[id.asset].scenes[i].nodes
+		printI32Array("---- ---- nodes", nodes) // ISSUE
+	}
+	printf("]\n")
+
+	var nodes []Node = g_assets[id.asset].nodes
+	var nodeCount i32 = len(nodes)
+	printf("nodes, count : %d [\n", nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		printf("---- node %d, name '%s'\n", i, nodes[i].name)
+		printf("---- ---- mesh %d\n", nodes[i].mesh)
+		var children []i32 = nodes[i].children
+		printI32Array("---- ---- children", children) // ISSUE : can't use g_assets[id.asset].nodes[i].children : function 'printI32Array' expected input argument of type '[]i32'; 'i32' was provided
+		var matrix []f32 = nodes[i].matrix
+		printF32Array("---- ---- matrix", matrix) // ISSUE
+		printf("---- ---- camera %d\n", nodes[i].camera)
+	}
+	printf("]\n")
+
+	var meshes []Mesh = g_assets[id.asset].meshes
+	var meshCount i32 = len(meshes)
+	printf("meshes, count : %d [\n", meshCount)
+	for i := 0; i < meshCount; i++ {
+		printf("---- mesh %d, name '%s'\n", i, meshes[i].name)
+		var primitives []Primitive = meshes[i].primitives
+		var primitiveCount i32 = len(primitives)
+		printf("---- ---- primitive, count %d\n", primitiveCount)
+		for p := 0; p < primitiveCount; p++ {
+			printf("---- ---- primitive %d\n", p)
+			printf("---- ---- ---- mode %d\n", primitives[p].mode)
+			printf("---- ---- ---- indices %d\n", primitives[p].indices)
+			printf("---- ---- ---- material %d\n", primitives[p].material)
+			var attributes []Attribute = primitives[p].attributes
+			var attributeCount i32 = len(attributes)
+			printf("---- ---- ---- attributes, count %d\n", attributeCount)
+			for a := 0; a < attributeCount; a++ {
+				printf("---- ---- ---- attribute %d, name '%s'\n", a, attributes[a].name) // ISSUtE
+				printf("---- ---- ---- ---- type %d\n", attributes[a].attributeType)
+				printf("---- ---- ---- ---- index %d\n", attributes[a].index)
+				printf("---- ---- ---- ---- accessor %d\n", attributes[a].accessor)
+				//var morphs []i32 = primitives[p].attributes
+				//printI32Array("---- ---- ---- morphs", morphs) // ISSUE
+			}
+		}
+	}
+	printf("]\n")
+
+	var accessors []Accessor = g_assets[id.asset].accessors
+	var accessorCount i32 = len(accessors)
+	printf("accessors, count : %d [\n", accessorCount)
+	for i := 0; i < accessorCount; i++ {
+		printf("---- accessor %d, name '%s'\n", i, accessors[i].name)
+		printf("---- ---- bufferView %d\n", accessors[i].bufferView)
+		printf("---- ---- byteOffset %d\n", accessors[i].byteOffset)
+		printf("---- ---- componentType %d\n", accessors[i].componentType)
+		printf("---- ---- attributeType %d, %s\n", accessors[i].attributeTypeEnum, accessors[i].attributeTypeStr)
+		printf("---- ---- count %f\n", accessors[i].count)
+		var min []f32 = accessors[i].min
+		printF32Array("---- ---- ---- min", min)
+		var max []f32 = accessors[i].max
+		printF32Array("---- ---- ---- max", max)
+	}
+	printf("]\n")
+
+	var materials []Material = g_assets[id.asset].materials
+	var materialCount i32 = len(materials)
+	printf("materials, count : %d [\n", materialCount)
+	for i := 0; i < materialCount; i++ {
+		printf("---- material %d, name '%s'\n", i, materials[i].name)
+		printf("---- ---- metallicRoughness\n")
+		printf("---- ---- ---- baseColorFactor %f, %f, %f, %f\n",
+			materials[i].pbrMetallicRoughness.baseColorFactor[0],
+			materials[i].pbrMetallicRoughness.baseColorFactor[1],
+			materials[i].pbrMetallicRoughness.baseColorFactor[2],
+			materials[i].pbrMetallicRoughness.baseColorFactor[3])
+		printf("---- ---- ---- baseColorTexture %d\n", materials[i].pbrMetallicRoughness.baseColorTexture)
+		printf("---- ---- ---- metallicFactor %f\n", materials[i].pbrMetallicRoughness.metallicFactor)
+		printf("---- ---- ---- roughnessFactor %f\n", materials[i].pbrMetallicRoughness.roughnessFactor)
+		printf("---- ---- ---- metallicRoughnessTexture %d\n", materials[i].pbrMetallicRoughness.metallicRoughnessTexture)
+	}
+	printf("]\n")
+
+	var bufferViews []BufferView = g_assets[id.asset].bufferViews
+	var bufferViewCount i32 = len(bufferViews)
+	printf("bufferViews, count : %d [\n", bufferViewCount)
+	for i := 0; i < bufferViewCount; i++ {
+		printf("---- bufferView %d, name '%s'\n", i, bufferViews[i].name)
+		printf("---- ---- buffer %d\n", bufferViews[i].buffer)
+		printf("---- ---- byteOffset %d\n", bufferViews[i].byteOffset)
+		printf("---- ---- byteLength %d\n", bufferViews[i].byteLength)
+		printf("---- ---- byteStride %d\n", bufferViews[i].byteStride)
+		printf("---- ---- target %d\n", bufferViews[i].target)
+	}
+	printf("]\n")
+
+	var buffers []Buffer = g_assets[id.asset].buffers
+	var bufferCount i32 = len(buffers)
+	printf("buffers, count : %d [\n", bufferCount)
+	for i := 0; i < bufferCount; i++ {
+		printf("---- buffer %d, name '%s'\n", i, buffers[i].name)
+		printf("---- ---- %s\n", buffers[i].uri)
+		printf("---- ---- %d\n", buffers[i].byteLength)
+	}
+	printf("]\n")
+
+	var cameras []Camera = g_assets[id.asset].cameras
+	var cameraCount i32 = len(cameras)
+	printf("cameras, count : %d [\n", cameraCount)
+	for i := 0; i < cameraCount; i++ {
+		printf("---- camera %d, name '%s'\n", i, cameras[i].name)
+		printf("---- ---- type %d, %s\n", cameras[i].cameraTypeEnum, cameras[i].cameraTypeStr)
+		printf("---- ---- ---- perspectiveCamera\n")
+		printf("---- ---- ---- ---- aspectRatio %f\n", cameras[i].perspectiveCamera.aspectRatio)
+		printf("---- ---- ---- ---- yfov %f\n", cameras[i].perspectiveCamera.yfov)
+		printf("---- ---- ---- ---- znear %f\n", cameras[i].perspectiveCamera.znear)
+		printf("---- ---- ---- ---- zfar %f\n", cameras[i].perspectiveCamera.zfar)
+	}
+	printf("]\n")
+}
+
+//------------------------------------------------------------------------------
+func parseAsset(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		var key str
+		if getJsonStr(file, &key) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		json.Next(file)
+		var value str
+		if getJsonStr(file, &value) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		if key == "copyright" {
+			g_assets[id.asset].copyright = value
+		} else if key == "generator" {
+			g_assets[id.asset].generator = value
+		} else if key == "version" {
+			g_assets[id.asset].version = value
+		} else if key == "minVersion" {
+			g_assets[id.asset].minVersion = value
+		} else {
+			printf("KEY %s\n", key)
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseScene(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	var value i32
+	if getJsonI32(file, &value) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	g_assets[id.asset].scene.scene = value
+}
+
+//------------------------------------------------------------------------------
+func parseScenes(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		json.Next(file)
+		var key str
+		if getJsonStr(file, &key) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		if key == "nodes" {
+			var nodes []i32
+			out, nodes = parseI32Array(file, id)
+			if AssetIsValid(out) == false {
+				return
+			}
+
+			var scene Scene
+			scene.nodes = nodes
+			g_assets[id.asset].scenes = append(g_assets[id.asset].scenes, scene)
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parsePerspectiveCamera(file i32, id AssetId) (out AssetId, perspectiveCamera PerspectiveCamera) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+
+		var key str
+		if getJsonStr(file, &key) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		if key == "aspectRatio" {
+			var aspectRatio f32
+			json.Next(file)
+			if getJsonF32(file, &aspectRatio) == false {
+				out = AssetInvalid()
+				return
+			}
+			perspectiveCamera.aspectRatio = aspectRatio
+		} else if key == "yfov" {
+			var yfov f32
+			json.Next(file)
+			if getJsonF32(file, &yfov) == false {
+				out = AssetInvalid()
+				return
+			}
+			perspectiveCamera.yfov = yfov
+		} else if key == "zfar" {
+			var zfar f32
+			json.Next(file)
+			if getJsonF32(file, &zfar) == false {
+				out = AssetInvalid()
+				return
+			}
+			perspectiveCamera.zfar = zfar
+		} else if key == "znear" {
+			var znear f32
+			json.Next(file)
+			if getJsonF32(file, &znear) == false {
+				out = AssetInvalid()
+				return
+			}
+			perspectiveCamera.znear = znear
+		} else {
+			printf("invalid key %s\n", key)
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseCameras(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var camera Camera
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "name" {
+				var name str
+				json.Next(file)
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				camera.name = name
+			} else if key == "perspective" {
+				var perspectiveCamera PerspectiveCamera
+				out, perspectiveCamera = parsePerspectiveCamera(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				camera.perspectiveCamera = perspectiveCamera
+			} else if key == "type" {
+				var cameraType str
+				json.Next(file)
+				if getJsonStr(file, &cameraType) == false {
+					out = AssetInvalid()
+					return
+				}
+				camera.cameraTypeStr = cameraType
+				if cameraType == "perspective" {
+					camera.cameraTypeEnum = CAMERA_PERSPECTIVE
+				} else {
+					printf("invalid camera type %s", cameraType)
+					out = AssetInvalid()
+					return
+				}
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		g_assets[id.asset].cameras = append(g_assets[id.asset].cameras, camera)
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseNodes(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var node Node
+		node.mesh = -1
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "name" {
+				json.Next(file)
+				var name str
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				node.name = name
+			} else if key == "mesh" {
+				json.Next(file)
+				var mesh i32
+				if getJsonI32(file, &mesh) == false {
+					out = AssetInvalid()
+					return
+				}
+				node.mesh = mesh
+			} else if key == "children" {
+				var children []i32
+				out, children = parseI32Array(file, id) // ISSUE : can't use node.children as receiver
+				if AssetIsValid(out) == false {
+					return
+				}
+				node.children = children
+			} else if key == "matrix" {
+				var matrix []f32
+				out, matrix = parseF32Array(file, id) // ISSUE : can't use node.matrix as receiver
+				if AssetIsValid(out) == false {
+					return
+				}
+				node.matrix = matrix
+			} else if key == "camera" {
+				json.Next(file)
+				var camera i32
+				if getJsonI32(file, &camera) == false {
+					out = AssetInvalid()
+					return
+				}
+				node.camera = camera
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		g_assets[id.asset].nodes = append(g_assets[id.asset].nodes, node)
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseAttributes(file i32, id AssetId) (out AssetId, attributes []Attribute) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+
+		var key str
+		if getJsonStr(file, &key) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var attributeType i32 = ATTRIBUTE_INVALID
+		var index i32
+		if key == "POSITION" {
+			attributeType = ATTRIBUTE_POSITION
+		} else if key == "NORMAL" {
+			attributeType = ATTRIBUTE_NORMAL
+		} else if key == "TANGENT" {
+			attributeType = ATTRIBUTE_TANGENT
+		} else if key == "TEXCOORD_0" {
+			attributeType = ATTRIBUTE_TEXCOORD
+		} else if key == "TEXCOORD_1" {
+			attributeType = ATTRIBUTE_TEXCOORD
+			index = 1
+		} else if key == "COLOR_0" {
+			attributeType = ATTRIBUTE_COLOR
+		} else if key == "JOINTS_0" {
+			attributeType = ATTRIBUTE_JOINTS
+		} else if key == "WEIGHTs_)" {
+			attributeType = ATTRIBUTE_WEIGHTS
+		} else {
+			printf("invalid key %s\n", key)
+			out = AssetInvalid()
+			return
+		}
+
+		var accessor i32
+		json.Next(file)
+		if getJsonI32(file, &accessor) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var attribute Attribute
+		attribute.name = key
+		attribute.attributeType = attributeType
+		attribute.index = index
+		attribute.accessor = accessor
+		attributes = append(attributes, attribute)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+		return
+	}
+
+	out = AssetInvalid()
+
+}
+
+//------------------------------------------------------------------------------
+func parsePrimitives(file i32, id AssetId) (out AssetId, primitives []Primitive) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var primitive Primitive
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "attributes" {
+				var attributes []Attribute
+				out, attributes = parseAttributes(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				primitive.attributes = attributes
+			} else if key == "indices" {
+				var indices i32
+				json.Next(file)
+				if getJsonI32(file, &indices) == false {
+					out = AssetInvalid()
+					return
+				}
+				primitive.indices = indices
+			} else if key == "mode" {
+				var mode i32
+				json.Next(file)
+				if getJsonI32(file, &mode) == false {
+					out = AssetInvalid()
+					return
+				}
+				primitive.mode = mode
+			} else if key == "material" {
+				var material i32
+				json.Next(file)
+				if getJsonI32(file, &material) == false {
+					out = AssetInvalid()
+					return
+				}
+				primitive.material = material
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		primitives = append(primitives, primitive)
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+
+}
+
+//------------------------------------------------------------------------------
+func parseMeshes(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var mesh Mesh
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "name" {
+				json.Next(file)
+				var name str
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				mesh.name = name
+			} else if key == "primitives" {
+				var primitives []Primitive
+				out, primitives = parsePrimitives(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				mesh.primitives = primitives
+			}
+		}
+
+		g_assets[id.asset].meshes = append(g_assets[id.asset].meshes, mesh)
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseAccessors(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var accessor Accessor
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "bufferView" {
+				var bufferView i32
+				json.Next(file)
+				if getJsonI32(file, &bufferView) == false {
+					out = AssetInvalid()
+					return
+				}
+				accessor.bufferView = bufferView
+			} else if key == "byteOffset" {
+				var byteOffset i64
+				json.Next(file)
+				if getJsonI64(file, &byteOffset) == false {
+					out = AssetInvalid()
+					return
+				}
+				accessor.byteOffset = byteOffset
+			} else if key == "componentType" {
+				var componentType i32
+				json.Next(file)
+				if getJsonI32(file, &componentType) == false {
+					out = AssetInvalid()
+					return
+				}
+				accessor.componentType = componentType
+			} else if key == "count" {
+				var count i32
+				json.Next(file)
+				if getJsonI32(file, &count) == false {
+					out = AssetInvalid()
+					return
+				}
+				accessor.count = count
+			} else if key == "max" {
+				var max []f32
+				out, max = parseF32Array(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				accessor.max = max
+			} else if key == "min" {
+				var min []f32
+				out, min = parseF32Array(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				accessor.min = min
+			} else if key == "type" {
+				var value str
+				json.Next(file)
+				if getJsonStr(file, &value) == false {
+					out = AssetInvalid()
+					return
+				}
+
+				var attributeTypeEnum i32 = TYPE_INVALID
+				var componentCount i32 = 0
+				if value == "SCALAR" {
+					attributeTypeEnum = TYPE_SCALAR
+					componentCount = 1
+				} else if value == "VEC2" {
+					attributeTypeEnum = TYPE_VEC2
+					componentCount = 2
+				} else if value == "VEC3" {
+					attributeTypeEnum = TYPE_VEC3
+					componentCount = 3
+				} else if value == "VEC4" {
+					attributeTypeEnum = TYPE_VEC4
+					componentCount = 4
+				} else if value == "MAT2" {
+					attributeTypeEnum = TYPE_MAT2
+					componentCount = 4
+				} else if value == "MAT3" {
+					attributeTypeEnum = TYPE_MAT3
+					componentCount = 9
+				} else if value == "MAT4" {
+					attributeTypeEnum = TYPE_MAT4
+					componentCount = 16
+				} else {
+					printf("invalid type %s\n", value)
+					out = AssetInvalid()
+					return
+				}
+
+				accessor.attributeTypeEnum = attributeTypeEnum
+				accessor.attributeTypeStr = value
+				accessor.componentCount = componentCount
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		g_assets[id.asset].accessors = append(g_assets[id.asset].accessors, accessor)
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRoughness MetallicRoughness) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+
+		var key str
+		if getJsonStr(file, &key) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		if key == "baseColorFactor" {
+			var baseColorFactor [4]f32
+			if getJsonF32Vec4(file, &baseColorFactor) == false {
+				out = AssetInvalid()
+				return
+			}
+			metallicRoughness.baseColorFactor = baseColorFactor
+		} else if key == "baseColorTexture" { // TODO : refactor parseIndex (metallicRoughnessTexture)
+			json.Next(file)
+			if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			var index str
+			json.Next(file)
+			if getJsonStr(file, &index) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			var value i32
+			json.Next(file)
+			if getJsonI32(file, &value) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			json.Next(file)
+			if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			metallicRoughness.baseColorTexture = value
+		} else if key == "metallicFactor" {
+			var metallicFactor f32
+			json.Next(file)
+			if getJsonF32(file, &metallicFactor) == false {
+				out = AssetInvalid()
+				printf("fail to parse metallicFactor\n")
+				return
+			}
+			metallicRoughness.metallicFactor = metallicFactor
+	   } else if key == "metallicRoughnessTexture" { // TODO : refactor parseIndex (baseColorTexture)
+			json.Next(file)
+			if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			var index str
+			json.Next(file)
+			if getJsonStr(file, &index) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			var value i32
+			json.Next(file)
+			if getJsonI32(file, &value) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			json.Next(file)
+			if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+				out = AssetInvalid()
+				return
+			}
+			metallicRoughness.metallicRoughnessTexture = value
+	   } else {
+			printf("invalid key %s\n", key)
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseMaterials(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var material Material
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "pbrMetallicRoughness" {
+				var pbrMetallicRoughness MetallicRoughness
+				out, pbrMetallicRoughness = parsePbrMetallicRoughness(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				material.pbrMetallicRoughness = pbrMetallicRoughness
+			} else if key == "emissiveFactor" {
+				var emissiveFactor [4]f32
+				if getJsonF32Vec4(file, &emissiveFactor) == false {
+					out = AssetInvalid()
+					return
+				}
+				material.emissiveFactor = emissiveFactor
+ 			} else if key == "name" {
+				var name str
+				json.Next(file)
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				material.name = name
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		g_assets[id.asset].materials = append(g_assets[id.asset].materials, material)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseTextures(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var texture Texture
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "sampler" {
+				var sampler i32
+				json.Next(file)
+				if getJsonI32(file, &sampler) == false {
+					out = AssetInvalid()
+					return
+				}
+				texture.sampler = sampler
+			} else if key == "source" {
+				var source i32
+				json.Next(file)
+				if getJsonI32(file, &source) == false {
+					out = AssetInvalid()
+					return
+				}
+				texture.source = source
+			} else if key == "name" {
+				var name str
+				json.Next(file)
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				texture.name = name
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		g_assets[id.asset].textures = append(g_assets[id.asset].textures, texture)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseImages(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var image Image
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "uri" {
+				var uri str
+				json.Next(file)
+				if getJsonStr(file, &uri) == false {
+					out = AssetInvalid()
+					return
+				}
+				image.uri = uri
+			} else if key == "mimeType" {
+				var mimeType str
+				json.Next(file)
+				if getJsonStr(file, &mimeType) == false {
+					out = AssetInvalid()
+					return
+				}
+				image.mimeType = mimeType
+			} else if key == "bufferView" {
+				var bufferView i32
+				json.Next(file)
+				if getJsonI32(file, &bufferView) == false {
+					out = AssetInvalid()
+					return
+				}
+				image.bufferView = bufferView
+			} else if key == "name" {
+				var name str
+				json.Next(file)
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				image.name = name
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		g_assets[id.asset].images = append(g_assets[id.asset].images, image)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseSamplers(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var sampler Sampler
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "magFilter" {
+				var magFilter i32
+				json.Next(file)
+				if getJsonI32(file, &magFilter) == false {
+					out = AssetInvalid()
+					return
+				}
+				sampler.magFilter = magFilter
+			} else if key == "minFilter" {
+				var minFilter i32
+				json.Next(file)
+				if getJsonI32(file, &minFilter) == false {
+					out = AssetInvalid()
+					return
+				}
+				sampler.minFilter = minFilter
+			} else if key == "wrapS" {
+				var wrapS i32
+				json.Next(file)
+				if getJsonI32(file, &wrapS) == false {
+					out = AssetInvalid()
+					return
+				}
+				sampler.wrapS = wrapS
+			} else if key == "wrapT" {
+				var wrapT i32
+				json.Next(file)
+				if getJsonI32(file, &wrapT) == false {
+					out = AssetInvalid()
+					return
+				}
+				sampler.wrapT = wrapT
+			} else if key == "name" {
+				var name str
+				json.Next(file)
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				sampler.name = name
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		g_assets[id.asset].samplers = append(g_assets[id.asset].samplers, sampler)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseBufferViews(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var bufferView BufferView
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "buffer" {
+				var buffer i32
+				json.Next(file)
+				if getJsonI32(file, &buffer) == false {
+					out = AssetInvalid()
+					return
+				}
+				bufferView.buffer = buffer
+			} else if key == "byteOffset" {
+				var byteOffset i64
+				json.Next(file)
+				if getJsonI64(file, &byteOffset) == false {
+					out = AssetInvalid()
+					return
+				}
+				bufferView.byteOffset = byteOffset
+			} else if key == "byteLength" {
+				var byteLength i32
+				json.Next(file)
+				if getJsonI32(file, &byteLength) == false {
+					out = AssetInvalid()
+					return
+				}
+				bufferView.byteLength = byteLength
+			} else if key == "byteStride" {
+				var byteStride i32
+				json.Next(file)
+				if getJsonI32(file, &byteStride) == false {
+					out = AssetInvalid()
+					return
+				}
+				bufferView.byteStride = byteStride
+			} else if key == "target" {
+				var target i32
+				json.Next(file)
+				if getJsonI32(file, &target) == false {
+					out = AssetInvalid()
+					return
+				}
+				bufferView.target = target
+			} else if key == "name" {
+				var name str
+				json.Next(file)
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				bufferView.name = name
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		g_assets[id.asset].bufferViews = append(g_assets[id.asset].bufferViews, bufferView)
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseBuffers(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var buffer Buffer
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "byteLength" {
+				json.Next(file)
+				var byteLength i32
+				if getJsonI32(file, &byteLength) == false {
+					out = AssetInvalid()
+					return
+				}
+				buffer.byteLength = byteLength
+			} else if key == "uri" {
+				json.Next(file)
+				var uri str
+				if getJsonStr(file, &uri) == false {
+					out = AssetInvalid()
+					return
+				}
+				buffer.uri = uri
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		g_assets[id.asset].buffers = append(g_assets[id.asset].buffers, buffer)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+// AssetGetRootNodes ...
+func AssetGetRootNodes(id AssetId) (out []i32) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var scenes []Scene = g_assets[id.asset].scenes
+	var scene i32 = g_assets[id.asset].scene
+
+	if scene >= 0 && scene < len(scenes) {
+		out = scenes[scene].nodes
+	}
+}
+
+// AssetGetMaterial ...
+func AssetGetMaterial(id AssetId, material i32) (out Material) { // TODO : handle errors
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var materials []Material = g_assets[id.asset].materials
+
+	if material >= 0 && material < len(materials) {
+		out = materials[material]
+	}
+}
+
+// AssetGetTexture ...
+func AssetGetTexture(id AssetId, texture i32) (out Texture) { // TODO :handle errors
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var textures []Texture = g_assets[id.asset].textures
+
+	if texture >= 0 && texture < len(textures) {
+		out = textures[texture]
+	}
+}
+
+// AssetGetImage ...
+func AssetGetImage(id AssetId, image i32) (out Image) { // TODO : handle errors
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var images []Image = g_assets[id.asset].images
+
+	if image >= 0 && image < len(images) {
+		out = images[image]
+	}
+}
+
+// AssetGetAccessor ...
+func AssetGetAccessor(id AssetId, accessor i32) (out Accessor) { // TODO : handle errors
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var accessors []Accessor = g_assets[id.asset].accessors
+
+	if accessor >= 0 && accessor < len(accessors) {
+		out = accessors[accessor]
+	}
+}
+
+// NodeGetMesh ...
+func NodeGetMesh(id AssetId, node i32) (out i32) {
+	out = -1
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var nodes []Node = g_assets[id.asset].nodes
+	if node >= 0 && node < len(nodes) {
+		out = nodes[node].mesh
+	}
+}
+
+// NodeGetMatrix ...
+func NodeGetMatrix(id AssetId, node i32) (out []f32) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var nodes []Node = g_assets[id.asset].nodes
+	out = nodes[node].matrix
+}
+
+// NodeGetChildren ...
+func NodeGetChildren(id AssetId, node i32) (out []i32) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var nodes []Node = g_assets[id.asset].nodes
+	if node >= 0 && node < len(nodes) {
+		out = nodes[node].children
+	}
+}
+
+// MeshGetPrimitives ...
+func MeshGetPrimitives(id AssetId, mesh i32) (out []Primitive) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var meshes []Mesh = g_assets[id.asset].meshes
+	if mesh >= 0 && mesh < len(meshes) {
+		out = meshes[mesh].primitives
+	}
+}
+
+// AssetCreate ...
+func AssetCreate(dataDir str, filename str) (out AssetId) {
+	var path str = sprintf("%s%s", dataDir, filename)
+	out.asset = len(g_assets)
+
+	var asset Asset
+	CurrentAsset = out
+	asset.path = path
+	g_assets = append(g_assets, asset)
+
+	var file i32 = json.Open(path)
+
+	if json.More(file) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	var stack i32 = 1
+
+	var cont bool = true
+	for cont == true {
+		if json.More(file) == false && stack <= 0 {
+			cont = false
+		} else {
+			json.Next(file)
+			if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+				stack--
+			} else {
+				var key str
+				if getJsonStr(file, &key) == false {
+					printf("failed to read string\n")
+					out = AssetInvalid()
+					return
+				}
+				//printf("key found %s\n", key)
+				//printf(">>>>>>>>>>>>> parse %s\n", key)
+				if key == "asset" {
+					printf(">>>>>>>>>>>>> parse ASSET\n")
+					out = parseAsset(file, out)
+					printf("<<<<<<<<<<<<< parse ASSET\n")
+				} else if key == "scene" {
+					printf(">>>>>>>>>>>>> parse SCENE\n")
+					out = parseScene(file, out)
+					printf("<<<<<<<<<<<<< parse SCENE\n")
+				} else if key == "scenes" {
+					printf(">>>>>>>>>>>>> parse SCENES\n")
+					out = parseScenes(file, out)
+					printf("<<<<<<<<<<<<< parse SCENES\n")
+				} else if key == "nodes" {
+					printf(">>>>>>>>>>>>> parse NODES\n")
+					out = parseNodes(file, out)
+					printf("<<<<<<<<<<<<< parse NODES\n")
+				} else if key == "cameras" {
+					printf(">>>>>>>>>>>>> parse NODES\n")
+					out = parseCameras(file, out)
+					printf("<<<<<<<<<<<<< parse NODES\n")
+				} else if key == "meshes" {
+					printf(">>>>>>>>>>>>> parse MESHES\n")
+					out = parseMeshes(file, out)
+					printf("<<<<<<<<<<<<< parse MESHES\n")
+				} else if key == "accessors" {
+					printf(">>>>>>>>>>>>> parse ACCESSORS\n")
+					out = parseAccessors(file, out)
+					printf("<<<<<<<<<<<<< parse ACCESSORS\n")
+				} else if key == "materials" {
+					printf(">>>>>>>>>>>>> parse MATERIALS\n")
+					out = parseMaterials(file, out)
+					printf("<<<<<<<<<<<<< parse MATERIALS\n")
+				} else if key == "textures" {
+					printf(">>>>>>>>>>>>> parse TEXTURES\n")
+					out = parseTextures(file, out)
+					printf("<<<<<<<<<<<<< parse TEXTURES\n")
+				} else if key == "images" {
+					printf(">>>>>>>>>>>>> parse IMAGES\n")
+					out = parseImages(file, out)
+					printf("<<<<<<<<<<<<< parse IMAGES\n")
+				} else if key == "samplers" {
+					printf(">>>>>>>>>>>>> parse SAMPLERS\n")
+					out = parseSamplers(file, out)
+					printf("<<<<<<<<<<<<< parse SAMPLERS\n")
+				} else if key == "bufferViews" {
+					printf(">>>>>>>>>>>>> parse BUFFER_VIEWS\n")
+					out = parseBufferViews(file, out)
+					printf("<<<<<<<<<<<<< parse BUFFER_VIEWS\n")
+				} else if key == "buffers" {
+					printf(">>>>>>>>>>>>> parse BUFFERS\n")
+					out = parseBuffers(file, out)
+					printf("<<<<<<<<<<<<< parse BUFFERS\n")
+				} else {
+					printf("gltf : parsing not implemented : %s\n", key)
+					out = AssetInvalid()
+				}
+				//printf("<<<<<<<<<<<<<  parse %s\n", key)
+	
+				if AssetIsValid(out) == false {
+					printf("failed to load asset\n")
+					return
+				}
+			}
+		}
+	}
+
+	var accessors []Accessor = g_assets[out.asset].accessors
+	var accessorCount i32 = len(accessors)
+
+	var bufferViews []BufferView = g_assets[out.asset].bufferViews
+	var bufferViewCount i32 = len(bufferViews)
+
+	var buffers []Buffer = g_assets[out.asset].buffers
+	var bufferCount i32 = len(buffers)
+
+	printf("PARSING_ACCESSORS %d\n", accessorCount)
+	for a := 0; a < accessorCount; a++ {
+		printf("PARSING_ACCESSOR %d\n", a)
+		var bufferViewIndex i32 = accessors[a].bufferView
+		if bufferViewIndex < 0 || bufferViewIndex >= bufferViewCount {
+			printf("invalid bufferView index : %d\n", bufferViewIndex)
+			out = AssetInvalid()
+			return
+		}
+
+		printf("bufferView index %d\n", bufferViewIndex)
+
+		var bufferView BufferView = bufferViews[bufferViewIndex]
+		var bufferIndex i32 = bufferView.buffer
+		if bufferIndex < 0 || bufferIndex >= bufferCount {
+			printf("invalid buffer index : %d\n", bufferIndex)
+			out = AssetInvalid()
+			return
+		}
+
+		printf("buffer index %d\n", bufferIndex)
+
+		var buffer Buffer = buffers[bufferIndex]
+		var uri str = sprintf("%s%s", dataDir, buffer.uri)
+		os.Open(uri)
+		var magic ui32
+		/*magic = os.ReadUI32(uri)
+		if magic != MAGIC {
+			printf("invalid magic number %d\n", magic)
+			out = AssetInvalid()
+			os.Close(uri)
+			return
+		} else {
+			printf("MAGICS EQUAL %d, %d\n", magic, MAGIC)
+		}
+
+		var test ui32
+		test = i32.ui32(55)
+		printf("magic %d, %d, test %d\n", magic, MAGIC, test)
+
+		var version ui32 = os.ReadUI32(uri)
+		if version !=  VERSION {
+			printf("invalid version %d\n", version)
+			out = AssetInvalid()
+			os.Close(uri)
+			return
+		}
+
+		printf("version %d\n", version)
+
+		var length ui32 = os.ReadUI32(uri)
+
+		if length != buffer.byteLength {
+			printf("invalid length %d\n", length)
+			out = AssetInvalid()
+			os.Close(uri)
+			return
+		}*/
+
+		var dataF32 []f32
+		var dataUI16 []ui16
+		var dataUI32 []ui32
+
+		var byteOffset i64 = accessors[a].byteOffset
+		var bufferOffset i64 = bufferView.byteOffset + byteOffset
+
+		if bufferOffset > 0L {
+			printf("----------------- SEEK %d\n", bufferOffset)
+			os.Seek(uri, bufferOffset, os.SEEK_SET)
+		}
+		var count i32 = accessors[a].count
+		var componentCount i32 = accessors[a].componentCount
+		var componentType i32 = accessors[a].componentType
+		if componentType == gl.FLOAT {
+			printf("reading f32 bin %d\n", count)
+			for i := 0; i < count; i++ {
+				for c := 0; c < componentCount; c++ {
+					var value f32 = os.ReadF32(uri)
+					//printf("f32 %d/%d : %f\n", i * componentCount + c, count * componentCount, value)
+					dataF32 = append(dataF32, value)
+				}
+			}
+		} else if componentType == gl.UNSIGNED_SHORT {
+			printf("reading ui16 bin %d\n", count)
+			for i := 0; i < count; i++ {
+				for c := 0; c < componentCount; c++ {
+					var value ui32 = os.ReadUI16(uri)
+					//printf("ui16 %d/%d : %d\n", i * componentCount + c, count * componentCount, value)
+					dataUI32 = append(dataUI32, value)
+				}
+			}
+		} else if componentType == gl.UNSIGNED_INT {
+			printf("reading ui32 bin %d\n", count)
+			for i := 0; i < count; i++ {
+				for c := 0; c < componentCount; c++ {
+					var value ui32 = os.ReadUI32(uri)
+					//printf("ui32 %d/%d : %d\n", i * componentCount + c, count * componentCount, value)
+					dataUI32 = append(dataUI32, value)
+				}
+			}
+		} else {
+			printf("unhandled buffer format %d\n", componentType)
+			out = AssetInvalid()
+			return
+		}
+
+		accessors[a].dataF32 = dataF32
+		accessors[a].dataUI16 = dataUI16
+		accessors[a].dataUI32 = dataUI32
+
+		//printf("length %d\n", length)
+	}
+}
+
+
+

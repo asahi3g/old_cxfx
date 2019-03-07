@@ -1,0 +1,104 @@
+package main
+
+import "app"
+import "fps"
+import "gam"
+import "gfx"
+import "gui"
+import "mat"
+
+// Globals ...
+var gameScreen gui.ScreenId
+
+var ry f32 = 0.0
+
+var mesh gfx.MeshId
+var texture gfx.TextureId
+
+var rotate []f32
+var translate []f32
+var world [] f32
+
+var camera gam.FpsCameraId
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnEvent(controlIndex i32, controlAction i32) {
+	var key i32 = gui.CurrentEvent.keyboard.key
+	var action i32 = gui.CurrentEvent.keyboard.action
+	var mods i32 = gui.CurrentEvent.keyboard.mods
+	if mods == app.MOD_NONE {
+		if key == app.KEYCODE_ESCAPE && action == app.KEY_PRESS {
+			app.Exit()
+		}
+	}
+
+	gam.FpsCameraProcess(camera, &gui.CurrentEvent)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnUpdate(controlIndex i32, controlAction i32) {
+	gam.FpsCameraUpdate(camera, fps.DeltaTime(), 0.1, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y)
+	gam.FpsCameraApply(camera, &gfx.State)
+
+	ry = ry + f64.f32(fps.DeltaTime())
+
+	rotate = resize(rotate, 0)
+	rotate = mat.RotationY(rotate, ry)
+
+	translate = resize(translate, 0)
+	translate = mat.Translate(translate, 0.0, 0.0, -50.0)
+
+	world = resize(world, 0)
+	world = mat.Multiply(world, rotate, translate)
+
+	gfx.MeshBegin(mesh)
+	gfx.MeshAppendCube(mesh,
+		mat.v3_(0.0, 0.0, 0.0),
+		mat.v3_(10.0, 10.0, 10.0),
+		mat.v4_(1.0, 1.0, 1.0, 1.0))
+	gfx.MeshEnd(mesh)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnRender(controlIndex i32, controlAction i32) {
+	gfx.DisableBlending()
+	gfx.DepthState(true, gfx.LESS, true)
+	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, mat.v4_(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
+	gfx.EffectUse(gfx.g_fxPerspectiveTexture)
+	gfx.EffectAssignTexture(gfx.g_fxPerspectiveTexture, 0, texture)
+	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 1, world, false)
+	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 2, gam.FpsCameraGetView(camera), false)
+	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 3, gam.FpsCameraGetProjection(camera), false)
+	gfx.MeshRender(mesh)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func main()() {
+	// init
+	gam.Init("Camera Tutorial", 800, 600, 60, "")
+	mesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, 36, 36)
+	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
+		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
+	camera = gam.FpsCameraCreate()
+
+	// gameScreen
+	gameScreen = gui.ScreenCreate("gameScreen")
+	gui.ControlSetDock(gameScreen.base, gui.DOCK_FILL)
+	gui.ScreenSetDuration(gameScreen, -1.0D)
+	gui.ScreenSetOnEvent(gameScreen, "main", "gameOnEvent")
+	gui.ScreenSetOnUpdate(gameScreen, "main", "gameOnUpdate")
+	gui.ScreenSetOnRender(gameScreen, "main", "gameOnRender")
+
+	// run
+	gui.ScreenShow(gameScreen)
+	gam.Run()
+
+	// destroy
+	gfx.MeshUnlock(mesh)
+	gam.Destroy()
+}
+

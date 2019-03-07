@@ -1,0 +1,74 @@
+package fps
+
+import "time"
+
+// Globals ...
+var g_framerate Framerate
+
+// Framerate ...
+type Framerate struct {
+	currentTime f64
+	previousTime f64
+	deltaTime f64
+	fpsTime f64
+	frameTime f64
+	fps f64
+}
+
+// DeltaTime ...
+func DeltaTime()(out f64) {
+	out = g_framerate.deltaTime
+}
+
+// Init ...
+func Init(targetFps f64) {
+	g_framerate.currentTime = i64.f64(time.UnixNano()) / 1000000000.0D
+	g_framerate.previousTime = g_framerate.currentTime
+	g_framerate.deltaTime = 0.0D
+	g_framerate.fpsTime = 0.0D
+	g_framerate.frameTime = 0.0D
+	if targetFps > 0.0D {
+		g_framerate.frameTime = 1.0D / targetFps
+	}
+	g_framerate.fps = 0.0D
+}
+
+// BeginUpdate ...
+func BeginUpdate(elapsed f64) {
+	var tmp i64 = time.UnixNano()
+	g_framerate.currentTime = i64.f64(tmp) / 1000000000.0D
+
+	g_framerate.deltaTime = g_framerate.currentTime - g_framerate.previousTime
+	if g_framerate.deltaTime == g_framerate.currentTime {
+		g_framerate.deltaTime = g_framerate.frameTime
+	}
+
+	var full bool = false
+	if (g_framerate.currentTime - g_framerate.fpsTime > elapsed) {
+		g_framerate.fpsTime = g_framerate.currentTime
+		printf("fps : %d, dt : %fms\n", f64.i32((g_framerate.fps + 1.0D) / elapsed), f64.f32(g_framerate.deltaTime * 1000.0D))
+		g_framerate.fps = 0.0D
+		full = true
+		PrintProfiles() // ISSUE : garbage value when : len(g_profiles)
+	} else {
+		g_framerate.fps = g_framerate.fps + 1.0D
+	}
+
+	ClearProfiles(full) // ISSUE : garbage value when : len(g_profiles)
+}
+
+// EndUpdate ...
+func EndUpdate() {
+	if g_framerate.frameTime > 0.0D {
+		var updateTime f64 = i64.f64(time.UnixNano()) / 1000000000.0D
+
+		var deltaUpdateTime f64 = updateTime - g_framerate.currentTime
+		if (deltaUpdateTime < g_framerate.frameTime) {
+			var sleepTime f64 = 1000.0D * (g_framerate.frameTime - deltaUpdateTime)
+			time.Sleep(f64.i32(sleepTime))
+		}
+	}
+
+	g_framerate.previousTime = g_framerate.currentTime
+}
+

@@ -1,0 +1,166 @@
+package gfx
+
+// Globals ...
+var g_targets []Target
+
+// TargetId ...
+type TargetId struct {
+	target i32
+}
+
+// Target ...
+type Target struct {
+	id TargetId
+	framebuffer i32
+	color TextureId
+	depth TextureId
+	stencil TextureId
+}
+
+// InvalidTarget ...
+func InvalidTarget()(out TargetId) {
+	out.target = -1
+}
+
+// IsValidTarget ...
+func IsValidTarget(id TargetId) (out bool) {
+	out = id.target >= 0 && id.target < len(g_targets)
+}
+
+// TargetPrint ...
+func TargetPrint(message str, id TargetId) {
+	panicIfNot(IsValidTarget(id), "invalid target")
+	printf("%s : id %d, framebuffer %d\n", message, id.target, g_targets[id.target].framebuffer)
+	var color TextureId = g_targets[id.target].color
+	if IsValidTexture(color) {
+		TexturePrint(message, color)
+	}
+	var depth TextureId = g_targets[id.target].depth
+	if IsValidTexture(depth) {
+		TexturePrint(message, depth)
+	}
+	var stencil TextureId = g_targets[id.target].stencil
+	if IsValidTexture(stencil) {
+		TexturePrint(message, stencil)
+	}
+}
+
+// TargetCreate ...
+func TargetCreate() (out TargetId) {
+	out.target = len(g_targets)
+
+	var target Target
+	target.id = out
+	var framebuffer i32 = -1
+	framebuffer = gl.GenFramebuffers(1, framebuffer)
+	panicIf(GlError(), "gl.GenFramebuffers")
+	target.framebuffer = framebuffer
+	target.color = InvalidTexture()
+	target.depth = InvalidTexture()
+	target.stencil = InvalidTexture()
+
+	g_targets = append(g_targets, target)
+	panicIfNot(IsValidTarget(out), "")
+}
+
+// TargetDestroy ...
+func TargetDestroy(target Target) () {
+}
+
+// TargetBind ...
+func TargetBind(id TargetId) {
+	panicIfNot(IsValidTarget(id), "")
+	//TargetPrint("TargetBind", id)
+	bindFramebuffer(g_targets[id.target].framebuffer)
+}
+
+// TargetAttachColor ...
+func TargetAttachColor(id TargetId, texture TextureId) {
+	panicIfNot(IsValidTarget(id), "")
+	targetAttachTexture(id, gl.COLOR_ATTACHMENT0, texture)
+	g_targets[id.target].color = texture
+}
+
+// TargetAttachDepth ...
+func TargetAttachDepth(id TargetId, depth TextureId) {
+	panicIfNot(IsValidTarget(id), "")
+	targetAttachTexture(id, gl.DEPTH_ATTACHMENT, depth)
+	g_targets[id.target].depth = depth
+}
+
+// TargetAttachStencil ...
+func TargetAttachStencil(id TargetId, stencil TextureId) {
+	panicIfNot(IsValidTarget(id), "invalid target")
+	targetAttachTexture(id, gl.STENCIL_ATTACHMENT, stencil)
+	g_targets[id.target].stencil = stencil
+}
+
+// TargetGetColor ...
+func TargetGetColor(id TargetId) (out TextureId) {
+	panicIfNot(IsValidTarget(id), "invalid target")
+	out = g_targets[id.target].color
+}
+
+// TargetTryGetColor ...
+func TargetTryGetColor(id TargetId) (out TextureId) {
+	if IsValidTarget(id) {
+		out = g_targets[id.target].color
+	} else {
+		out = InvalidTexture()
+	}
+}
+
+// DestroyTargets ...
+func DestroyTargets() {
+	var count i32 = len(g_targets)
+	for i := 0; i < count; i++ {
+		gl.DeleteFramebuffers(1, g_targets[i].framebuffer)
+		panicIf(GlError(), "g.DeleteFramebuffers")
+	}
+}
+
+// ResizeTargets ...
+func ResizeTargets(width i32, height i32) {
+	var count i32 = len(g_targets)
+	for i := 0; i < count; i++ {
+		var id TargetId = g_targets[i].id
+		var color TextureId = g_targets[i].color
+		if IsValidTexture(color) {
+			TextureResize(color, width, height)
+			TextureSamplerState(color, g_nearestClamp)
+			TargetAttachColor(id, color)
+		}
+
+		var depth TextureId = g_targets[i].depth
+		if IsValidTexture(depth) {
+			TextureResize(depth, width, height)
+			TextureSamplerState(depth, g_nearestClamp)
+			TargetAttachDepth(id, depth)
+		}
+
+		var stencil TextureId = g_targets[i].stencil
+		if IsValidTexture(stencil) {
+			TextureResize(stencil, width, height)
+			TextureSamplerState(stencil, g_nearestClamp)
+			TargetAttachStencil(id, stencil)
+		}
+	}
+}
+
+func targetAttachTexture(id TargetId, attachment i32, texture TextureId) {
+	panicIfNot(IsValidTarget(id), "")
+	bindFramebuffer(g_targets[id].framebuffer)
+	//TexturePrint("targetAttachTexture", texture)
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, TextureName(texture), 0)
+	panicIf(GlError(), "gl.FramebufferTexture2D")
+	panicIf(GlStatus(), "gl.CheckFramebufferStatus")
+}
+
+// TODO renderbuffers
+// TargetAttachBuffer ...
+//	renderbuffer = gl.GenRenderbuffers(1, renderbuffer)
+//	gl.BindRenderbuffer(gl.RENDERBUFFER, renderbuffer)
+//	gl.RenderbufferStorage(gl.RENDERBUFFER, format, w, h)
+//	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthbuffer)
+//	gl.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, stencilbuffer)
+

@@ -1,0 +1,202 @@
+package main
+
+import "app"
+import "fps"
+import "gam"
+import "gfx"
+import "gui"
+import "mat"
+
+// Globals ...
+var gameScreen gui.ScreenId
+
+var ry f32 = 0.0
+
+var groundMesh gfx.MeshId
+var cubeMesh gfx.MeshId
+var texture gfx.TextureId
+
+var rotate []f32
+var translate []f32
+var world [] f32
+var identity [] f32
+
+var camera gam.FpsCameraId
+
+var g_synths []Synth
+var g_synthCount i32 = 64
+
+var worldSizeX f32 = 2000.0
+var worldSizeZ f32 = 2000.0
+
+var worldCellX i32 = 64
+var worldCellZ i32 = 64
+
+var groundWidth i32 = 16
+var groundHeight i32 = 16
+
+// Synth ...
+type Synth struct {
+	rx f32
+	ry f32
+	tx f32
+	ty f32
+	tz f32
+	time f32
+	frame i32
+	animation gui.AnimationId
+	batch gfx.BatchId
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnEvent(controlIndex i32, controlAction i32) {
+	var key i32 = gui.CurrentEvent.keyboard.key
+	var action i32 = gui.CurrentEvent.keyboard.action
+	var mods i32 = gui.CurrentEvent.keyboard.mods
+	if mods == app.MOD_NONE {
+		if key == app.KEYCODE_ESCAPE && action == app.KEY_PRESS {
+			app.Exit()
+		}
+	}
+
+	gam.FpsCameraProcess(camera, &gui.CurrentEvent)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnUpdate(controlIndex i32, controlAction i32) {
+	gam.FpsCameraUpdate(camera, fps.DeltaTime(), 0.1, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y)
+	gam.FpsCameraApply(camera, &gfx.State)
+
+	var dt f32 = f64.f32(fps.DeltaTime())
+
+	ry = ry + dt
+
+	rotate = resize(rotate, 0)
+	rotate = mat.RotationY(rotate, ry)
+
+	translate = resize(translate, 0)
+	translate = mat.Translate(translate, 0.0, 0.0, 0.0)
+
+	world = resize(world, 0)
+	world = mat.Multiply(world, rotate, translate)
+
+	gfx.MeshBegin(cubeMesh)
+	gfx.MeshAppendCube(cubeMesh,
+		mat.v3_(0.0, 0.0, 0.0),
+		mat.v3_(10.0, 10.0, 10.0),
+		mat.v4_(1.0, 1.0, 1.0, 1.0))
+	gfx.MeshEnd(cubeMesh)
+
+	gfx.MeshBegin(groundMesh)
+	gfx.MeshAppendPlane(groundMesh,
+		mat.v3_(-worldSizeX / 2.0, -10.0, -worldSizeZ / 2.0),
+		mat.v3_(worldSizeX, 0.0, 0.0),
+		mat.v3_(0.0, 0.0, worldSizeZ),
+		groundWidth, groundHeight,
+		mat.v4_(0.0, 0.0, 10.0, 10.0),
+		mat.v4_(1.0, 1.0, 1.0, 1.0))
+	gfx.MeshEnd(groundMesh)
+
+	for i := 0; i < g_synthCount; i++ {
+		var ty f32 = g_synths[i].ty
+		var frame i32 = g_synths[i].frame
+		var frameCount i32 = 0
+		var animation AnimationId
+		if ty <= 0.0 {
+			ty = 500.0 + f32.rand() * 100.0
+			animation = gui.g_synthAnim
+			frameCount = gui.AnimationFrameCount(animation)
+			frame = 0//i32.rand(0, frameCount)
+			g_synths[i].animation = animation
+			g_synths[i].tx = i32.f32(i32.rand(0, worldCellX)) * worldSizeX / i32.f32(worldCellX) - worldSizeX / 2.0
+			g_synths[i].tz = i32.f32(i32.rand(0, worldCellZ)) * worldSizeZ / i32.f32(worldCellZ) - worldSizeZ / 2.0
+		} else {
+			animation = g_synths[i].animation
+			frameCount = gui.AnimationFrameCount(animation)
+			//frame++
+			if frame >= frameCount {
+				frame = 0
+			}
+			ty = ty - 20.0 * dt + f32.rand() * 10.0 * dt
+		}
+
+		var textureId gfx.TextureId = gui.AnimationGetFrame(animation, frame) // ISSUE : can't be named texture : silently clash with global variable
+		var batch gfx.BatchId = gfx.GetBatch(gfx.g_fxPerspectiveTexture, textureId, 0, gfx.g_linearClamp, false, g_synthCount * 12)
+		g_synths[i].batch = batch
+		g_synths[i].frame = frame
+		g_synths[i].ty = ty
+	}
+
+	gfx.BeginBatches()
+	for i := 0; i < g_synthCount; i++ {
+		var batch gfx.BatchId = g_synths[i].batch
+		var mesh gfx.MeshId = gfx.BatchGetMesh(batch)
+		var tx f32 = g_synths[i].tx
+		var ty f32 = g_synths[i].ty
+		var tz f32 = g_synths[i].tz
+		gfx.MeshAppendCube(mesh,
+			mat.v3_(tx, ty, tz),
+			mat.v3_(20.0, 20.0, 20.0),
+			mat.v4_(1.0, 1.0, 1.0, 1.0))
+	}
+	gfx.EndBatches()
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func gameOnRender(controlIndex i32, controlAction i32) {
+	gfx.DisableBlending()
+	gfx.DepthState(true, gfx.LESS, true)
+	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, mat.v4_(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
+	gfx.EffectUse(gfx.g_fxPerspectiveTexture)
+	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 2, gam.FpsCameraGetView(camera), false)
+	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 3, gam.FpsCameraGetProjection(camera), false)
+
+	// cubeMesh
+	gfx.EffectAssignTexture(gfx.g_fxPerspectiveTexture, 0, texture)
+	gfx.TextureSamplerState(texture, gfx.g_linearWrap)
+	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 1, world, false)
+	// ISSUE : can't use gfx.State.View : error: 13_camera.cx:154 function 'EffectAssignMatrix4' expected input argument of type '[]f32'; 'f32' was provided
+	gfx.MeshRender(cubeMesh)
+
+	// groundMesh
+	gfx.EffectAssignTexture(gfx.g_fxPerspectiveTexture, 0, texture)
+	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 1, identity, false)
+	gfx.MeshRender(groundMesh)
+
+	gfx.RenderBatches(false)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+func main()() {
+	// init
+	gam.Init("Batch Tutorial", 800, 600, 60, "")
+	cubeMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, 36, 36)
+	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, 6 * groundWidth * groundHeight, 6 * groundWidth * groundHeight)
+	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
+		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
+	camera = gam.FpsCameraCreate()
+	identity = mat.Identity(identity)
+	g_synths = resize(g_synths, g_synthCount)
+
+	// gameScreen
+	gameScreen = gui.ScreenCreate("gameScreen")
+	gui.ControlSetDock(gameScreen.base, gui.DOCK_FILL)
+	gui.ScreenSetDuration(gameScreen, -1.0D)
+	gui.ScreenSetOnEvent(gameScreen, "main", "gameOnEvent")
+	gui.ScreenSetOnUpdate(gameScreen, "main", "gameOnUpdate")
+	gui.ScreenSetOnRender(gameScreen, "main", "gameOnRender")
+
+	// run
+	gui.ScreenShow(gameScreen)
+	gam.Run()
+
+	// destroy
+	gfx.MeshUnlock(cubeMesh)
+	gfx.MeshUnlock(groundMesh)
+	gam.Destroy()()
+}
+
