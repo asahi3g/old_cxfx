@@ -15,12 +15,22 @@ var gameScreen gui.ScreenId
 
 var ry f32 = 0.0
 
-var model gfx.ModelId
+var modelPaths []str
+
+var models []gfx.ModelId
+var scales []f32
+var rotations []f32
+
+var currentModel i32
+
 var skyMesh gfx.MeshId
 var groundMesh gfx.MeshId
 var texture gfx.TextureId
-var skyTexture gfx.TextureId
+var skyDiffuse gfx.TextureId
+var skySpecular gfx.TextureId
+var brdf gfx.TextureId
 
+var scale []f32 = mat.MatrixAlloc()
 var rotate []f32 = mat.MatrixAlloc()
 var translate []f32 = mat.MatrixAlloc()
 var world [] f32 = mat.MatrixAlloc()
@@ -58,6 +68,30 @@ type Synth struct {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 func gameOnEvent(controlIndex i32, controlAction i32) {
+	var key i32 = gui.CurrentEvent.keyboard.key
+	var action i32 = gui.CurrentEvent.keyboard.action
+	var mods i32 = gui.CurrentEvent.keyboard.mods
+	if mods == app.MOD_NONE {
+		if key == app.KEYCODE_ESCAPE && action == app.KEY_PRESS {
+			app.Exit()
+		}
+	} else if mods == app.MOD_CTRL && action == app.KEY_PRESS {
+		if key == app.KEYCODE_LEFT {
+			if currentModel <= 0 {
+				currentModel = len(models)
+			}
+			currentModel = currentModel - 1
+			ry = 0.0
+		} else if key == app.KEYCODE_RIGHT {
+			currentModel = (currentModel + 1) % len(models)
+			ry = 0.0
+		} else if key == app.KEYCODE_UP {
+			rotations[currentModel] = rotations[currentModel] + 1.0
+		} else if key == app.KEYCODE_DOWN {
+			rotations[currentModel] = rotations[currentModel] - 1.0
+		}
+	}
+
 	gam.FpsCameraProcess(camera, &gui.CurrentEvent)
 }
 
@@ -69,20 +103,23 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 
 	var dt f32 = f64.f32(fps.DeltaTime())
 
-	ry = ry + dt
+	var s f32 = scales[currentModel]
+	scale = mat.MatrixCreateScale(scale, s, s, s)
 
+	ry = ry + dt * rotations[currentModel]
 	rotate = mat.MatrixCreateRotationY(rotate, ry)
 
 	translate = mat.MatrixCreateTranslation(translate, 0.0, 0.0, 0.0)
 
-	world = mat.MatrixMultiply(world, rotate, translate)
+	world = mat.MatrixMultiply(world, rotate, scale)
+	world = mat.MatrixMultiply(world, translate, world)
 
-	var scale f32 = 20.0
+	var groundScale f32 = 20.0
 	gfx.MeshBegin(groundMesh)
 	gfx.MeshAppendPlane(groundMesh,
-		mat.v3_(-worldSizeX / (2.0 * scale), -10.0, -worldSizeZ / (2.0 * scale)),
-		mat.v3_(worldSizeX / scale, 0.0, 0.0),
-		mat.v3_(0.0, 0.0, worldSizeZ / scale),
+		mat.v3_(-worldSizeX / (2.0 * groundScale), -10.0, -worldSizeZ / (2.0 * groundScale)),
+		mat.v3_(worldSizeX / groundScale, 0.0, 0.0),
+		mat.v3_(0.0, 0.0, worldSizeZ / groundScale),
 		groundWidth, groundHeight,
 		mat.v4_(0.0, 0.0, 10.0, 10.0),
 		mat.v4_(1.0, 1.0, 1.0, 1.0))
@@ -145,6 +182,7 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 func gameOnRender(controlIndex i32, controlAction i32) {
 	var view []f32 = gam.FpsCameraGetView(camera)
 	var projection []f32 = gam.FpsCameraGetProjection(camera)
+	var cameraPosition mat.v3 = gam.FpsCameraGetPosition(camera)
 
 	gfx.DisableBlending()
 	gfx.DepthState(true, gfx.LESS, true)
@@ -152,19 +190,15 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 
 	//skyMesh
 	gfx.EffectUse(gfx.g_fxPerspectiveSky)
-	gfx.EffectAssignTexture(gfx.g_fxPerspectiveSky, 0, skyTexture)
-	gfx.TextureSamplerState(skyTexture, gfx.g_linearWrap)
+	gfx.EffectAssignTexture(gfx.g_fxPerspectiveSky, 0, skySpecular)
+	gfx.TextureSamplerState(skySpecular, gfx.g_linearWrap)
 	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveSky, 1, identity, false)
 	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveSky, 2, view, false)
 	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveSky, 3, projection, false)
 	gfx.MeshRender(skyMesh)
 
-
-	// model
-	gfx.ModelSetWorld(model, identity)
-	gfx.ModelSetView(model, view)
-	gfx.ModelSetProjection(model, projection)
-	gfx.ModelRender(model, false)
+	//gfx.DisableBlending()
+	//gfx.DepthState(true, gfx.LESS, true)
 
 	// groundMesh
 	gfx.EffectUse(gfx.g_fxPerspectiveTexture)
@@ -176,6 +210,32 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 	gfx.MeshRender(groundMesh)
 
 	gfx.RenderBatches(false)
+
+	// model
+	var model gfx.ModelId = models[currentModel]
+
+	gfx.ModelSetWorld(model, world)
+	gfx.ModelSetView(model, view)
+	gfx.ModelSetProjection(model, projection)
+	gfx.ModelSetEnvironmentSpecular(model, skySpecular)
+	gfx.ModelSetEnvironmentDiffuse(model, skyDiffuse)
+	gfx.ModelSetBRDF(model, brdf)
+	gfx.ModelSetCameraPosition(model, cameraPosition)
+	gfx.DisableBlending()
+	gfx.DepthState(true, gfx.LESS, true)
+	gfx.ModelRender(model, false)
+
+	gfx.ModelSetWorld(model, world)
+	gfx.ModelSetView(model, view)
+	gfx.ModelSetProjection(model, projection)
+	gfx.ModelSetEnvironmentSpecular(model, skySpecular)
+	gfx.ModelSetEnvironmentDiffuse(model, skyDiffuse)
+	gfx.ModelSetBRDF(model, brdf)
+	gfx.ModelSetCameraPosition(model, cameraPosition)
+	gfx.EnableBlending(gfx.SRC_ALPHA, gfx.ONE_MINUS_SRC_ALPHA)
+	gfx.DepthState(true, gfx.LESS, false)
+	gfx.ModelRender(model, true)
+
 }
 
 //-----------------------------------------------------------------------------
@@ -208,15 +268,38 @@ func onExitButton(controlIndex i32, controlAction i32) {
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+func loadModel(path str, filename str, s f32, r f32) {
+	var model gfx.ModelId = gfx.ModelCreateFromFile(sprintf("%s/models/%s/", app.DataDir(), path), filename)
+	models = append(models, model)
+
+	scales = append(scales, s)
+	rotations = append(rotations, r)
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 func main()() {
 	// init
-	gam.Init("Button Tutorial", 800, 600, 60, "")
-	model = gfx.ModelCreateFromFile(sprintf("%s/models/MetalRoughSpheres/", app.DataDir()), "MetalRoughSpheres.gltf") 
+	gam.Init("Button Tutorial", 1024, 768, 60, "")
+
+	loadModel("glTF-Sample-Models/Box/glTF", "Box.gltf", 1.0, 1.0)
+	loadModel("glTF-Sample-Models/Duck/glTF", "Duck.gltf", 1.0, 1.0)
+	loadModel("glTF-Sample-Models/MetalRoughSpheres/glTF", "MetalRoughSpheres.gltf", 1.0, 0.0)
+	loadModel("Skyminer", "skyminer_2_sans_materials.gltf", 0.07, 1.0)
+	loadModel("Skyminer", "skyminer_2_avec_materials.gltf", 0.07, 1.0)
+	loadModel("glTF-Sample-Models/DamagedHelmet/glTF", "DamagedHelmet.gltf", 3.0, 1.0)
+	loadModel("glTF-Sample-Models/BoomBox/glTF", "BoomBox.gltf", 200.0, 1.0)
+	loadModel("glTF-Sample-Models/Sponza/glTF", "Sponza.gltf", 10.0, 0.0)
+
 	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, 6 * groundWidth * groundHeight, 6 * groundWidth * groundHeight)
 	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
-	skyTexture = gfx.TextureCreateCube(sprintf("%s/textures/skybox/", app.DataDir()), ".jpg",
+	skySpecular = gfx.TextureCreateCube(sprintf("%s/textures/skybox/", app.DataDir()), ".jpg",
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
+	skyDiffuse= gfx.TextureCreateCube(sprintf("%s/textures/irradiance/", app.DataDir()), ".png",
+		gfx.FORMAT_R8_G8_B8_A8, 0, 0, 0, false)
+	brdf = gfx.TextureCreate(sprintf("%s/textures/brdfLUT.png", app.DataDir()),
+		gfx.FORMAT_R8_G8_B8_A8, 0, 0, 0, false)
 
 	camera = gam.FpsCameraCreate()
 	identity = mat.MatrixIdentity(identity)
