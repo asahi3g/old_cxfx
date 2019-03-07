@@ -73,32 +73,34 @@ func FpsCameraCreate() (out FpsCameraId) {
 	var camera FpsCamera
 	camera.id = out
 
-	var rotateX []f32
+	var rotateX []f32 = mat.MatrixAlloc()
 	rotateX = mat.MatrixIdentity(rotateX)
 	camera.rotateX = rotateX
 
-	var rotateY []f32
+	var rotateY []f32 = mat.MatrixAlloc()
 	rotateY = mat.MatrixIdentity(rotateY)
 	camera.rotateY = rotateY
 
-	var rotate []f32
+	var rotate []f32 = mat.MatrixAlloc()
 	rotate = mat.MatrixIdentity(rotate)
 	camera.rotate = rotate
 	//camera.rotate = mat.MatrixIdentity(camera.rotate) // ISSUE : function 'MatrixIdentity' expected input argument of type '[]f32'; 'f32' was provided
 
-	var translate []f32
+	var translate []f32 = mat.MatrixAlloc()
 	translate = mat.MatrixIdentity(translate)
 	camera.translate = translate
-	//camera.translate = mat.MatrixIdentity(camera.translate)
 
-	var transform []f32
+	var transform []f32 = mat.MatrixAlloc()
 	transform = mat.MatrixIdentity(transform)
 	camera.transform = transform
 
-	var view []f32
+	var view []f32 = mat.MatrixAlloc()
 	view = mat.MatrixIdentity(view)
 	camera.view = view
-	//camera.view = mat.MatrixIdentity(camera.view)
+
+	var projection []f32 = mat.MatrixAlloc()
+	projection = mat.MatrixIdentity(projection)
+	camera.projection = projection
 
 	g_fpsCameras = append(g_fpsCameras, camera)
 
@@ -175,10 +177,8 @@ func FpsCameraUpdate(id FpsCameraId, deltaTime f64, near f32, far f32, fov f32, 
 
 	var projection []f32
 	projection = g_fpsCameras[id.camera].projection
-	projection = resize(projection, 0)
-	projection = mat.ProjectionMatrix(projection, near, far, fov, width, height)
+	projection = mat.MatrixCreateProjection(projection, near, far, fov, width, height)
 	g_fpsCameras[id.camera].projection = projection
-	//camera.projection = mat.MatrixIdentity(camera.projection)
 
 	var rotationSpeed f32 = 0.5
 	var translationSpeed f32 = 30.0
@@ -214,38 +214,31 @@ func FpsCameraUpdate(id FpsCameraId, deltaTime f64, near f32, far f32, fov f32, 
 
 	var translate []f32
 	translate = g_fpsCameras[id.camera].translate
-	translate = resize(translate, 0)
 	translate = mat.MatrixCreateTranslation(translate, position.x, position.y, position.z) // ISSUE : can't use this.translate or g_fpsCameras[id.camera].translate : function 'Translate' expected input argument of type '[]f32'; 'f32' was provided
 	g_fpsCameras[id.camera].translate = translate
 
 	var rotateY []f32
 	rotateY = g_fpsCameras[id.camera].rotateY
-	rotateY = resize(rotateY, 0)
 	rotateY = mat.MatrixCreateRotationY(rotateY, rotation.y)
 	g_fpsCameras[id.camera].rotateY = rotateY
 
 	var rotateX []f32
 	rotateX = g_fpsCameras[id.camera].rotateX
-	rotateX = resize(rotateX, 0)
 	rotateX = mat.MatrixCreateRotationX(rotateX, rotation.x)
 	g_fpsCameras[id.camera].rotateX = rotateX
 
 	var rotate []f32
 	rotate = g_fpsCameras[id.camera].rotate
-	rotate = resize(rotate, 16)
 	rotate = mat.MatrixMultiply(rotate, rotateX, rotateY)
 	g_fpsCameras[id.camera].rotate = rotate
 
 	//var transform []f32
 	//transform = g_fpsCameras[id.camera].transform
-	//transform = resize(transform, 16)
 	//transform = mat.MatrixMultiply(transform, rotate, translate)
 	//g_fpsCameras[id.camera].transform = transform
 
-	translate = resize(translate, 0)
 	translate = mat.MatrixCreateTranslation(translate, 0.0-position.x, 0.0-position.y, 0.0-position.z)
 	rotate = mat.MatrixTranspose(rotate)
-	view = resize(view, 16)
 	view = mat.MatrixMultiply(view, translate, rotate)
 	g_fpsCameras[id.camera].view = view
 

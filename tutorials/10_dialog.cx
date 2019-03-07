@@ -23,10 +23,10 @@ var groundMesh gfx.MeshId
 var texture gfx.TextureId
 var skyTexture gfx.TextureId
 
-var rotate []f32
-var translate []f32
-var world [] f32
-var identity [] f32
+var rotate []f32 = mat.MatrixAlloc()
+var translate []f32 = mat.MatrixAlloc()
+var world [] f32 = mat.MatrixAlloc()
+var identity [] f32 = mat.MatrixAlloc()
 
 var camera gam.FpsCameraId
 
@@ -73,13 +73,10 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 
 	ry = ry + dt
 
-	rotate = resize(rotate, 0)
 	rotate = mat.MatrixCreateRotationY(rotate, ry)
 
-	translate = resize(translate, 0)
 	translate = mat.MatrixCreateTranslation(translate, 0.0, 0.0, 0.0)
 
-	world = resize(world, 0)
 	world = mat.MatrixMultiply(world, rotate, translate)
 
 	var scale f32 = 20.0
@@ -169,7 +166,7 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 	gfx.ModelSetWorld(model, identity)
 	gfx.ModelSetView(model, view)
 	gfx.ModelSetProjection(model, projection)
-	gfx.ModelRender(model)
+	gfx.ModelRender(model, false)
 
 	// groundMesh
 	gfx.EffectUse(gfx.g_fxPerspectiveTexture)
