@@ -3,6 +3,7 @@ package gltf
 import "json"
 import "os"
 import "gl"
+import "mat"
 // Constants ...
 var HEADER_SIZE i32 = 12
 var CHUNK_HEADER_SIZE i32 = 8
@@ -53,11 +54,11 @@ var PRIMITIVE_LINE_STRIP i32 = 3
 var PRIMITIVE_TRIANGLES i32 = 4
 var PRIMITIVE_TRIANGLE_STRIP i32 = 5
 var PRIMIITVE_TRIANGLE_FAN i32 = 6
-/*
+
 var ALPHA_OPAQUE i32 = 0
 var ALPHA_MASK i32 = 1
 var ALPHA_BLEND i32 = 2
-
+/*
 var ANIMATION_PATH_INVALID i32 = 0
 var ANIMATION_PATH_TRANSLATION i32 = 1
 var ANIMATION_PATH_ROTATION i32 = 2
@@ -154,22 +155,21 @@ type TextureTransform struct {
 	scale [2]f32
 	texcoord i32
 }
-
-type TextureView struct {
-	texture i32
-	texcoord i32
-	scale f32
-	hasTransform bool
-	transform i32
-}
 */
+type TextureView struct {
+	index i32
+	//texcoord i32
+	scale f32
+	//hasTransform bool
+	//transform i32
+}
 
 type MetallicRoughness struct {
 	baseColorFactor [4]f32
-	baseColorTexture i32
+	baseColorTexture TextureView
 	metallicFactor f32
 	roughnessFactor f32
-	metallicRoughnessTexture i32
+	metallicRoughnessTexture TextureView
 }
 
 /*
@@ -185,13 +185,13 @@ type SpecularGlossiness struct {
 type Material struct {
 	name str
 	pbrMetallicRoughness MetallicRoughness
-	//normalTexture i32
-	//occlusionTexture i32
-	//emissiveTexture i32
+	normalTexture TextureView
+	occlusionTexture TextureView
+	emissiveTexture TextureView
 	emissiveFactor [4]f32
-	//alphaMode i32
+	alphaMode i32
 	//alphaCutoff f32
-	//doubleSided bool
+	doubleSided bool
 }
 
 /*
@@ -273,9 +273,9 @@ type Node struct {
 	//skin i32
 	matrix []f32
 	mesh i32
-	//rotation []f32
-	//scale []f32
-	//translation []f32
+	rotation []f32
+	scale []f32
+	translation []f32
 	//weights []f32
 	name str
 	//parent i32
@@ -377,6 +377,16 @@ func getJsonStr(file i32, value *str) (success bool) { // TODO : move in json
 	t := json.Type(file)
 	if t == json.TOKEN_STR {
 		*value = json.Str(file)
+		success = true
+	} else {
+		debugJson(file, t)
+	}
+}
+
+func getJsonBool(file i32, value *bool) (success bool) { // TODO : move in json
+	t := json.Type(file)
+	if t == json.TOKEN_BOOL {
+		*value = json.Bool(file)
 		success = true
 	} else {
 		debugJson(file, t)
@@ -662,10 +672,10 @@ func AssetPrint(id AssetId) { // TODO : format as json
 			materials[i].pbrMetallicRoughness.baseColorFactor[1],
 			materials[i].pbrMetallicRoughness.baseColorFactor[2],
 			materials[i].pbrMetallicRoughness.baseColorFactor[3])
-		printf("---- ---- ---- baseColorTexture %d\n", materials[i].pbrMetallicRoughness.baseColorTexture)
+		printf("---- ---- ---- baseColorTexture %d\n", materials[i].pbrMetallicRoughness.baseColorTexture.index)
 		printf("---- ---- ---- metallicFactor %f\n", materials[i].pbrMetallicRoughness.metallicFactor)
 		printf("---- ---- ---- roughnessFactor %f\n", materials[i].pbrMetallicRoughness.roughnessFactor)
-		printf("---- ---- ---- metallicRoughnessTexture %d\n", materials[i].pbrMetallicRoughness.metallicRoughnessTexture)
+		printf("---- ---- ---- metallicRoughnessTexture %d\n", materials[i].pbrMetallicRoughness.metallicRoughnessTexture.index)
 	}
 	printf("]\n")
 
@@ -792,24 +802,39 @@ func parseScenes(file i32, id AssetId) (out AssetId) {
 			return
 		}
 
-		json.Next(file)
-		var key str
-		if getJsonStr(file, &key) == false {
-			out = AssetInvalid()
-			return
-		}
+		var scene Scene
 
-		if key == "nodes" {
-			var nodes []i32
-			out, nodes = parseI32Array(file, id)
-			if AssetIsValid(out) == false {
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
 				return
 			}
 
-			var scene Scene
-			scene.nodes = nodes
-			g_assets[id.asset].scenes = append(g_assets[id.asset].scenes, scene)
+			if key == "nodes" {
+				var nodes []i32
+				out, nodes = parseI32Array(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+
+				scene.nodes = nodes
+			} else if key == "name" {
+				var name str
+				json.Next(file)
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				scene.name = name
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
 		}
+		g_assets[id.asset].scenes = append(g_assets[id.asset].scenes, scene)
 
 		json.Next(file)
 		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
@@ -1037,6 +1062,36 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 					return
 				}
 				node.matrix = matrix
+			} else if key == "rotation" {
+				var rotation []f32
+				out, rotation = parseF32Array(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				/*var r []f32 = node.rotation
+				r = resize(r, 16)
+				r = mat.MatrixCreateRotationFromQuaternion(r, rotation[0], rotation[1], rotation[2], rotation[3])*/
+				node.rotation = rotation
+			} else if key == "translation" {
+				var translation []f32
+				out, translation = parseF32Array(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				/*var t []f32 = node.translation
+				t = resize(t, 0)
+				t = mat.MatrixCreateTranslation(t, translation[0], translation[1], translation[2])*/
+				node.translation = translation
+			} else if key == "scale" {
+				var scale []f32
+				out, scale = parseF32Array(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				/*var s []f32 = node.scale
+				s = resize(s, 0)
+				s = mat.MatrixCreateScale(s, scale[0], scale[1], scale[2])*/
+				node.scale = scale
 			} else if key == "camera" {
 				json.Next(file)
 				var camera i32
@@ -1050,6 +1105,51 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 				out = AssetInvalid()
 				return
 			}
+		}
+
+		if len(node.matrix) != 16 {
+			if len(node.scale) != 3 {
+				var scale []f32
+				scale = append(scale, 1.0)
+				scale = append(scale, 1.0)
+				scale = append(scale, 1.0)
+				node.scale = scale
+			}
+
+			if len(node.rotation) != 4 {
+				var rotation []f32
+				rotation = append(rotation, 0.0)
+				rotation = append(rotation, 0.0)
+				rotation = append(rotation, 0.0)
+				rotation = append(rotation, 1.0)
+				node.rotation = rotation
+			}
+
+			if len(node.translation) != 3 {
+				var translation []f32
+				translation = append(translation, 0.0)
+				translation = append(translation, 0.0)
+				translation = append(translation, 0.0)
+				node.translation = translation
+			}
+
+			var sx f32 = node.scale[0]
+			var sy f32 = node.scale[1]
+			var sz f32 = node.scale[2]
+
+			var qx f32 = node.rotation[0]
+			var qy f32 = node.rotation[1]
+			var qz f32 = node.rotation[2]
+			var qw f32 = node.rotation[3]
+
+			var tx f32 = node.translation[0]
+			var ty f32 = node.translation[1]
+			var tz f32 = node.translation[2]
+
+			var m []f32 = node.matrix
+			m = resize(m, 16)
+			m = mat.MatrixCreate(m, sx, sy, sz, qx, qy, qz, qw, tx, ty, tz)
+			node.matrix = m
 		}
 
 		g_assets[id.asset].nodes = append(g_assets[id.asset].nodes, node)
@@ -1159,6 +1259,9 @@ func parsePrimitives(file i32, id AssetId) (out AssetId, primitives []Primitive)
 		}
 
 		var primitive Primitive
+		primitive.mode = gl.TRIANGLES
+		primitive.material = -1
+		primitive.indices = -1
 
 		for json.More(file) {
 			json.Next(file)
@@ -1428,10 +1531,65 @@ func parseAccessors(file i32, id AssetId) (out AssetId) {
 }
 
 //------------------------------------------------------------------------------
+func parseTexture(file i32, id AssetId) (out AssetId, texture TextureView) {
+	out = id
+	texture = InvalidTextureView()
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		var key str
+		json.Next(file)
+		if getJsonStr(file, &key) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		if key == "index" {
+			var index i32
+			json.Next(file)
+			if getJsonI32(file, &index) == false {
+				out = AssetInvalid()
+				return
+			}
+			texture.index = index
+		} else if key == "scale" {
+			var scale f32
+			json.Next(file)
+			if getJsonF32(file, &scale) == false {
+				out = AssetInvalid()
+				return
+			}
+			texture.scale = scale
+		}
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		out = AssetInvalid()
+		return
+	}
+}
+
+//------------------------------------------------------------------------------
 func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRoughness MetallicRoughness) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
 
 	out = id
+
+	metallicRoughness.baseColorFactor[0] = 1.0
+	metallicRoughness.baseColorFactor[1] = 1.0
+	metallicRoughness.baseColorFactor[2] = 1.0
+	metallicRoughness.baseColorFactor[3] = 1.0
+
+	metallicRoughness.metallicFactor = 1.0
+	metallicRoughness.roughnessFactor = 1.0
+
+	metallicRoughness.baseColorTexture = InvalidTextureView()
+	metallicRoughness.metallicRoughnessTexture = InvalidTextureView()
 
 	json.Next(file)
 	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
@@ -1455,34 +1613,22 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 				return
 			}
 			metallicRoughness.baseColorFactor = baseColorFactor
-		} else if key == "baseColorTexture" { // TODO : refactor parseIndex (metallicRoughnessTexture)
-			json.Next(file)
-			if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
-				out = AssetInvalid()
+		} else if key == "baseColorTexture" {
+			var texture TextureView
+			out, texture = parseTexture(file, id)
+			if AssetIsValid(out) == false {
 				return
 			}
-
-			var index str
+			metallicRoughness.baseColorTexture = texture
+		} else if key == "roughnessFactor" {
+			var roughnessFactor f32
 			json.Next(file)
-			if getJsonStr(file, &index) == false {
+			if getJsonF32(file, &roughnessFactor) == false {
 				out = AssetInvalid()
+				printf("fail to parse roughnessFactor\n")
 				return
 			}
-
-			var value i32
-			json.Next(file)
-			if getJsonI32(file, &value) == false {
-				out = AssetInvalid()
-				return
-			}
-
-			json.Next(file)
-			if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
-				out = AssetInvalid()
-				return
-			}
-
-			metallicRoughness.baseColorTexture = value
+			metallicRoughness.roughnessFactor = roughnessFactor
 		} else if key == "metallicFactor" {
 			var metallicFactor f32
 			json.Next(file)
@@ -1492,33 +1638,13 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 				return
 			}
 			metallicRoughness.metallicFactor = metallicFactor
-	   } else if key == "metallicRoughnessTexture" { // TODO : refactor parseIndex (baseColorTexture)
-			json.Next(file)
-			if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
-				out = AssetInvalid()
+	   } else if key == "metallicRoughnessTexture" {
+			var texture TextureView
+			out, texture = parseTexture(file, id)
+			if AssetIsValid(out) == false {
 				return
 			}
-
-			var index str
-			json.Next(file)
-			if getJsonStr(file, &index) == false {
-				out = AssetInvalid()
-				return
-			}
-
-			var value i32
-			json.Next(file)
-			if getJsonI32(file, &value) == false {
-				out = AssetInvalid()
-				return
-			}
-
-			json.Next(file)
-			if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
-				out = AssetInvalid()
-				return
-			}
-			metallicRoughness.metallicRoughnessTexture = value
+			metallicRoughness.metallicRoughnessTexture = texture
 	   } else {
 			printf("invalid key %s\n", key)
 			out = AssetInvalid()
@@ -1554,6 +1680,9 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 		}
 
 		var material Material
+		material.emissiveTexture = InvalidTextureView()
+		material.normalTexture = InvalidTextureView()
+		material.occlusionTexture = InvalidTextureView()
 
 		for json.More(file) {
 			json.Next(file)
@@ -1570,6 +1699,49 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 					return
 				}
 				material.pbrMetallicRoughness = pbrMetallicRoughness
+			} else if key == "alphaMode" {
+				var alphaMode str
+				json.Next(file)
+				if getJsonStr(file, &alphaMode) == false {
+					out = AssetInvalid()
+					return
+				}
+
+				if alphaMode == "OPAQUE" {
+					material.alphaMode = ALPHA_OPAQUE
+				} else if alphaMode == "MASK" {
+					material.alphaMode = ALPHA_BLEND // TODO : imploment ALPHA_MASK
+					//printf("unhandled alphaMode %s\n", alphaMode)
+					//out = AssetInvalid()
+					//return
+				} else if alphaMode == "BLEND" {
+					material.alphaMode = ALPHA_BLEND
+				} else {
+					printf("invalid alphaMode %s\n", alphaMode)
+					out = AssetInvalid()
+					return
+				}
+			} else if key == "normalTexture" {
+				var texture TextureView
+				out, texture = parseTexture(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				material.normalTexture = texture
+			} else if key == "occlusionTexture" {
+				var texture TextureView
+				out, texture = parseTexture(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				material.occlusionTexture = texture
+			} else if key == "emissiveTexture" {
+				var texture TextureView
+				out, texture = parseTexture(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				material.emissiveTexture = texture
 			} else if key == "emissiveFactor" {
 				var emissiveFactor [4]f32
 				if getJsonF32Vec4(file, &emissiveFactor) == false {
@@ -1577,7 +1749,15 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 					return
 				}
 				material.emissiveFactor = emissiveFactor
- 			} else if key == "name" {
+			} else if key == "doubleSided" {
+				var doubleSided bool
+				json.Next(file)
+				if getJsonBool(file, &doubleSided) == false {
+					out = AssetInvalid()
+					return
+				}
+				material.doubleSided = doubleSided
+			} else if key == "name" {
 				var name str
 				json.Next(file)
 				if getJsonStr(file, &name) == false {
@@ -1609,6 +1789,12 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 	out = AssetInvalid()
 }
 
+// InvalidTextureView ...
+func InvalidTextureView() (out TextureView) {
+	out.index = -1
+	out.scale = 1.0
+}
+
 //------------------------------------------------------------------------------
 func parseTextures(file i32, id AssetId) (out AssetId) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
@@ -1629,6 +1815,8 @@ func parseTextures(file i32, id AssetId) (out AssetId) {
 		}
 
 		var texture Texture
+		texture.source = -1
+		texture.sampler = -1
 
 		for json.More(file) {
 			json.Next(file)
@@ -2057,20 +2245,27 @@ func AssetGetMaterial(id AssetId, material i32) (out Material) { // TODO : handl
 	}
 }
 
+// AssetIsValidTexture ...
+func AssetIsValidTexture(id AssetId, texture i32) (out bool) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var textures []Texture = g_assets[id.asset].textures
+	out = texture >= 0 && texture < len(textures)
+}
+
 // AssetGetTexture ...
 func AssetGetTexture(id AssetId, texture i32) (out Texture) { // TODO :handle errors
-	panicIfNot(AssetIsValid(id), "invalid asset")
-
-	var textures []Texture = g_assets[id.asset].textures
-
-	if texture >= 0 && texture < len(textures) {
-		out = textures[texture]
+	out.sampler = -1
+	out.source = -1
+	if AssetIsValidTexture(id, texture) {
+		out = g_assets[id.asset].textures[texture]
 	}
 }
 
 // AssetGetImage ...
 func AssetGetImage(id AssetId, image i32) (out Image) { // TODO : handle errors
 	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out.bufferView = -1
 
 	var images []Image = g_assets[id.asset].images
 
@@ -2106,6 +2301,30 @@ func NodeGetMatrix(id AssetId, node i32) (out []f32) {
 
 	var nodes []Node = g_assets[id.asset].nodes
 	out = nodes[node].matrix
+}
+
+// NodeGetRotation...
+func NodeGetRotation(id AssetId, node i32) (out []f32) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var nodes []Node = g_assets[id.asset].nodes
+	out = nodes[node].rotation
+}
+
+// NodeGetTranslation ...
+func NodeGetTranslation(id AssetId, node i32) (out []f32) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var nodes []Node = g_assets[id.asset].nodes
+	out = nodes[node].translation
+}
+
+// NodeScale ...
+func NodeGetScale(id AssetId, node i32) (out []f32) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	var nodes []Node = g_assets[id.asset].nodes
+	out = nodes[node].scale
 }
 
 // NodeGetChildren ...
@@ -2186,9 +2405,9 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 					out = parseNodes(file, out)
 					printf("<<<<<<<<<<<<< parse NODES\n")
 				} else if key == "cameras" {
-					printf(">>>>>>>>>>>>> parse NODES\n")
+					printf(">>>>>>>>>>>>> parse CAMERAS\n")
 					out = parseCameras(file, out)
-					printf("<<<<<<<<<<<<< parse NODES\n")
+					printf("<<<<<<<<<<<<< parse CAMERAS\n")
 				} else if key == "meshes" {
 					printf(">>>>>>>>>>>>> parse MESHES\n")
 					out = parseMeshes(file, out)
@@ -2226,7 +2445,7 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 					out = AssetInvalid()
 				}
 				//printf("<<<<<<<<<<<<<  parse %s\n", key)
-	
+
 				if AssetIsValid(out) == false {
 					printf("failed to load asset\n")
 					return
@@ -2235,6 +2454,7 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 		}
 	}
 
+	printf("--------------ASSET %d\n", out.asset)
 	var accessors []Accessor = g_assets[out.asset].accessors
 	var accessorCount i32 = len(accessors)
 

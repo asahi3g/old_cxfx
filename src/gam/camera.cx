@@ -48,6 +48,12 @@ func IsValidFpsCamera(id FpsCameraId) (out bool) {
 	out = id.camera >= 0 && id.camera < len(g_fpsCameras)
 }
 
+// FpsCameraGetPosition ...
+func FpsCameraGetPosition(id FpsCameraId) (out mat.v3) {
+	panicIfNot(IsValidFpsCamera(id), "")
+	out = g_fpsCameras[id.camera].position
+}
+
 // FpsCameraGetView ...
 func FpsCameraGetView(id FpsCameraId) (out []f32) {
 	panicIfNot(IsValidFpsCamera(id), "")
@@ -68,31 +74,31 @@ func FpsCameraCreate() (out FpsCameraId) {
 	camera.id = out
 
 	var rotateX []f32
-	rotateX = mat.Identity(rotateX)
+	rotateX = mat.MatrixIdentity(rotateX)
 	camera.rotateX = rotateX
 
 	var rotateY []f32
-	rotateY = mat.Identity(rotateY)
+	rotateY = mat.MatrixIdentity(rotateY)
 	camera.rotateY = rotateY
 
 	var rotate []f32
-	rotate = mat.Identity(rotate)
+	rotate = mat.MatrixIdentity(rotate)
 	camera.rotate = rotate
-	//camera.rotate = mat.Identity(camera.rotate) // ISSUE : function 'Identity' expected input argument of type '[]f32'; 'f32' was provided
+	//camera.rotate = mat.MatrixIdentity(camera.rotate) // ISSUE : function 'MatrixIdentity' expected input argument of type '[]f32'; 'f32' was provided
 
 	var translate []f32
-	translate = mat.Identity(translate)
+	translate = mat.MatrixIdentity(translate)
 	camera.translate = translate
-	//camera.translate = mat.Identity(camera.translate)
+	//camera.translate = mat.MatrixIdentity(camera.translate)
 
 	var transform []f32
-	transform = mat.Identity(transform)
+	transform = mat.MatrixIdentity(transform)
 	camera.transform = transform
 
 	var view []f32
-	view = mat.Identity(view)
+	view = mat.MatrixIdentity(view)
 	camera.view = view
-	//camera.view = mat.Identity(camera.view)
+	//camera.view = mat.MatrixIdentity(camera.view)
 
 	g_fpsCameras = append(g_fpsCameras, camera)
 
@@ -172,7 +178,7 @@ func FpsCameraUpdate(id FpsCameraId, deltaTime f64, near f32, far f32, fov f32, 
 	projection = resize(projection, 0)
 	projection = mat.ProjectionMatrix(projection, near, far, fov, width, height)
 	g_fpsCameras[id.camera].projection = projection
-	//camera.projection = mat.Identity(camera.projection)
+	//camera.projection = mat.MatrixIdentity(camera.projection)
 
 	var rotationSpeed f32 = 0.5
 	var translationSpeed f32 = 30.0
@@ -195,6 +201,7 @@ func FpsCameraUpdate(id FpsCameraId, deltaTime f64, near f32, far f32, fov f32, 
 	position.y = position.y + dx * right.y + dz * at.y
 	position.z = position.z + dx * right.z + dz * at.z
 	g_fpsCameras[id.camera].position = position
+	//printf("CAMERA_POSITION %f, %f, %f\n", position.x, position.y, position.z)
 
 	var leftDrag f32 = g_fpsCameras[id.camera].leftDrag
 	var dragDelta mat.v2 = g_fpsCameras[id.camera].dragDelta
@@ -208,42 +215,42 @@ func FpsCameraUpdate(id FpsCameraId, deltaTime f64, near f32, far f32, fov f32, 
 	var translate []f32
 	translate = g_fpsCameras[id.camera].translate
 	translate = resize(translate, 0)
-	translate = mat.Translate(translate, position.x, position.y, position.z) // ISSUE : can't use this.translate or g_fpsCameras[id.camera].translate : function 'Translate' expected input argument of type '[]f32'; 'f32' was provided
+	translate = mat.MatrixCreateTranslation(translate, position.x, position.y, position.z) // ISSUE : can't use this.translate or g_fpsCameras[id.camera].translate : function 'Translate' expected input argument of type '[]f32'; 'f32' was provided
 	g_fpsCameras[id.camera].translate = translate
 
 	var rotateY []f32
 	rotateY = g_fpsCameras[id.camera].rotateY
 	rotateY = resize(rotateY, 0)
-	rotateY = mat.RotationY(rotateY, rotation.y)
+	rotateY = mat.MatrixCreateRotationY(rotateY, rotation.y)
 	g_fpsCameras[id.camera].rotateY = rotateY
 
 	var rotateX []f32
 	rotateX = g_fpsCameras[id.camera].rotateX
 	rotateX = resize(rotateX, 0)
-	rotateX = mat.RotationX(rotateX, rotation.x)
+	rotateX = mat.MatrixCreateRotationX(rotateX, rotation.x)
 	g_fpsCameras[id.camera].rotateX = rotateX
 
 	var rotate []f32
 	rotate = g_fpsCameras[id.camera].rotate
-	rotate = resize(rotate, 0)
-	rotate = mat.Multiply(rotate, rotateX, rotateY)
+	rotate = resize(rotate, 16)
+	rotate = mat.MatrixMultiply(rotate, rotateX, rotateY)
 	g_fpsCameras[id.camera].rotate = rotate
 
 	//var transform []f32
 	//transform = g_fpsCameras[id.camera].transform
-	//transform = resize(transform, 0)
-	//transform = mat.Multiply(transform, rotate, translate)
+	//transform = resize(transform, 16)
+	//transform = mat.MatrixMultiply(transform, rotate, translate)
 	//g_fpsCameras[id.camera].transform = transform
 
 	translate = resize(translate, 0)
-	translate = mat.Translate(translate, 0.0-position.x, 0.0-position.y, 0.0-position.z)
-	rotate = mat.Transpose(rotate)
-	view = resize(view, 0)
-	view = mat.Multiply(view, translate, rotate)
+	translate = mat.MatrixCreateTranslation(translate, 0.0-position.x, 0.0-position.y, 0.0-position.z)
+	rotate = mat.MatrixTranspose(rotate)
+	view = resize(view, 16)
+	view = mat.MatrixMultiply(view, translate, rotate)
 	g_fpsCameras[id.camera].view = view
 
 	//if leftDrag > 0.0 { // ISSUE : can do if float {
-	//	mat.PrintMatrix(view)
+	//	mat.MatrixPrint(view)
 	//}
 }
 

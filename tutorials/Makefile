@@ -4,6 +4,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -52,6 +55,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -100,6 +106,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -148,6 +157,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -196,6 +208,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -244,6 +259,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -292,6 +310,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -340,6 +361,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -388,6 +412,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -436,6 +463,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -484,6 +514,9 @@
 	cx --profile\
 		../src/arg/argv.cx\
 		../src/mat/math.cx\
+		../src/mat/vector.cx\
+		../src/mat/quaternion.cx\
+		../src/mat/matrix.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\

@@ -45,13 +45,13 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	ry = ry + f64.f32(fps.DeltaTime())
 
 	rotate = resize(rotate, 0)
-	rotate = mat.RotationY(rotate, ry)
+	rotate = mat.MatrixCreateRotationY(rotate, ry)
 
 	translate = resize(translate, 0)
-	translate = mat.Translate(translate, 0.0, 0.0, -50.0)
+	translate = mat.MatrixCreateTranslation(translate, 0.0, 0.0, -50.0)
 
 	world = resize(world, 0)
-	world = mat.Multiply(world, rotate, translate)
+	world = mat.MatrixMultiply(world, rotate, translate)
 
 	gfx.MeshBegin(mesh)
 	gfx.MeshAppendCube(mesh,

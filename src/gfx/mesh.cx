@@ -18,6 +18,7 @@ var BIND_POSITION i32 = 0
 var BIND_COLOR i32 = 1
 var BIND_TEXCOORD i32 = 2
 var BIND_NORMAL i32 = 3
+var BIND_TANGENT i32 = 4
 
 // VertexAttribute ...
 type VertexAttribute struct {

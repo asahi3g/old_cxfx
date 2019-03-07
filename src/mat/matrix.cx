@@ -1,0 +1,440 @@
+package mat
+
+// TODO : caller is responsible for reserving memory
+// TODO : add offset param in 
+// Globals ...
+var matrixScratch0 []f32
+var matrixScratch1 []f32
+
+// MatrixPrint ...
+func MatrixPrint(message str, in []f32) {
+	printf(message)
+	for i := 0; i < len(in); i++ {
+		printf("%f, ", in[i])
+	}
+	printf("\n")
+}
+
+// MatrixIsValid ...
+func MatrixIsValid(m []f32) (out bool) {
+	out = len(m) == 16 &&
+	f32.isnan(m[0]) == false &&
+	f32.isnan(m[1]) == false &&
+	f32.isnan(m[2]) == false &&
+	f32.isnan(m[3]) == false &&
+	f32.isnan(m[4]) == false &&
+	f32.isnan(m[5]) == false &&
+	f32.isnan(m[6]) == false &&
+	f32.isnan(m[7]) == false &&
+	f32.isnan(m[8]) == false &&
+	f32.isnan(m[9]) == false &&
+	f32.isnan(m[10]) == false &&
+	f32.isnan(m[11]) == false &&
+	f32.isnan(m[12]) == false &&
+	f32.isnan(m[13]) == false &&
+	f32.isnan(m[14]) == false &&
+	f32.isnan(m[15]) == false
+}
+
+// MatrixFrom33 ...
+func MatrixFrom33(to []f32, from []f32) (out []f32) {
+	out = to
+	out[0] = from[0]
+	out[1] = from[1]
+	out[2] = from[2]
+	out[3] = 0.0
+
+	out[0] = from[3]
+	out[1] = from[4]
+	out[2] = from[5]
+	out[3] = 0.0
+
+	out[0] = from[6]
+	out[1] = from[7]
+	out[2] = from[8]
+	out[3] = 0.0
+
+	out[0] = 0.0
+	out[1] = 0.0
+	out[2] = 0.0
+	out[3] = 1.0
+}
+
+// MatrixIdentity ...
+func MatrixIdentity(in []f32) (out []f32) {
+	out = in
+
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+}
+
+// MatrixTranspose ...
+func MatrixTranspose(in []f32) (out []f32) { // ISSUE : if named MatrixIdentity
+//	github.com/skycoin/cx/cxgo/actions.FunctionAddParameters(0xc42073e840, 0xc42000ed60, 0x1, 0x1, 0xc42000ed68, 0x1, 0x1)
+//	/go/src/github.com/skycoin/cx/cxgo/actions/functions.go:59 +0x166
+
+	var m00 f32 = in[0]
+	var m01 f32 = in[1]
+	var m02 f32 = in[2]
+	var m03 f32 = in[3]
+
+	var m10 f32 = in[4]
+	var m11 f32 = in[5]
+	var m12 f32 = in[6]
+	var m13 f32 = in[7]
+
+	var m20 f32 = in[8]
+	var m21 f32 = in[9]
+	var m22 f32 = in[10]
+	var m23 f32 = in[11]
+
+	var m30 f32 = in[12]
+	var m31 f32 = in[13]
+	var m32 f32 = in[14]
+	var m33 f32 = in[15]
+
+	out[0] = m00
+	out[1] = m10
+	out[2] = m20
+	out[3] = m30
+
+	out[4] = m01
+	out[5] = m11
+	out[6] = m21
+	out[7] = m31
+
+	out[8] = m02
+	out[9] = m12
+	out[10] = m22
+	out[11] = m32
+
+	out[12] = m03
+	out[13] = m13
+	out[14] = m23
+	out[15] = m33
+}
+
+// MatrixCreate ...
+func MatrixCreate(in []f32, sx f32, sy f32, sz f32, qx f32, qy f32, qz f32, qw f32, tx f32, ty f32, tz f32) (out []f32) {
+	out = in
+
+	printf("s %f, %f, %f, r %f, %f, %f, %f, t %f, %f, %f\n", sx, sy, sz, qx, qy, qz, qw, tx, ty, tz)
+	out[0] = (1.0 - 2.0 * qy*qy - 2.0 * qz*qz) * sx
+	out[1] = (2.0 * qx*qy + 2.0 * qz*qw) * sy
+	out[2] = (2.0 * qx*qz - 2.0 * qy*qw) * sz
+	out[3] = 0.0
+
+	out[4] = (2.0 * qx*qy - 2.0 * qz*qw) * sx
+	out[5] = (1.0 - 2.0 * qx*qx - 2.0 * qz*qz) * sy
+	out[6] = (2.0 * qy*qz + 2.0 * qx*qw) * sz
+	out[7] = 0.0
+
+	out[8] = (2.0 * qx*qz + 2.0 * qy*qw) * sx
+	out[9] = (2.0 * qy*qz - 2.0 * qx*qw) * sy
+	out[10] = (1.0 - 2.0 * qx*qx - 2.0 * qy*qy) * sz
+	out[11] = 0.0
+
+	out[12] = tx
+	out[13] = ty
+	out[14] = tz
+	out[15] = 1.0
+}
+
+
+// MatrixCreateProjection ...
+func ProjectionMatrix(in []f32, near f32, far f32, fov f32, width f32, height f32) (out []f32) {
+	out = in
+
+	var ratio f32 = height / width
+	var m00 f32 = f32.cos(fov) / f32.sin(fov);
+
+	out = append(out, m00)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, m00 / ratio)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, (0.0 - far - near) / (far - near))
+	out = append(out, -1.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, (0.0 - 2.0 * near * far) / (far - near))
+	out = append(out, 0.0)
+}
+
+// MatrixCreateTranslation ...
+func MatrixCreateTranslation(in []f32, x f32, y f32, z f32) (out []f32) {
+	out = in
+
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+
+	out = append(out, x)
+	out = append(out, y)
+	out = append(out, z)
+	out = append(out, 1.0)
+}
+
+// MatrixCreateRotationFromEuler ...
+func MatrixCreateRotationFromEuler(in[] f32, x f32, y f32, z f32) (out []f32) {
+	out = MatrixIdentity(in)
+}
+
+// MatrixCreateRotationFromQuaternion ...
+func MatrixCreateRotationFromQuaternion(in []f32, qx f32, qy f32, qz f32, qw f32) (out []f32) {
+	out = in
+
+	out[0] = (1.0 - 2.0 * qy*qy - 2.0 * qz*qz)
+	out[1] = (2.0 * qx*qy + 2.0 * qz*qw)
+	out[2] = (2.0 * qx*qz - 2.0 * qy*qw)
+	out[3] = 0.0
+
+	out[4] = (2.0 * qx*qy - 2.0 * qz*qw)
+	out[5] = (1.0 - 2.0 * qx*qx - 2.0 * qz*qz)
+	out[6] = (2.0 * qy*qz + 2.0 * qx*qw)
+	out[7] = 0.0
+
+	out[8] = (2.0 * qx*qz + 2.0 * qy*qw)
+	out[9] = (2.0 * qy*qz - 2.0 * qx*qw)
+	out[10] = (1.0 - 2.0 * qx*qx - 2.0 * qy*qy)
+	out[11] = 0.0
+
+	out[12] = 0.0
+	out[13] = 0.0
+	out[14] = 0.0
+	out[15] = 1.0
+
+	panicIfNot(MatrixIsValid(out), "")
+}
+
+// MatrixCreateRotatioX ...
+func MatrixCreateRotationX(in []f32, alpha f32) (out []f32) {
+	out = in
+
+	var cosA f32 = f32.cos(alpha)
+	var sinA f32 = f32.sin(alpha)
+
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, cosA)
+	out = append(out, sinA)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, -sinA)
+	out = append(out, cosA)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+}
+
+// MatrixCreateRotationY ...
+func MatrixCreateRotationY(in []f32, alpha f32) (out []f32) {
+	out = in
+
+	var cosA f32 = f32.cos(alpha)
+	var sinA f32 = f32.sin(alpha)
+
+	out = append(out, cosA)
+	out = append(out, 0.0)
+	out = append(out, sinA)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, -sinA)
+	out = append(out, 0.0)
+	out = append(out, cosA)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+}
+
+// MatrixCreateScale ...
+func MatrixCreateScale(in []f32, x f32, y f32, z f32) (out []f32) {
+	out = in
+
+	out = append(out, x)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, y)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, z)
+	out = append(out, 0.0)
+
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 0.0)
+	out = append(out, 1.0)
+}
+
+// MatrixMutliply ...
+func MatrixMultiply(in []f32, a []f32, b []f32) (out []f32) {
+	var m11 f32 = a[ 0] * b[0] + a[ 1] * b[4] + a[ 2] * b[ 8] + a[ 3] * b[12]
+	var m12 f32 = a[ 0] * b[1] + a[ 1] * b[5] + a[ 2] * b[ 9] + a[ 3] * b[13]
+	var m13 f32 = a[ 0] * b[2] + a[ 1] * b[6] + a[ 2] * b[10] + a[ 3] * b[14]
+	var m14 f32 = a[ 0] * b[3] + a[ 1] * b[7] + a[ 2] * b[11] + a[ 3] * b[15]
+	var m21 f32 = a[ 4] * b[0] + a[ 5] * b[4] + a[ 6] * b[ 8] + a[ 7] * b[12]
+	var m22 f32 = a[ 4] * b[1] + a[ 5] * b[5] + a[ 6] * b[ 9] + a[ 7] * b[13]
+	var m23 f32 = a[ 4] * b[2] + a[ 5] * b[6] + a[ 6] * b[10] + a[ 7] * b[14]
+	var m24 f32 = a[ 4] * b[3] + a[ 5] * b[7] + a[ 6] * b[11] + a[ 7] * b[15]
+	var m31 f32 = a[ 8] * b[0] + a[ 9] * b[4] + a[10] * b[ 8] + a[11] * b[12]
+	var m32 f32 = a[ 8] * b[1] + a[ 9] * b[5] + a[10] * b[ 9] + a[11] * b[13]
+	var m33 f32 = a[ 8] * b[2] + a[ 9] * b[6] + a[10] * b[10] + a[11] * b[14]
+	var m34 f32 = a[ 8] * b[3] + a[ 9] * b[7] + a[10] * b[11] + a[11] * b[15]
+	var m41 f32 = a[12] * b[0] + a[13] * b[4] + a[14] * b[ 8] + a[15] * b[12]
+	var m42 f32 = a[12] * b[1] + a[13] * b[5] + a[14] * b[ 9] + a[15] * b[13]
+	var m43 f32 = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]
+	var m44 f32 = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]
+
+	out = in
+	out[0] = m11
+	out[1] = m12
+	out[2] = m13
+	out[3] = m14
+
+	out[4] = m21
+	out[5] = m22
+	out[6] = m23
+	out[7] = m24
+
+	out[8] = m31
+	out[9] = m32
+	out[10] = m33
+	out[11] = m34
+
+	out[12] = m41
+	out[13] = m42
+	out[14] = m43
+	out[15] = m44
+}
+
+// MatrixStackLast ...
+func MatrixStackLast(stack []f32) (out []f32) {
+	var stackLen i32 = len(stack) - 16
+	panicIf((stackLen % 16) != 0, "")
+	panicIf((stackLen < 0), "")
+	matrixScratch0 = resize(matrixScratch0, 16)
+	matrixScratch0[ 0] = stack[stackLen +  0]
+	matrixScratch0[ 1] = stack[stackLen +  1]
+	matrixScratch0[ 2] = stack[stackLen +  2]
+	matrixScratch0[ 3] = stack[stackLen +  3]
+	matrixScratch0[ 4] = stack[stackLen +  4]
+	matrixScratch0[ 5] = stack[stackLen +  5]
+	matrixScratch0[ 6] = stack[stackLen +  6]
+	matrixScratch0[ 7] = stack[stackLen +  7]
+	matrixScratch0[ 8] = stack[stackLen +  8]
+	matrixScratch0[ 9] = stack[stackLen +  9]
+	matrixScratch0[10] = stack[stackLen + 10]
+	matrixScratch0[11] = stack[stackLen + 11]
+	matrixScratch0[12] = stack[stackLen + 12]
+	matrixScratch0[13] = stack[stackLen + 13]
+	matrixScratch0[14] = stack[stackLen + 14]
+	matrixScratch0[15] = stack[stackLen + 15]
+	out = matrixScratch0
+}
+
+// MatrixStackPush ...
+func MatrixStackPush(stack []f32, matrix []f32) (out []f32) {
+	var stackLen i32 = len(stack)
+	panicIf((stackLen % 16) != 0, "")
+	panicIf((len(matrix) % 16) != 0, "")
+	panicIf(len(matrix) < 16, "")
+	var tmp []f32
+	if stackLen >= 16 {
+		matrixScratch0 = MatrixStackLast(stack)
+		//printf("RIGHT\n")//, ISSUE : can use , here : printf is not executed
+		//MatrixPrint(matrix)
+		matrixScratch1 = resize(matrixScratch1, 16)
+		matrixScratch1 = MatrixMultiply(matrixScratch1, matrixScratch0, matrix)
+		tmp = matrixScratch1
+		//tmp = matrix
+	} else {
+		tmp = matrix
+	}
+
+	stack = resize(stack, stackLen + 16)
+   stack[stackLen +  0] = tmp[ 0]
+   stack[stackLen +  1] = tmp[ 1]
+   stack[stackLen +  2] = tmp[ 2]
+   stack[stackLen +  3] = tmp[ 3]
+   stack[stackLen +  4] = tmp[ 4]
+   stack[stackLen +  5] = tmp[ 5]
+   stack[stackLen +  6] = tmp[ 6]
+   stack[stackLen +  7] = tmp[ 7]
+   stack[stackLen +  8] = tmp[ 8]
+   stack[stackLen +  9] = tmp[ 9]
+   stack[stackLen + 10] = tmp[10]
+   stack[stackLen + 11] = tmp[11]
+   stack[stackLen + 12] = tmp[12]
+   stack[stackLen + 13] = tmp[13]
+   stack[stackLen + 14] = tmp[14]
+   stack[stackLen + 15] = tmp[15]
+   out = stack
+}
+
+// MatrixStackPop ...
+func MatrixStackPop(stack []f32, count i32) (out []f32) {
+	var stackLen i32 = len(stack)
+	panicIf((stackLen % 16) != 0, "")
+	panicIf((stackLen / 16) < count, "")
+	stack = resize(stack, stackLen - count * 16)
+	out = stack
+}
+

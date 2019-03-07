@@ -150,6 +150,16 @@ func textureCreate0(path str, extension str, target i32, format i32, width i32, 
 		name = gl.GenTextures(1, name) // ISSUE : change gl.GenTextures signature
 		panicIf(GlError(), "gl.GenTextures")
 	} else {
+		var textureCount i32 = len(g_textures)
+		for t := 0; t < textureCount; t++ {
+			if g_textures[t].path == path &&
+			   g_textures[t].extension == extension &&
+			   g_textures[t].format == format {
+				out.texture = t
+				return
+			}
+		}
+
 		if target == gl.TEXTURE_2D {
 			name = gl.NewTexture(path)
 		} else if target == gl.TEXTURE_CUBE_MAP {
