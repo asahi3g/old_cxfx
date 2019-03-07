@@ -14,13 +14,12 @@ type ModelId struct {
 type Model struct {
 	stack []i32
 	asset gltf.AssetId
-	transforms []f32
 	meshes []MeshId
 	baseTextures []TextureId
 	metalRoughTextures []TextureId
 	world []f32
-	view []f32
-	projection []f32
+	view []f32 // TODO : remove
+	projection []f32 // TODO : remove
 	color []f32
 	dataDir str
 	filename str
@@ -54,9 +53,22 @@ func ModelCreateFromFile(dataDir str, filename str) (out ModelId){
 	model.dataDir = dataDir
 	model.filename = filename
 	model.asset = gltf.AssetCreate(dataDir, filename)
-	var identity []f32
+	var identity []f32 = mat.MatrixAlloc()
 	identity = mat.MatrixIdentity(identity)
 	model.identity = identity
+
+	var tmp []f32 = mat.MatrixAlloc()
+	model.tmp = tmp
+
+	var world []f32 = mat.MatrixAlloc()
+	model.world = world
+
+	var view []f32 = mat.MatrixAlloc()
+	model.view = view
+
+	var projection []f32 = mat.MatrixAlloc()
+	model.projection = projection
+
 	gltf.AssetPrint(model.asset)
 	g_models = append(g_models, model)
 }
@@ -231,21 +243,18 @@ func ModelSetBRDF(id ModelId, brdf TextureId) {
 // ModelSetWorld ...
 func ModelSetWorld(id ModelId, world []f32) {
 	panicIfNot(ModelIsValid(id), "invalid model")
-	g_models[id.model].world = resize(g_models[id.model].world, 16)
 	var i i32 = copy(g_models[id.model].world, world)
 }
 
 // ModelSetView ...
 func ModelSetView(id ModelId, view []f32) {
 	panicIfNot(ModelIsValid(id), "invalid model")
-	g_models[id.model].view = resize(g_models[id.model].view, 16)
 	var i i32 = copy(g_models[id.model].view, view)
 }
 
 // ModelSetProjection ...
 func ModelSetProjection(id ModelId, projection []f32) {
 	panicIfNot(ModelIsValid(id), "invalid model")
-	g_models[id.model].projection = resize(g_models[id.model].projection, 16)
 	var i i32 = copy(g_models[id.model].projection, projection)
 }
 
@@ -290,8 +299,8 @@ func ModelRender(id ModelId, alpha bool) {
 		} else {
 			var nodeMatrix []f32 = gltf.NodeGetMatrix(asset, node)
 			if len(nodeMatrix) <= 0 {
-				nodeMatrix = resize(nodeMatrix, 16)
-				var cc i32 = copy(nodeMatrix, identity)
+				nodeMatrix = mat.MatrixAlloc()
+				nodeMatrix = mat.MatrixIdentity(nodeMatrix)
 			}
 
 			//mat.MatrixPrint("NODE_MATRIX :", nodeMatrix)
@@ -401,7 +410,6 @@ func ModelRender(id ModelId, alpha bool) {
 						var view []f32 = g_models[id.model].view
 						var projection []f32 = g_models[id.model].projection
 
-						tmp = resize(tmp, 16)
 						var last []f32 = mat.MatrixStackLast(matrixStack)
 						tmp = mat.MatrixMultiply(tmp, last, world)
 

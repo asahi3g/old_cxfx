@@ -19,11 +19,11 @@ var ry f32 = 0.0
 var mesh gfx.MeshId
 var texture gfx.TextureId
 
-var rotate []f32
-var translate []f32
-var world [] f32
-var view []f32
-var projection []f32
+var rotate []f32 = mat.MatrixAlloc()
+var translate []f32 = mat.MatrixAlloc()
+var world [] f32 = mat.MatrixAlloc()
+var view []f32 = mat.MatrixAlloc()
+var projection []f32 = mat.MatrixAlloc()
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -64,18 +64,15 @@ func gameOnEvent(controlIndex i32, controlAction i32) {
 func gameOnUpdate(controlIndex i32, controlAction i32) {
 	var width f32 = gfx.gfx_viewportSize.x
 	var height f32 = gfx.gfx_viewportSize.y
-	projection = resize(projection, 0)
-	projection = mat.ProjectionMatrix(projection, 0.1, 10000.0, 0.5, width, height)
+
+	projection = mat.MatrixCreateProjection(projection, 0.1, 10000.0, 0.5, width, height)
 
 	ry = ry + f64.f32(fps.DeltaTime())
 
-	rotate = resize(rotate, 0)
 	rotate = mat.MatrixCreateRotationY(rotate, ry)
 
-	translate = resize(translate, 0)
 	translate = mat.MatrixCreateTranslation(translate, dx, dy, dz)
 
-	world = resize(world, 0)
 	world = mat.MatrixMultiply(world, rotate, translate)
 
 	gfx.MeshBegin(mesh)

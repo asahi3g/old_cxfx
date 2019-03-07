@@ -1068,9 +1068,6 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 				if AssetIsValid(out) == false {
 					return
 				}
-				/*var r []f32 = node.rotation
-				r = resize(r, 16)
-				r = mat.MatrixCreateRotationFromQuaternion(r, rotation[0], rotation[1], rotation[2], rotation[3])*/
 				node.rotation = rotation
 			} else if key == "translation" {
 				var translation []f32
@@ -1078,9 +1075,6 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 				if AssetIsValid(out) == false {
 					return
 				}
-				/*var t []f32 = node.translation
-				t = resize(t, 0)
-				t = mat.MatrixCreateTranslation(t, translation[0], translation[1], translation[2])*/
 				node.translation = translation
 			} else if key == "scale" {
 				var scale []f32
@@ -1088,9 +1082,6 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 				if AssetIsValid(out) == false {
 					return
 				}
-				/*var s []f32 = node.scale
-				s = resize(s, 0)
-				s = mat.MatrixCreateScale(s, scale[0], scale[1], scale[2])*/
 				node.scale = scale
 			} else if key == "camera" {
 				json.Next(file)
@@ -1146,8 +1137,7 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 			var ty f32 = node.translation[1]
 			var tz f32 = node.translation[2]
 
-			var m []f32 = node.matrix
-			m = resize(m, 16)
+			var m []f32 = node.matrix = mat.MatrixAlloc()
 			m = mat.MatrixCreate(m, sx, sy, sz, qx, qy, qz, qw, tx, ty, tz)
 			node.matrix = m
 		}
