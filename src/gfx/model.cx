@@ -16,7 +16,8 @@ type Model struct {
 	asset gltf.AssetId
 	transforms []f32
 	meshes []MeshId
-	textures []TextureId
+	baseTextures []TextureId
+	metalRoughTextures []TextureId
 	world []f32
 	view []f32
 	projection []f32
@@ -26,6 +27,13 @@ type Model struct {
 	matrixStack []f32
 	identity []f32 // TODO : remove
 	tmp []f32 // TODO : remove
+	environmentSpecular TextureId
+	environmentDiffuse TextureId
+	brdf TextureId
+	cameraPosition []f32
+
+	meshCacheKey []i32
+	meshCacheVal []MeshId
 }
 
 // ModelIsValid ...
@@ -47,7 +55,7 @@ func ModelCreateFromFile(dataDir str, filename str) (out ModelId){
 	model.filename = filename
 	model.asset = gltf.AssetCreate(dataDir, filename)
 	var identity []f32
-	identity = mat.Identity(identity)
+	identity = mat.MatrixIdentity(identity)
 	model.identity = identity
 	gltf.AssetPrint(model.asset)
 	g_models = append(g_models, model)
@@ -111,6 +119,8 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 			binding = BIND_COLOR
 		} else if attributeType == gltf.ATTRIBUTE_TEXCOORD {
 			binding = BIND_TEXCOORD
+		} else if attributeType == gltf.ATTRIBUTE_TANGENT {
+			binding = BIND_TANGENT
 		}
 
 		attribute.binding = binding
@@ -187,6 +197,37 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 	}
 }
 
+// ModelSetCameraPosition ...
+func ModelSetCameraPosition(id ModelId, position mat.v3) {
+	panicIfNot(ModelIsValid(id), "invalid model")
+	var cameraPosition []f32 = g_models[id.model].cameraPosition
+	cameraPosition = resize(cameraPosition, 4)
+	cameraPosition[0] = position.x
+	cameraPosition[1] = position.y
+	cameraPosition[2] = position.z
+	cameraPosition[3] = 1.0
+	g_models[id.model].cameraPosition = cameraPosition
+}
+
+
+// ModelSetEnvironmentSpecular ...
+func ModelSetEnvironmentSpecular(id ModelId, environment TextureId) { 
+	panicIfNot(ModelIsValid(id), "invalid model")
+	g_models[id.model].environmentSpecular = environment
+}
+
+// ModelSetEnvironmentDiffuse...
+func ModelSetEnvironmentDiffuse(id ModelId, environment TextureId) { 
+	panicIfNot(ModelIsValid(id), "invalid model")
+	g_models[id.model].environmentDiffuse = environment
+}
+
+// ModelSetBRDF ...
+func ModelSetBRDF(id ModelId, brdf TextureId) {
+	panicIfNot(ModelIsValid(id), "invalid model")
+	g_models[id.model].brdf = brdf
+}
+
 // ModelSetWorld ...
 func ModelSetWorld(id ModelId, world []f32) {
 	panicIfNot(ModelIsValid(id), "invalid model")
@@ -208,8 +249,20 @@ func ModelSetProjection(id ModelId, projection []f32) {
 	var i i32 = copy(g_models[id.model].projection, projection)
 }
 
+func loadTexture(asset AssetId, dataDir str, index i32) (out TextureId) {
+	out = InvalidTexture()
+	//if gltf.AssetIsValidTexture(asset, index) {
+		var texture gltf.Texture = gltf.AssetGetTexture(asset, index)
+		var image gltf.Image = gltf.AssetGetImage(asset, texture.source)
+		if image.uri != "" {
+			//printf("LOAD---------------------------- INDEX %d, %s\n", index, image.uri)
+			out = TextureCreate(sprintf("%s%s", dataDir, image.uri), FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
+		}
+	//}
+}
+
 // ModelRender ...
-func ModelRender(id ModelId) {
+func ModelRender(id ModelId, alpha bool) {
 	panicIfNot(ModelIsValid(id), "invalid model")
 
 	var asset gltf.AssetId = g_models[id.model].asset
@@ -231,103 +284,173 @@ func ModelRender(id ModelId) {
 
 		stackLen--
 		var node i32 = stack[stackLen]
-
-		var nodeMatrix []f32 = gltf.NodeGetMatrix(asset, node)
-		if len(nodeMatrix) <= 0 {
-			nodeMatrix = identity
-		}
-
-
-		matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
 		stack = resize(stack, stackLen)
-
-		var mesh i32 = gltf.NodeGetMesh(asset, node)
-		var primitives []gltf.Primitive = gltf.MeshGetPrimitives(asset, mesh)
-		var primitiveCount i32 = len(primitives)
-		for p := 0; p < primitiveCount; p++ {
-			var render MeshId
-			var textureId TextureId
-
-			var primitive gltf.Primitive = primitives[p]
-			var meshCount i32 = len(g_models[id.model].meshes)
-
-			var material gltf.Material = gltf.AssetGetMaterial(asset, primitive.material)
-			var metallicRoughness gltf.MetallicRoughness = material.pbrMetallicRoughness
-
-			if m < meshCount {
-				render = g_models[id.model].meshes[m]
-				textureId = g_models[id.model].textures[m] // ISSUE : no out of bounds exception
-			} else { // TODO : move in init
-				render = meshInstance(asset, primitive)
-				g_models[id.model].meshes = append(g_models[id.model].meshes, render)
-
-				var texture gltf.Texture = gltf.AssetGetTexture(asset, metallicRoughness.baseColorTexture)
-				var image gltf.Image = gltf.AssetGetImage(asset, texture.source)
-				textureId = TextureCreate(sprintf("%s%s", g_models[id.model].dataDir, image.uri), FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
-					//printf("TEXTURE %d\n", textureId.texture)
-					//panicIf(true, "texture")
-				g_models[id.model].textures = append(g_models[id.model].textures, textureId)
+		if node < 0 {
+			matrixStack = mat.MatrixStackPop(matrixStack, 1)
+		} else {
+			var nodeMatrix []f32 = gltf.NodeGetMatrix(asset, node)
+			if len(nodeMatrix) <= 0 {
+				nodeMatrix = resize(nodeMatrix, 16)
+				var cc i32 = copy(nodeMatrix, identity)
 			}
 
-			if IsValidMesh(render) {
-				var effect EffectId
-				if IsValidTexture(textureId) {
-					effect = g_fxPerspectivePbr
-				} else {
-					effect = g_fxPerspectiveColor
+			//mat.MatrixPrint("NODE_MATRIX :", nodeMatrix)
+
+			matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
+
+			var mesh i32 = gltf.NodeGetMesh(asset, node)
+			var primitives []gltf.Primitive = gltf.MeshGetPrimitives(asset, mesh)
+			var primitiveCount i32 = len(primitives)
+			for p := 0; p < primitiveCount; p++ {
+				var render MeshId = InvalidMesh()
+				var baseTexture TextureId = InvalidTexture()
+				var metalRoughTexture TextureId = InvalidTexture()
+
+				var primitive gltf.Primitive = primitives[p]
+				var meshCount i32 = len(g_models[id.model].meshes)
+
+				var material gltf.Material = gltf.AssetGetMaterial(asset, primitive.material)
+				var metallicRoughness gltf.MetallicRoughness = material.pbrMetallicRoughness
+				if m < meshCount {
+					render = g_models[id.model].meshes[m]
+					baseTexture = g_models[id.model].baseTextures[m] // ISSUE : no out of bounds exception
+					metalRoughTexture = g_models[id.model].metalRoughTextures[m]
+				} else { // TODO : move in init
+					var meshCacheKey []i32 = g_models[id.model].meshCacheKey
+					var meshCacheVal []MeshId = g_models[id.model].meshCacheVal
+					var meshCacheCount i32 = len(meshCacheKey)
+					for p := 0; p < meshCacheCount; p++ {
+						if meshCacheKey[p] == primitive.indices {
+							render = g_models[id.model].meshCacheVal[p]
+							p = meshCacheCount
+						}
+					}
+
+					if IsValidMesh(render) == false {
+						render = meshInstance(asset, primitive)
+						meshCacheKey = append(meshCacheKey, primitive.indices)
+						meshCacheVal = append(meshCacheVal, render)
+						g_models[id.model].meshCacheKey = meshCacheKey
+						g_models[id.model].meshCacheVal = meshCacheVal
+					}
+
+					g_models[id.model].meshes = append(g_models[id.model].meshes, render)
+
+					var dataDir str = g_models[id.model].dataDir
+					baseTexture = loadTexture(asset, dataDir, metallicRoughness.baseColorTexture.index)
+					g_models[id.model].baseTextures = append(g_models[id.model].baseTextures, baseTexture)
+
+					metalRoughTexture = loadTexture(asset, dataDir, metallicRoughness.metallicRoughnessTexture.index)
+					g_models[id.model].metalRoughTextures = append(g_models[id.model].metalRoughTextures, metalRoughTexture)
 				}
+				m++
 
-				EffectUse(effect)
+				var alphaMode i32 = material.alphaMode
+				if ((alphaMode == gltf.ALPHA_BLEND) && alpha) || ((alphaMode == gltf.ALPHA_OPAQUE) && (alpha == false)) {
 
-				if IsValidTexture(textureId) {
-					EffectAssignTexture(effect, 0, textureId)
-					TextureSamplerState(textureId, g_linearWrap) // TODO: use sampler
+					if IsValidMesh(render) {
+						var effect EffectId = g_fxPerspectivePbr
+						EffectUse(effect)
+
+						if IsValidTexture(baseTexture) {
+							EffectAssignTexture(effect, 1, baseTexture)
+							TextureSamplerState(baseTexture, g_linearWrap) // TODO: use sampler
+							DEBUG_0[0] = 1.0
+							//printf("BASE_TEXTURE %d\n", baseTexture.texture)
+						} else {
+							EffectRemoveTexture(effect, 1, TEXTURE_2D)
+							DEBUG_0[0] = 0.0
+						}
+
+						if IsValidTexture(metalRoughTexture) {
+							EffectAssignTexture(effect, 2, metalRoughTexture)
+							TextureSamplerState(metalRoughTexture, g_linearWrap)
+							DEBUG_0[2] = 1.0
+							//printf("ROUGH_TEXTURE %d\n", metalRoughTexture.texture)
+						} else {
+							EffectRemoveTexture(effect, 2, TEXTURE_2D)
+							DEBUG_0[2] = 0.0
+						}
+
+						var environmentSpecular TextureId = g_models[id.model].environmentSpecular
+						if IsValidTexture(environmentSpecular) {
+							EffectAssignTexture(effect, 0, environmentSpecular)
+							TextureSamplerState(environmentSpecular, g_linearWrap)
+						} else {
+							EffectRemoveTexture(effect, 0, TEXTURE_CUBE_MAP)
+						}
+
+						var environmentDiffuse TextureId = g_models[id.model].environmentDiffuse
+						if IsValidTexture(environmentDiffuse) {
+							EffectAssignTexture(effect, 3, environmentDiffuse)
+							TextureSamplerState(environmentDiffuse, g_linear0Wrap)
+						} else {
+							EffectRemoveTexture(effect, 3, TEXTURE_CUBE_MAP)
+						}
+
+						var brdf TextureId = g_models[id.model].brdf
+						if IsValidTexture(brdf) {
+							EffectAssignTexture(effect, 4, brdf)
+							TextureSamplerState(brdf, g_linear0Wrap)
+						} else {
+							EffectRemoveTexture(effect, 0, TEXTURE_2D)
+						}
+
+						var tmp []f32 = g_models[id.model].tmp
+						var world []f32 = g_models[id.model].world
+						var view []f32 = g_models[id.model].view
+						var projection []f32 = g_models[id.model].projection
+
+						tmp = resize(tmp, 16)
+						var last []f32 = mat.MatrixStackLast(matrixStack)
+						tmp = mat.MatrixMultiply(tmp, last, world)
+
+						//mat.MatrixPrint("WORLD : ", tmp)
+						//mat.MatrixPrint("LAST : ", last)
+						//mat.MatrixPrint("TMP : ", tmp)
+
+						EffectAssignMatrix4(effect, 1, tmp, false)
+						EffectAssignMatrix4(effect, 2, view, false)
+						EffectAssignMatrix4(effect, 3, projection, false)
+
+						if EffectIsValidUniformLocation(effect, 4) {
+							var color []f32 = g_models[id.model].color
+							var baseColorFactor [4]f32
+							baseColorFactor = metallicRoughness.baseColorFactor
+							color[0] = baseColorFactor[0]
+							color[1] = baseColorFactor[1]
+							color[2] = baseColorFactor[2]
+							color[3] = baseColorFactor[3]
+							EffectAssignVector4(effect, 4, color)
+						}
+
+						if EffectIsValidUniformLocation(effect, 6) {
+							var color []f32 = g_models[id.model].color
+							color[0] = 0.0
+							color[1] = metallicRoughness.roughnessFactor
+							color[2] = metallicRoughness.metallicFactor
+							color[3] = 0.0
+							EffectAssignVector4(effect, 6, color)
+						}
+
+						var cameraPosition []f32 = g_models[id.model].cameraPosition
+						EffectAssignVector4(effect, 5, cameraPosition)
+						EffectAssignVector4(effect, 0, DEBUG_0)
+
+						MeshRender(render)
+					}
 				}
-
-				var tmp []f32 = g_models[id.model].tmp
-				var world []f32 = g_models[id.model].world
-				var view []f32 = g_models[id.model].view
-				var projection []f32 = g_models[id.model].projection
-
-				tmp = resize(tmp, 0)
-				tmp = mat.Multiply(tmp, mat.MatrixStackLast(matrixStack), world)
-
-				EffectAssignMatrix4(effect, 1, tmp, false)
-				EffectAssignMatrix4(effect, 2, view, false)
-				EffectAssignMatrix4(effect, 3, projection, false)
-
-				if EffectIsValidUniformLocation(effect, 4) {
-					var color []f32 = g_models[id.model].color
-					var baseColorFactor [4]f32
-					baseColorFactor = metallicRoughness.baseColorFactor
-					color[0] = baseColorFactor[0]
-					color[1] = baseColorFactor[1]
-					color[2] = baseColorFactor[2]
-					color[3] = baseColorFactor[3]
-					EffectAssignVector4(effect, 4, color)
-				}
-				/*DEBUG_0[0] = 0.0
-				DEBUG_0[1] = 1.0
-				DEBUG_0[2] = 0.0
-				DEBUG_0[3] = 0.0
-				EffectAssignVector4(effect, 0, DEBUG_0)*/
-
-				MeshRender(render)
 			}
 
-
-			m++
+			var children []i32 = gltf.NodeGetChildren(asset, node)
+			var childCount i32 = len(children)
+			stack = append(stack, -1)
+			if childCount > 0 {
+				for i := 0; i < childCount; i++ {
+					stack = append(stack, children[i])
+				}
+			}
 		}
-
-		var children []i32 = gltf.NodeGetChildren(asset, node)
-		var childCount i32 = len(children)
-		if childCount > 0 {
-			for i := 0; i < childCount; i++ {
-				stack = append(stack, children[i])
-			}
-		}
-
-
 	}
 
 	stack = resize(stack, 0)

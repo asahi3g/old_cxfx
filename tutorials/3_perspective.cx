@@ -70,13 +70,13 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	ry = ry + f64.f32(fps.DeltaTime())
 
 	rotate = resize(rotate, 0)
-	rotate = mat.RotationY(rotate, ry)
+	rotate = mat.MatrixCreateRotationY(rotate, ry)
 
 	translate = resize(translate, 0)
-	translate = mat.Translate(translate, dx, dy, dz)
+	translate = mat.MatrixCreateTranslation(translate, dx, dy, dz)
 
 	world = resize(world, 0)
-	world = mat.Multiply(world, rotate, translate)
+	world = mat.MatrixMultiply(world, rotate, translate)
 
 	gfx.MeshBegin(mesh)
 	gfx.MeshAppendCube(mesh,
@@ -109,7 +109,7 @@ func main()() {
 	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
 
-	view = mat.Identity(view)
+	view = mat.MatrixIdentity(view)
 
 	// gameScreen
 	gameScreen = gui.ScreenCreate("gameScreen")

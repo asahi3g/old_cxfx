@@ -19,6 +19,6 @@ void main()
 	gl_Position = u_m44Projection * u_m44View * u_m44World * v4Position;
 	v_v3Position = (u_m44World * v4Position).xyz;
 	v_v4Albedo = i_v4Albedo;
-	v_v3Normal = i_v3Normal;
+	v_v3Normal = mat3(u_m44World) * i_v3Normal;
 	v_v2Texcoord = i_v2Texcoord;
 }

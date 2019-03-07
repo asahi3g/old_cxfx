@@ -17,6 +17,11 @@ var LESS i32 = gl.LESS
 var RGBA i32 = gl.RGBA
 var FLOAT i32 = gl.FLOAT
 var TEXTURE_2D i32 = gl.TEXTURE_2D
+var TEXTURE_CUBE_MAP i32 = gl.TEXTURE_CUBE_MAP
+var SRC_ALPHA i32 = gl.SRC_ALPHA
+var ONE_MINUS_SRC_ALPHA i32 = gl.ONE_MINUS_SRC_ALPHA
+var ONE i32 = gl.ONE
+var ZERO i32 = gl.ZERO
 
 // Globals ...
 var DEBUG_0 []f32
@@ -88,6 +93,7 @@ var g_fxPerspectiveTexture EffectId = InvalidEffect()
 var g_fxPerspectiveSky EffectId = InvalidEffect()
 var g_fxPerspectivePbr EffectId = InvalidEffect()
 
+var g_linear0Wrap SamplerState = SamplerStateCreate(gl.LINEAR, gl.LINEAR, gl.REPEAT, gl.REPEAT, gl.REPEAT)
 var g_linearWrap SamplerState = SamplerStateCreate(gl.LINEAR_MIPMAP_NEAREST, gl.LINEAR, gl.REPEAT, gl.REPEAT, gl.REPEAT)
 var g_linearClamp SamplerState = SamplerStateCreate(gl.LINEAR_MIPMAP_NEAREST, gl.LINEAR, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
 var g_nearestClamp SamplerState = SamplerStateCreate(gl.NEAREST, gl.NEAREST, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
@@ -225,13 +231,18 @@ func NewUniform(location i32, name str) (out Uniform) {
 }
 
 func assignTexture(target i32, slot i32, sampler i32, name i32) () {
+	gl.Uniform1i(sampler, slot)
+	panicIf(GlError(), "gl.Uniform1i")
+
 	gl.ActiveTexture(gl.TEXTURE0 + slot)
 	panicIf(GlError(), "gl.ActiveTexture")
 
 	bindTexture(target, name)
 
-	gl.Uniform1i(sampler, slot)
-	panicIf(GlError(), "gl.Uniform1i")
+	if target == gl.TEXTURE_CUBE_MAP {
+		//printf("LOCATION %d, SLOT %d, NAME %d\n", sampler, slot, name)
+	}
+
 }
 
 func assignFloat(slot i32, value f32) {
@@ -666,12 +677,19 @@ func Init(width i32, height i32, dataDir str)() {
 	//EffectBindAttribute(g_fxPerspectivePbr, 1, "i_v4Albedo")
 	EffectBindAttribute(g_fxPerspectivePbr, 2, "i_v2Texcoord")
 	EffectBindAttribute(g_fxPerspectivePbr, 3, "i_v3Normal")
+	//EffectBindAttribute(g_fxPerspectivePbr, 4, "i_v4Tangent")
+	EffectBindSampler(g_fxPerspectivePbr, "u_tcEnvironmentSpecular")
 	EffectBindSampler(g_fxPerspectivePbr, "u_t2Albedo")
+	EffectBindSampler(g_fxPerspectivePbr, "u_t2MetalRough")
+	EffectBindSampler(g_fxPerspectivePbr, "u_tcEnvironmentDiffuse")
+	EffectBindSampler(g_fxPerspectivePbr, "u_t2BRDF")
 	EffectTryBindUniform(g_fxPerspectivePbr, "DEBUG_0")
 	EffectBindUniform(g_fxPerspectivePbr, "u_m44World")
 	EffectBindUniform(g_fxPerspectivePbr, "u_m44View")
 	EffectBindUniform(g_fxPerspectivePbr, "u_m44Projection")
 	EffectTryBindUniform(g_fxPerspectivePbr, "u_v4Albedo")
+	EffectBindUniform(g_fxPerspectivePbr, "u_v4CameraPosition")
+	EffectBindUniform(g_fxPerspectivePbr, "u_v4MetalRough")
 }
 
 // Resize ...

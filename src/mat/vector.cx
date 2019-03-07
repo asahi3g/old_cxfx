@@ -1,0 +1,118 @@
+package mat
+
+// Globals ...
+var v2_zero v2 = v2_(0.0, 0.0)
+var v2_one  v2 = v2_(1.0, 1.0)
+
+var v4_zero v4 = v4_(0.0, 0.0, 0.0, 0.0)
+
+// v2 ...
+type v2 struct {
+	x f32
+	y f32
+}
+
+func v2_isnan(v v2) (out bool) {
+	out = f32.isnan(v.x) || f32.isnan(v.y)
+}
+
+func v2_(x f32, y f32) (out v2) {
+	out.x = x
+	out.y = y
+}
+
+func v2_min(a v2, b v2) (out v2) {
+	out = v2_(min(a.x, b.x), min(a.y, b.y))
+}
+
+func v2_add(a v2, b v2) (out v2) {
+	out.x = a.x + b.x
+	out.y = a.y + b.y
+}
+
+func v2_sub(a v2, b v2) (out v2) {
+	out.x = a.x - b.x
+	out.y = a.y - b.y
+}
+
+func v2_mul(a v2, b v2) (out v2) {
+	out.x = a.x * b.x
+	out.y = a.y * b.y
+}
+
+func v2_div(a v2, b v2) (out v2) {
+	out.x = a.x / b.x
+	out.y = a.y / b.y
+}
+
+// v3 ...
+type v3 struct {
+	x f32
+	y f32
+	z f32
+}
+
+func v3_(x f32, y f32, z f32) (out v3) {
+	out.x = x
+	out.y = y
+	out.z = z
+}
+
+func v3_add(a v3, b v3) (out v3) {
+	out.x = a.x + b.x
+	out.y = a.y + b.y
+	out.z = a.z + b.z
+}
+
+func v3_mulf(a v3, f f32) (out v3) {
+	out.x = a.x * f
+	out.y = a.y * f
+	out.z = a.z * f
+}
+
+// v4 ...
+type v4 struct {
+	x f32
+	y f32
+	z f32
+	w f32
+}
+
+func v4_(x f32, y f32, z f32, w f32) (out v4) {
+	out.x = x
+	out.y = y
+	out.z = z
+	out.w = w
+}
+
+func v4_v2v2(xy v2, zw v2) (out v4) {
+	out.x = xy.x
+	out.y = xy.y
+	out.z = zw.x
+	out.w = zw.y
+}
+
+func v4_xy(in v4) (out v2) {
+	out.x = in.x
+	out.y = in.y
+}
+
+func v4_zw(in v4) (out v2) {
+	out.x = in.z
+	out.y = in.w
+}
+
+func v4_mul(a v4, b v4) (out v4) {
+	out.x = a.x * b.x
+	out.y = a.y * b.y
+	out.z = a.z * b.z
+	out.w = a.w * b.w
+}
+
+func v4_mix(a v4, b v4, t f32) (out v4) {
+	out.x = a.x + t * (b.x - a.x)
+	out.y = a.y + t * (b.y - a.y)
+	out.z = a.z + t * (b.z - a.z)
+	out.w = a.w + t * (b.w - a.w)
+}
+

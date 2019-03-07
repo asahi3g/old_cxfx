@@ -74,13 +74,13 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	ry = ry + dt
 
 	rotate = resize(rotate, 0)
-	rotate = mat.RotationY(rotate, ry)
+	rotate = mat.MatrixCreateRotationY(rotate, ry)
 
 	translate = resize(translate, 0)
-	translate = mat.Translate(translate, 0.0, 0.0, 0.0)
+	translate = mat.MatrixCreateTranslation(translate, 0.0, 0.0, 0.0)
 
 	world = resize(world, 0)
-	world = mat.Multiply(world, rotate, translate)
+	world = mat.MatrixMultiply(world, rotate, translate)
 
 	var scale f32 = 20.0
 	gfx.MeshBegin(groundMesh)
@@ -256,7 +256,7 @@ func main()() {
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
 
 	camera = gam.FpsCameraCreate()
-	identity = mat.Identity(identity)
+	identity = mat.MatrixIdentity(identity)
 	g_synths = resize(g_synths, g_synthCount)
 	var audioId snd.AudioId = snd.AudioCreate(sprintf("%s/audios/skycoin_baby.wav", app.DataDir()))
 	voiceId = snd.VoiceCreate(audioId)
