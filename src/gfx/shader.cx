@@ -1,0 +1,101 @@
+package gfx
+
+// TODO : ui64 bitfield instead of str key.
+// TODO : use glShaderSource char**string param instead of str concatenation
+// TODO : set shader path in gfx/graphics
+
+// Constants ...
+var SHADER_VERTEX i32 = 0
+var SHADER_PIXEL i32 = 1
+
+// Globals ...
+var g_shaders []Shader
+var g_sources []ShaderSource
+
+// ShaderId ...
+type ShaderId struct {
+	shader i32
+}
+
+// ShaderSource ...
+type ShaderSource struct {
+	path str
+	filename str
+	code str
+}
+
+// Shader ...
+type Shader struct {
+	shaderType i32
+	include str
+	source i32
+	glsl str
+}
+
+// ShaderSourceIsValid ...
+func ShaderSourceIsValid(id i32) (out bool) {
+	out = id >= 0 && id < len(g_sources)
+}
+
+// ShaderSourceCreate ...
+func ShaderSourceCreate(path str, filename str) (out i32) {
+	out = len(g_sources)
+
+	var source ShaderSource
+	source.path = path
+	source.filename = filename
+
+	source.code = os.ReadAllText(sprintf("%s/%s", path, filename))
+	g_sources = append(g_sources, source)
+
+	panicIfNot(ShaderSourceIsValid(out), "invalid id")
+}
+
+// ShaderIsValid ...
+func ShaderIsValid(id ShaderId) (out bool) {
+	out = id.shader >= 0 && id.shader < len(g_shaders)
+}
+
+// ShaderCreate ...
+func ShaderCreate(shaderType i32, path str, include str, filename str) (out ShaderId) {
+	var source i32 = -1
+
+	var count i32 = len(g_shaders)
+	for i := 0; i < count; i++ {
+		if g_shaders[i].shaderType == shaderType {
+			var src i32 = g_shaders[i].source
+			if g_sources[src].filename == filename &&
+			   g_sources[src].path == path {
+				source = src
+				if g_shaders[i].include == include {
+					out.shader = i
+					return
+				}
+			}
+		}
+	}
+
+	out.shader = len(g_shaders)
+	var shader Shader
+	shader.shaderType = shaderType
+	shader.include = include
+
+	if ShaderSourceIsValid(source) {
+		shader.source = source
+	} else {
+		shader.source = ShaderSourceCreate(path, filename)
+	}
+
+	shader.glsl = str.concat(include, g_sources[shader.source].code) // ISSUE : can't use + operator
+
+	g_shaders = append(g_shaders, shader)
+
+	panicIfNot(ShaderIsValid(out), "invalid id")
+}
+
+// ShaderGetGlsl ...
+func ShaderGetGlsl(id ShaderId) (out str) {
+	panicIfNot(ShaderIsValid(id), "invalid id")
+	out = g_shaders[id.shader].glsl
+}
+
