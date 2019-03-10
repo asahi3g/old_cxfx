@@ -75,7 +75,7 @@ func UseProgram(program Program) {
 func BindAttribute(program Program, location i32, name str) () {
 
 	gl.BindAttribLocation(program.name, location, name)
-	panicIf(GlError(), "gl.BindAttribute")
+	panicIf(GlError(), sprintf("gl.BindAttributeLocation(%d, %d, %s)", program.name, location, name))
 
 	var newLocation i32 = gl.GetAttribLocation(program.name, name)
 	panicIf(GlError(), "gl.GetAttribLocation")

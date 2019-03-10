@@ -98,6 +98,7 @@ var g_linearWrap SamplerState = SamplerStateCreate(gl.LINEAR_MIPMAP_NEAREST, gl.
 var g_linearClamp SamplerState = SamplerStateCreate(gl.LINEAR_MIPMAP_NEAREST, gl.LINEAR, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
 var g_nearestClamp SamplerState = SamplerStateCreate(gl.NEAREST, gl.NEAREST, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
 
+
 var g_vertexLayout []VertexAttribute
 
 // VertexLayout ...
@@ -541,19 +542,6 @@ func Init(width i32, height i32, dataDir str)() {
 
 	g_clearColor = gfx_pink
 
-	var shaderPath str = sprintf("%s/shaders/", dataDir)
-
-	var vsPassThrough ShaderId = ShaderCreate(SHADER_VERTEX, shaderPath, "#version 130\n", "pass_through.vsh")
-	var vsPerspective ShaderId = ShaderCreate(SHADER_VERTEX, shaderPath, "#version 130\n", "perspective.vsh")
-
-	var psVertexColor ShaderId = ShaderCreate(SHADER_PIXEL, shaderPath, "#version 130\n", "vertex_color.psh")
-	var psTexture ShaderId = ShaderCreate(SHADER_PIXEL, shaderPath, "#version 130\n", "texture.psh")
-	var psSky ShaderId = ShaderCreate(SHADER_PIXEL, shaderPath, "#version 130\n", "sky.psh")
-	var psColor ShaderId = ShaderCreate(SHADER_PIXEL, shaderPath, "#version 130\n", "color.psh")
-	var psTransition_0 ShaderId = ShaderCreate(SHADER_PIXEL, shaderPath, "#version 130\n", "transition_0.psh")
-	var psTransition_1 ShaderId = ShaderCreate(SHADER_PIXEL, shaderPath, "#version 130\n", "transition_1.psh")
-	var psPbr ShaderId = ShaderCreate(SHADER_PIXEL, shaderPath, "#version 130\n", "pbr.psh")
-
 	gl.Init()
 	panicIf(GlError(), "gl.Init")
 
@@ -571,21 +559,26 @@ func Init(width i32, height i32, dataDir str)() {
 
 	resizeViewport(width, height)
 
+	shaderInit(dataDir)
+
 	printf("fxVertexColor\n")
-	g_fxVertexColor = EffectCreate(vsPassThrough, psVertexColor)
+	g_fxVertexColor = EffectCreate("pass_through.vsh", "vertex_color.psh")
+	EffectUse(g_fxVertexColor)
 	EffectBindAttribute(g_fxVertexColor, 0, "i_v3Position")
 	EffectBindAttribute(g_fxVertexColor, 1, "i_v4Albedo")
 	EffectTryBindUniform(g_fxVertexColor, "DEBUG_0")
 
 	printf("fxTexture\n")
-	g_fxTexture = EffectCreate(vsPassThrough, psTexture)
+	g_fxTexture = EffectCreate("pass_through.vsh", "texture.psh")
+	EffectUse(g_fxTexture)
 	EffectBindAttribute(g_fxTexture, 0, "i_v3Position")
 	EffectBindAttribute(g_fxTexture, 2, "i_v2Texcoord")
 	EffectBindSampler(g_fxTexture, "u_t2Albedo")
 	EffectTryBindUniform(g_fxTexture, "DEBUG_0")
 
 	printf("fxTrans_0\n")
-	g_fxTrans_0 = EffectCreate(vsPassThrough, psTransition_0)
+	g_fxTrans_0 = EffectCreate("pass_through.vsh", "transition_0.psh")
+	EffectUse(g_fxTrans_0)
 	EffectBindAttribute(g_fxTrans_0, 0, "i_v3Position")
 	EffectBindAttribute(g_fxTrans_0, 2, "i_v2Texcoord")
 	EffectBindSampler(g_fxTrans_0, "u_t2Src")
@@ -594,7 +587,8 @@ func Init(width i32, height i32, dataDir str)() {
 	EffectBindUniform(g_fxTrans_0, "u_fTime")
 
 	printf("fxTrans_1\n")
-	g_fxTrans_1 = EffectCreate(vsPassThrough, psTransition_1)
+	g_fxTrans_1 = EffectCreate("pass_through.vsh", "transition_1.psh")
+	EffectUse(g_fxTrans_1)
 	EffectBindAttribute(g_fxTrans_1, 0, "i_v3Position")
 	EffectBindAttribute(g_fxTrans_1, 2, "i_v2Texcoord")
 	EffectBindSampler(g_fxTrans_1, "u_t2Src")
@@ -603,7 +597,8 @@ func Init(width i32, height i32, dataDir str)() {
 	EffectBindUniform(g_fxTrans_1, "u_fTime")
 
 	printf("fxPerspectiveColor\n")
-	g_fxPerspectiveColor = EffectCreate(vsPerspective, psColor)
+	g_fxPerspectiveColor = EffectCreate("perspective.vsh", "color.psh")
+	EffectUse(g_fxPerspectiveColor)
 	EffectBindAttribute(g_fxPerspectiveColor, 0, "i_v3Position")
 	EffectTryBindUniform(g_fxPerspectiveColor, "DEBUG_0")
 	EffectBindUniform(g_fxPerspectiveColor, "u_m44World")
@@ -612,7 +607,8 @@ func Init(width i32, height i32, dataDir str)() {
 	EffectBindUniform(g_fxPerspectiveColor, "u_v4Albedo")
 
 	printf("fxPerspectiveTexture\n")
-	g_fxPerspectiveTexture = EffectCreate(vsPerspective, psTexture)
+	g_fxPerspectiveTexture = EffectCreate("perspective.vsh", "texture.psh")
+	EffectUse(g_fxPerspectiveTexture)
 	EffectBindAttribute(g_fxPerspectiveTexture, 0, "i_v3Position")
 	EffectBindAttribute(g_fxPerspectiveTexture, 1, "i_v4Albedo")
 	EffectBindAttribute(g_fxPerspectiveTexture, 2, "i_v2Texcoord")
@@ -623,7 +619,8 @@ func Init(width i32, height i32, dataDir str)() {
 	EffectBindUniform(g_fxPerspectiveTexture, "u_m44Projection")
 
 	printf("fxPerspectiveSky\n")
-	g_fxPerspectiveSky = EffectCreate(vsPerspective, psSky)
+	g_fxPerspectiveSky = EffectCreate("perspective.vsh", "sky.psh")
+	EffectUse(g_fxPerspectiveSky)
 	EffectBindAttribute(g_fxPerspectiveSky, 0, "i_v3Position")
 	//EffectBindAttribute(g_fxPerspectiveSky, 1, "i_v4Albedo")
 	//EffectBindAttribute(g_fxPerspectiveSky, 2, "i_v2Texcoord")
@@ -634,7 +631,8 @@ func Init(width i32, height i32, dataDir str)() {
 	EffectBindUniform(g_fxPerspectiveSky, "u_m44Projection")
 
 	printf("fxPerspectivePbr\n")
-	g_fxPerspectivePbr = EffectCreate(vsPerspective, psPbr)
+	g_fxPerspectivePbr = EffectCreate("perspective.vsh", "pbr.psh")
+	EffectUse(g_fxPerspectivePbr)
 	EffectBindAttribute(g_fxPerspectivePbr, 0, "i_v3Position")
 	//EffectBindAttribute(g_fxPerspectivePbr, 1, "i_v4Albedo")
 	EffectBindAttribute(g_fxPerspectivePbr, 2, "i_v2Texcoord")

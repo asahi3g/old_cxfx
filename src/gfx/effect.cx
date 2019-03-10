@@ -1,7 +1,14 @@
 package gfx
 
 // Globals ...
-var g_effects[] Effect
+var g_effects[] Effect // TODO : use map
+var g_techniques []Technique // TODO : use map
+
+// Technique ...
+type Technique struct {
+	key i64
+	program Program
+}
 
 // EffectId ...
 type EffectId struct {
@@ -11,9 +18,18 @@ type EffectId struct {
 // Effect ...
 type Effect struct {
 	id EffectId
+
+	vertexKey ShaderKey
+	pixelKey ShaderKey
+
+	variant i64
+	vertexVariant i64
+	pixelVariant i64
+
 	program Program
 	vertex ShaderId
 	pixel ShaderId
+
 	attributes []Attribute
 	samplers []Sampler
 	uniforms []Uniform
@@ -30,12 +46,16 @@ func IsValidEffect(id EffectId) (out bool) {
 }
 
 // EffectCreate ...
-func EffectCreate(vertex ShaderId, pixel ShaderId) (out EffectId) {
+func EffectCreate(vertexFilename str, pixelFilename str) (out EffectId) {
+	var vertexVariant i64 = ShaderAddVariant(vertexFilename)
+	var pixelVariant i64 = ShaderAddVariant(pixelFilename)
+	var effectVariant i64 = (vertexVariant << SHADER_VARIANT) | pixelVariant
+
 	var effectCount i32 = len(g_effects)
-	for i := 0; i < effectCount; i++ {
-		if g_effects[i].vertex.shader == vertex.shader &&
-		   g_effects[i].pixel.shader == pixel.shader {
+	for i := 0; i < effectCount; i++ { // TODO : use map
+		if g_effects[i].variant == effectVariant {
 			out.effect = i
+			printf("EFFECT_FOUND %d\n", i)
 			return
 		}
 	}
@@ -44,13 +64,36 @@ func EffectCreate(vertex ShaderId, pixel ShaderId) (out EffectId) {
 
 	var effect Effect
 	effect.id = out
-	effect.vertex = vertex
-	effect.pixel = pixel
-	effect.program = ProgramCreate(ShaderGetGlsl(vertex), ShaderGetGlsl(pixel))
-
+	effect.variant = effectVariant
+	effect.vertexVariant = vertexVariant
+	effect.pixelVariant = pixelVariant
 	g_effects = append(g_effects, effect)
 
 	panicIfNot(IsValidEffect(out), "invalid id")
+}
+
+// EffectVertexKeyClear ...
+func EffectVertexKeyClear(id EffectId) {
+	panicIfNot(IsValidEffect(id), "invalid id")
+	g_effects[id.effect].vertexKey = ShaderKeyClear()
+}
+
+// EffectVertexKeySet ...
+func EffectVertexKeySet(id EffectId, flag i64, value bool) {
+	panicIfNot(IsValidEffect(id), "invalid id")
+	g_effects[id.effect].vertexKey = ShaderKeySet(g_effects[id.effect].vertexKey, flag, value)
+}
+
+// EffectPixelKeyClear ...
+func EffectPixelKeyClear(id EffectId) {
+	panicIfNot(IsValidEffect(id), "invalid id")
+	g_effects[id.effect].pixelKey = ShaderKeyClear()
+}
+
+// EffectPixelKeySet ...
+func EffectPixelKeySet(id EffectId, flag i64, value bool) {
+	panicIfNot(IsValidEffect(id), "invalid id")
+	g_effects[id.effect].pixelKey = ShaderKeySet(g_effects[id.effect].pixelKey, flag, value)
 }
 
 // EffectIsValidSamplerSlot ...
@@ -72,13 +115,6 @@ func EffectIsValidUniformLocation(id EffectId, slot i32) (out bool) {
 	if EffectIsValidUniformSlot(id, slot) {
 		out = g_effects[id.effect].uniforms[slot].location >= 0
 	}
-}
-
-
-// EffectUse ...
-func EffectUse(id EffectId) () {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	UseProgram(g_effects[id.effect].program)
 }
 
 // EffectBindAttribute ...
@@ -107,6 +143,44 @@ func EffectTryBindUniform(id EffectId, name str) {
 	panicIfNot(IsValidEffect(id), "invalid id")
 	var location i32 = TryBindUniform(g_effects[id.effect].program, name)
 	g_effects[id.effect].uniforms = append(g_effects[id.effect].uniforms, NewUniform(location, name))
+}
+
+// EffectUse ...
+func EffectUse(id EffectId) () {
+	panicIfNot(IsValidEffect(id), "invalid id")
+	var effectVariant i64 = g_effects[id.effect].variant
+
+	var vertexVariant i64 = g_effects[id.effect].vertexVariant
+	var vertexFlags i64 = g_effects[id.effect].vertexKey.value
+	var vertexKey i64 = (vertexFlags << SHADER_VARIANT) | vertexVariant
+	var vertexShader ShaderId = ShaderCreate(SHADER_VERTEX, vertexVariant, vertexFlags, vertexKey)
+
+	var pixelVariant i64 = g_effects[id.effect].pixelVariant
+	var pixelFlags i64 = g_effects[id.effect].pixelKey.value
+	var pixelKey i64 = (pixelFlags << SHADER_VARIANT) | pixelVariant
+	var pixelShader ShaderId = ShaderCreate(SHADER_PIXEL, pixelVariant, pixelFlags, pixelKey)
+
+	var techniqueIndex i32 = -1
+	var techniqueKey i64 = vertexKey << 32L | pixelKey
+	var count i32 = len(g_techniques)
+	for i := 0; i < count; i++ { // ISSUE : use map
+		if g_techniques[i].key == techniqueKey {
+			techniqueIndex = i
+			i = count // ISSUE : use break
+		}
+	}
+
+	if techniqueIndex < 0 {
+		var technique Technique
+		technique.key = techniqueKey
+		technique.program = ProgramCreate(ShaderGetGlsl(vertexShader), ShaderGetGlsl(pixelShader))
+		techniqueIndex = len(g_techniques)
+		g_techniques = append(g_techniques, technique)
+	}
+
+	var program Program = g_techniques[techniqueIndex].program
+	g_effects[id.effect].program = program
+	UseProgram(program)
 }
 
 // EffectAssignTexture ...
