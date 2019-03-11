@@ -19,6 +19,8 @@ type EffectId struct {
 type Effect struct {
 	id EffectId
 
+	name str
+
 	vertexKey ShaderKey
 	pixelKey ShaderKey
 
@@ -46,24 +48,26 @@ func IsValidEffect(id EffectId) (out bool) {
 }
 
 // EffectCreate ...
-func EffectCreate(vertexFilename str, pixelFilename str) (out EffectId) {
+func EffectCreate(name str, vertexFilename str, pixelFilename str) (out EffectId) {
+	printf("EffectCreate : %s\n", name)
 	var vertexVariant i64 = ShaderAddVariant(vertexFilename)
 	var pixelVariant i64 = ShaderAddVariant(pixelFilename)
 	var effectVariant i64 = (vertexVariant << SHADER_VARIANT) | pixelVariant
 
-	var effectCount i32 = len(g_effects)
+	/*var effectCount i32 = len(g_effects)
 	for i := 0; i < effectCount; i++ { // TODO : use map
 		if g_effects[i].variant == effectVariant {
 			out.effect = i
 			printf("EFFECT_FOUND %d\n", i)
 			return
 		}
-	}
+	}*/
 
 	out.effect = len(g_effects)
 
 	var effect Effect
 	effect.id = out
+	effect.name = name
 	effect.variant = effectVariant
 	effect.vertexVariant = vertexVariant
 	effect.pixelVariant = pixelVariant
@@ -120,7 +124,7 @@ func EffectIsValidUniformLocation(id EffectId, slot i32) (out bool) {
 // EffectBindAttribute ...
 func EffectBindAttribute(id EffectId, location i32, name str) {
 	panicIfNot(IsValidEffect(id), "invalid id")
-	BindAttribute(g_effects[id.effect].program, location, name)
+	//BindAttribute(g_effects[id.effect].program, location, name)
 	g_effects[id.effect].attributes = append(g_effects[id.effect].attributes, NewAttribute(location, name))
 }
 
@@ -162,18 +166,20 @@ func EffectUse(id EffectId) () {
 
 	var techniqueIndex i32 = -1
 	var techniqueKey i64 = vertexKey << 32L | pixelKey
+
 	var count i32 = len(g_techniques)
 	for i := 0; i < count; i++ { // ISSUE : use map
 		if g_techniques[i].key == techniqueKey {
 			techniqueIndex = i
 			i = count // ISSUE : use break
+
 		}
 	}
 
 	if techniqueIndex < 0 {
 		var technique Technique
 		technique.key = techniqueKey
-		technique.program = ProgramCreate(ShaderGetGlsl(vertexShader), ShaderGetGlsl(pixelShader))
+		technique.program = ProgramCreate(g_effects[id.effect].attributes, ShaderGetGlsl(vertexShader), ShaderGetGlsl(pixelShader))
 		techniqueIndex = len(g_techniques)
 		g_techniques = append(g_techniques, technique)
 	}
@@ -188,7 +194,8 @@ func EffectAssignTexture(id EffectId, slot i32, texture TextureId) () {
 	panicIfNot(IsValidEffect(id), "invalid effect")
 	panicIfNot(EffectIsValidSamplerSlot(id, slot), "invalid sampler slot")
 	panicIfNot(IsValidTexture(texture), "invalid texture")
-	assignTexture(TextureTarget(texture), slot, g_effects[id.effect].samplers[slot].location, TextureName(texture))
+	var location i32 = g_effects[id.effect].samplers[slot].location
+	assignTexture(TextureTarget(texture), slot, location, TextureName(texture))
 }
 
 // EffectRemoveTexture ...

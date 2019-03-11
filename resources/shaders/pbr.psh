@@ -1,19 +1,18 @@
 uniform samplerCube u_tcEnvironmentSpecular;
-uniform sampler2D u_t2Albedo;
+uniform sampler2D u_t2Color;
 uniform sampler2D u_t2MetalRough;
 uniform samplerCube u_tcEnvironmentDiffuse;
 uniform sampler2D u_t2BRDF;
 
 uniform vec4 DEBUG_0;
-uniform vec4 u_v4Albedo;
+uniform vec4 u_v4Color;
 uniform mat4 u_m44World;
 uniform vec4 u_v4CameraPosition;
 uniform vec4 u_v4MetalRough;
 
-in vec4 v_v4Albedo;
+in vec3 v_v3Position;
 in vec3 v_v3Normal;
 in vec2 v_v2Texcoord;
-in vec3 v_v3Position;
 
 out vec4 o_v4Color;
 
@@ -147,9 +146,9 @@ void main()
 	float LdotH = clamp(dot(v3Light, v3Half), 0.0, 1.0);
 	float VdotH = clamp(dot(v3Direction, v3Half), 0.0, 1.0);
 
-	vec4 v4Base = u_v4Albedo;
+	vec4 v4Base = u_v4Color;
 	if (DEBUG_0.x >= 1.0) { // TODO : use #if
-		v4Base *= texture2D(u_t2Albedo, v_v2Texcoord) * u_v4Albedo * DEBUG_0.x;
+		v4Base *= texture2D(u_t2Color, v_v2Texcoord) * u_v4Color * DEBUG_0.x;
 	}
 	vec3 v3LinBase= gamma(v4Base.rgb);
 

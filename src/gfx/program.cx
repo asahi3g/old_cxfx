@@ -16,7 +16,7 @@ func NullProgram()(out Program) {
 }
 
 // ProgramCreate ...
-func ProgramCreate(vertex str, pixel str) (out Program) {
+func ProgramCreate(attributes[] Attribute, vertex str, pixel str) (out Program) {
 	// vertex shader
 	var vertexShader i32 = gl.CreateShader(gl.VERTEX_SHADER)
 	panicIf(GlError(), "gl.CreateShader")
@@ -41,6 +41,11 @@ func ProgramCreate(vertex str, pixel str) (out Program) {
 	out.name = gl.CreateProgram()
 	panicIf(GlError(), "gl.CreateProgram")
 	g_programs = append(g_programs, out.name)
+
+	var count i32 = len(attributes)
+	for i := 0; i < count; i++ {
+		BindAttribute(out, attributes[i].location, attributes[i].name)
+	}
 
 	gl.AttachShader(out.name, vertexShader)
 	panicIf(GlError(), "gl.AttachShader")
@@ -77,9 +82,9 @@ func BindAttribute(program Program, location i32, name str) () {
 	gl.BindAttribLocation(program.name, location, name)
 	panicIf(GlError(), sprintf("gl.BindAttributeLocation(%d, %d, %s)", program.name, location, name))
 
-	var newLocation i32 = gl.GetAttribLocation(program.name, name)
+	/*var newLocation i32 = gl.GetAttribLocation(program.name, name)
 	panicIf(GlError(), "gl.GetAttribLocation")
-	panicIfNot(newLocation == location, sprintf("attribute not found : %s\n", name))
+	panicIfNot(newLocation == location, sprintf("attribute not found : %s\n", name))*/
 }
 
 // BindUniform ...

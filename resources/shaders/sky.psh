@@ -1,15 +1,12 @@
-uniform samplerCube u_tcAlbedo;
+uniform samplerCube u_tcColor;
 uniform vec4 DEBUG_0;
 
-in vec4 v_v4Albedo;
-in vec3 v_v3Normal;
-in vec2 v_v2Texcoord;
 in vec3 v_v3Position;
 
 out vec4 o_v4Color;
 
 void main()
 {
-	o_v4Color = textureCube(u_tcAlbedo, normalize(v_v3Position));
+	o_v4Color = textureCube(u_tcColor, normalize(v_v3Position));
 }
 
