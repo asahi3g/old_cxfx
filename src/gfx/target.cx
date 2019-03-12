@@ -149,7 +149,7 @@ func ResizeTargets(width i32, height i32) {
 
 func targetAttachTexture(id TargetId, attachment i32, texture TextureId) {
 	panicIfNot(IsValidTarget(id), "")
-	bindFramebuffer(g_targets[id].framebuffer)
+	bindFramebuffer(g_targets[id.target].framebuffer)
 	//TexturePrint("targetAttachTexture", texture)
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, TextureName(texture), 0)
 	panicIf(GlError(), "gl.FramebufferTexture2D")

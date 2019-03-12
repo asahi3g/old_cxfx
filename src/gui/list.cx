@@ -164,7 +164,7 @@ func ListChildFocus(id ListId, child ControlId, value i32) {
 				headerOffset = 1
 			}
 
-			var line ControlId = g_controls[child].parent
+			var line ControlId = g_controls[child.control].parent
 
 			var previousSelectedLine i32 = g_lists[id.list].previousSelectedLine
 			var previousSelectedItem i32 = g_lists[id.list].previousSelectedItem
@@ -413,7 +413,7 @@ func ListResize(id ListId) () {
 		printf("columnCount %d, lineCount %d, listIndex %d, headerIndex %d, linesIndex %d\n", columnCount, lineCount, listIndex, headerIndex, linesIndex)
 	}*/
 
-	var containerWidth f32 = g_controls[scrollerContainer].size.x
+	var containerWidth f32 = g_controls[scrollerContainer.control].size.x
 	var scrollerWidth f32 = g_controls[scroller.base.control].size.x
 
 	var lineWidth f32 = 0.0
