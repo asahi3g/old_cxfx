@@ -108,7 +108,7 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		}
 
 		vertexCount = accessor.count
-		if accessor.componentType != gl.FLOAT { // ISSUE : how to pass []struct to BufferData ?
+		if accessor.componentType != gl.FLOAT { // TODO : how to pass []struct to BufferData ?
 			printf("buffer type not implemented\n")
 			out = InvalidMesh()
 			return

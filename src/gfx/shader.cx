@@ -181,7 +181,7 @@ func ShaderCreate(shaderType i64, shaderVariant i64, shaderFlags i64, shaderKey 
 	var source i32 = -1
 
 	var count i32 = len(g_shaders)
-	for i := 0; i < count; i++ { // ISSUE : use map
+	for i := 0; i < count; i++ { // TODO : use map
 		if g_shaders[i].key == shaderKey {
 			out.shader = i
 			return

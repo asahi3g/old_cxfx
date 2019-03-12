@@ -147,7 +147,7 @@ func TextureSetResizable(id TextureId, resizable bool) {
 func textureCreate0(path str, extension str, target i32, format i32, width i32, height i32, mipmap i32, resizable bool) (out TextureId) {
 	var name i32
 	if (path == "") {
-		name = gl.GenTextures(1, name) // ISSUE : change gl.GenTextures signature
+		name = gl.GenTextures(1, name) // TODO : change gl.GenTextures signature
 		panicIf(GlError(), "gl.GenTextures")
 	} else {
 		var textureCount i32 = len(g_textures)

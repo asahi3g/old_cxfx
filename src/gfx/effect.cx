@@ -168,7 +168,7 @@ func EffectUse(id EffectId) () {
 	var techniqueKey i64 = vertexKey << 32L | pixelKey
 
 	var count i32 = len(g_techniques)
-	for i := 0; i < count; i++ { // ISSUE : use map
+	for i := 0; i < count; i++ { // TODO : use map
 		if g_techniques[i].key == techniqueKey {
 			techniqueIndex = i
 			i = count // ISSUE : use break
