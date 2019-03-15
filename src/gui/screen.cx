@@ -313,7 +313,7 @@ func ScreenRender(id ScreenId, clip mat.v4, stack i32) () {
 		//fps.StartProfile(g_profileRenderOpaqueVertexColoredTriangles)
 		if gfx.MeshIsEmpty(g_opaqueVertexColoredTriangles) == false {
 			gfx.DisableBlending()
-			gfx.EffectUse(gfx.g_fxVertexColor)
+			gfx.EffectUse(gfx.g_fxVertexColor2D)
 			gfx.MeshRender(g_opaqueVertexColoredTriangles)
 		}
 		//fps.StopProfile(g_profileRenderOpaqueVertexColoredTriangles)
@@ -325,7 +325,7 @@ func ScreenRender(id ScreenId, clip mat.v4, stack i32) () {
 		//fps.StartProfile(g_profileRenderOpaqueVertexColoredLines)
 		if gfx.MeshIsEmpty(g_opaqueVertexColoredLines) == false {
 			gfx.DisableBlending()
-			gfx.EffectUse(gfx.g_fxVertexColor)
+			gfx.EffectUse(gfx.g_fxVertexColor2D)
 			gfx.MeshRender(g_opaqueVertexColoredLines)
 		}
 		//fps.StopProfile(g_profileRenderOpaqueVertexColoredLines)
@@ -338,7 +338,7 @@ func ScreenRender(id ScreenId, clip mat.v4, stack i32) () {
 		//fps.StartProfile(g_profileRenderAlphaVertexColoredTriangles)
 		if gfx.MeshIsEmpty(g_alphaVertexColoredTriangles) == false {
 			gfx.EnableBlending(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-			gfx.EffectUse(gfx.g_fxVertexColor)
+			gfx.EffectUse(gfx.g_fxVertexColor2D)
 			gfx.MeshRender(g_alphaVertexColoredTriangles)
 		}
 	}
@@ -360,7 +360,7 @@ func ScreenRender(id ScreenId, clip mat.v4, stack i32) () {
 	  gfx.MeshAppendOrthoQuad(g_opaqueVertexColoredTriangles, renderBounds,
 	  mat.v4_(0.0, 0.0, 1.0, 1.0), mat.v4_(1.0, 1.0, 1.0, 1.0), gfx.gfx_viewportBounds, 1.0)
 	  gfx.MeshEnd(g_opaqueVertexColoredTriangles)
-	  gfx.EffectUse(gfx.g_fxVertexColor)
+	  gfx.EffectUse(gfx.g_fxVertexColor2D)
 	  gfx.MeshRender(g_opaqueVertexColoredTriangles)
 	  }*/
 }

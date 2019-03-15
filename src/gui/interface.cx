@@ -615,24 +615,10 @@ func Render() () {
 		gfx.DisableDepth()
 		gfx.DisableStencil()
 		gfx.DisableBlending()
-		gfx.EffectUse(gfx.g_fxTrans_0)
-		gfx.EffectAssignFloat(gfx.g_fxTrans_0, 1, f64.f32(g_transitionTime / g_transitionDuration))
-		if gfx.IsValidTarget(target0) {
-			var texture0 gfx.TextureId = gfx.TargetTryGetColor(target0)
-			gfx.EffectAssignTexture(gfx.g_fxTrans_0, 0, texture0)
-			gfx.TextureFilter(texture0, gl.NEAREST, gl.NEAREST)
-			gfx.TextureWrap(texture0, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
-		} else {
-			gfx.EffectRemoveTexture(gfx.g_fxTrans_0, 0, gl.TEXTURE_2D)
-		}
-		if gfx.IsValidTarget(target1) {
-			var texture1 gfx.TextureId = gfx.TargetTryGetColor(target1)
-			gfx.EffectAssignTexture(gfx.g_fxTrans_0, 1, texture1)
-			gfx.TextureFilter(texture1, gl.NEAREST, gl.NEAREST)
-			gfx.TextureWrap(texture1, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
-		} else {
-			gfx.EffectRemoveTexture(gfx.g_fxTrans_0, 1, gl.TEXTURE_2D)
-		}
+		gfx.EffectUse(gfx.g_fxFade_0)
+		gfx.EffectAssignFloat(gfx.g_fxFade_0, gfx.UNIFORM_TIME, f64.f32(g_transitionTime / g_transitionDuration))
+		gfx.EffectAssignTexture(gfx.g_fxFade_0, gfx.SAMPLER_COLOR_0, gfx.TargetTryGetColor(target0), gfx.g_nearestClamp)
+		gfx.EffectAssignTexture(gfx.g_fxFade_0, gfx.SAMPLER_COLOR_1, gfx.TargetTryGetColor(target1), gfx.g_nearestClamp)
 		gfx.MeshRender(g_fullscreenQuad)
 		unlockTarget(target0)
 		unlockTarget(target1)
@@ -662,24 +648,10 @@ func Render() () {
 		gfx.DisableDepth()
 		gfx.DisableStencil()
 		gfx.DisableBlending()
-		gfx.EffectUse(gfx.g_fxTrans_1)
-		gfx.EffectAssignFloat(gfx.g_fxTrans_1, 1, 1.0)
-		if gfx.IsValidTarget(target2) {
-			var texture2 gfx.TextureId = gfx.TargetGetColor(target2)
-			gfx.EffectAssignTexture(gfx.g_fxTrans_1, 0, texture2)
-			gfx.TextureFilter(texture2, gl.NEAREST, gl.NEAREST)
-			gfx.TextureWrap(texture2, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
-		} else {
-			gfx.EffectRemoveTexture(gfx.g_fxTrans_1, 0, gl.TEXTURE_2D)
-		}
-		if gfx.IsValidTarget(target) {
-	 		var texture gfx.TextureId = gfx.TargetTryGetColor(target)
-			gfx.EffectAssignTexture(gfx.g_fxTrans_1, 1, texture)
-			gfx.TextureFilter(texture, gl.NEAREST, gl.NEAREST)
-			gfx.TextureWrap(texture, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
-		} else {
-			gfx.EffectRemoveTexture(gfx.g_fxTrans_1, 1, gl.TEXTURE_2D)
-		}
+		gfx.EffectUse(gfx.g_fxFade_1)
+		gfx.EffectAssignFloat(gfx.g_fxFade_1, gfx.UNIFORM_TIME, 1.0)
+		gfx.EffectAssignTexture(gfx.g_fxFade_1, gfx.SAMPLER_COLOR_0, gfx.TargetTryGetColor(target2), gfx.g_nearestClamp)
+		gfx.EffectAssignTexture(gfx.g_fxFade_1, gfx.SAMPLER_COLOR_1, gfx.TargetTryGetColor(target), gfx.g_nearestClamp)
 		gfx.MeshRender(g_fullscreenQuad)
 		unlockTarget(target)
 		unlockTarget(target2)
@@ -695,17 +667,8 @@ func Render() () {
 	gfx.DisableDepth()
 	gfx.DisableStencil()
 	gfx.DisableBlending()
-	gfx.EffectUse(gfx.g_fxTexture)
-	var texture2 gfx.TextureId = gfx.TargetTryGetColor(target2)
-	gfx.EffectAssignTexture(gfx.g_fxTexture, 0, texture2)
-	/*if gfx.IsValidTarget(target0) {
-		var texture0 gfx.TextureId = gfx.TargetTryGetColor(target0)
-		gfx.EffectAssignTexture(gfx.g_fxTexture, 0, texture0)
-		gfx.TextureFilter(texture0, gl.NEAREST, gl.NEAREST)
-		gfx.TextureWrap(texture0, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
-	} else {
-		gfx.EffectRemoveTexture(gfx.g_fxTexture, 0, gl.TEXTURE_2D)
-	}*/
+	gfx.EffectUse(gfx.g_fxTexture2D)
+	gfx.EffectTryAssignTexture(gfx.g_fxTexture2D, gfx.SAMPLER_COLOR_0, gfx.TargetTryGetColor(target2), gfx.g_nearestClamp)
 	gfx.MeshRender(g_fullscreenQuad)
 	unlockTarget(target2)
 	//fps.StopProfile(g_profileRenderDefaultFramebuffer)

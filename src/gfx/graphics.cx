@@ -5,7 +5,8 @@ import "mat"
 import "os"
 
 // TODO : print gl extensions on init
-
+// TODO : refactor transition shader
+//
 // Constants ...
 var TRIANGLES i32 = gl.TRIANGLES
 var LINEAR i32 = gl.LINEAR
@@ -84,19 +85,24 @@ var gfx_scissorY i32 = 0
 var gfx_scissorWidth i32 = 0
 var gfx_scissorHeight i32 = 0
 
-var g_fxVertexColor EffectId = InvalidEffect()
-var g_fxTexture	 EffectId = InvalidEffect()
-var g_fxTrans_0	 EffectId = InvalidEffect()
-var g_fxTrans_1	 EffectId = InvalidEffect()
-var g_fxPerspectiveColor EffectId = InvalidEffect()
-var g_fxPerspectiveTexture EffectId = InvalidEffect()
-var g_fxPerspectiveSky EffectId = InvalidEffect()
-var g_fxPerspectivePbr EffectId = InvalidEffect()
+var g_tfxDefault TemplateId
+var g_tfxFade TemplateId
+var g_tfxSky TemplateId
+var g_tfxPbr TemplateId
+
+var g_fxVertexColor2D EffectId = EffectInvalid()
+var g_fxTexture2D EffectId = EffectInvalid()
+var g_fxUniformColor3D EffectId = EffectInvalid()
+var g_fxTexture3D EffectId = EffectInvalid()
+var g_fxFade_0 EffectId = EffectInvalid()
+var g_fxFade_1 EffectId = EffectInvalid()
+var g_fxSky EffectId = EffectInvalid()
 
 var g_linear0Wrap SamplerState = SamplerStateCreate(gl.LINEAR, gl.LINEAR, gl.REPEAT, gl.REPEAT, gl.REPEAT)
 var g_linearWrap SamplerState = SamplerStateCreate(gl.LINEAR_MIPMAP_NEAREST, gl.LINEAR, gl.REPEAT, gl.REPEAT, gl.REPEAT)
 var g_linearClamp SamplerState = SamplerStateCreate(gl.LINEAR_MIPMAP_NEAREST, gl.LINEAR, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
 var g_nearestClamp SamplerState = SamplerStateCreate(gl.NEAREST, gl.NEAREST, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE, gl.CLAMP_TO_EDGE)
+
 
 var g_vertexLayout []VertexAttribute
 
@@ -193,51 +199,45 @@ func NoGlStatus() (nostatus bool) { // ISSUE : typo in function name GlStatus in
 	nostatus = status == false // panic if nostatus = (GlStatus() == false)
 }
 
-// Attribute ...
-type Attribute struct {
+// Location ...
+type Location struct {
 	location i32
-	name str
-}
-
-// NewAttribute ...
-func NewAttribute(location i32, name str) (out Attribute) {
-	out.location = location
-	out.name = name
-}
-
-// Sampler ...
-type Sampler struct {
-	location i32
-	name str
-}
-
-// NewSampler ...
-func NewSampler(location i32, name str) (out Sampler) {
-	out.location = location
-	out.name = name
-}
-
-// Uniform ...
-type Uniform struct {
-	location i32
-	name str
 	Type i32
+	name str
+	bound bool
 }
 
-// NewUniform ...
-func NewUniform(location i32, name str) (out Uniform) {
+// LocationBind ...
+func LocationBind(locations []Location, location i32, slot i32, name str, Type i32) (out []Location) {
+	var count i32 = len(locations)
+	if slot >= count {
+		//locations = resize(locations, slot + 1) // ISSUE : resize with []struct
+		for i := count; i < slot; i++ {
+			locations = append(locations, LocationCreate(-1, "", -1))
+		}
+	}
+	locations = append(locations, LocationCreate(location, name, Type))
+	out = locations
+}
+
+
+// LocationCreate ...
+func LocationCreate(location i32, name str, Type i32) (out Location) {
 	out.location = location
 	out.name = name
+	out.Type = Type
+	out.bound = false
 }
 
 func assignTexture(target i32, slot i32, sampler i32, name i32) () {
 	gl.Uniform1i(sampler, slot)
-	panicIf(GlError(), "gl.Uniform1i")
+	panicIf(GlError(), sprintf("gl.Uniform1i(%d, %d)", sampler, slot))
 
 	gl.ActiveTexture(gl.TEXTURE0 + slot)
 	panicIf(GlError(), "gl.ActiveTexture")
 
 	bindTexture(target, name)
+	
 
 	if target == gl.TEXTURE_CUBE_MAP {
 		//printf("LOCATION %d, SLOT %d, NAME %d\n", sampler, slot, name)
@@ -528,29 +528,19 @@ func Init(width i32, height i32, dataDir str)() {
 	State.Projection = projection*/
 
 	DEBUG_0 = resize(DEBUG_0, 4)
-	g_vertexLayout = append(g_vertexLayout, VertexAttributeCreate(BIND_POSITION, 3, FLOAT))
-	g_vertexLayout = append(g_vertexLayout, VertexAttributeCreate(BIND_COLOR, 4, FLOAT))
-	g_vertexLayout = append(g_vertexLayout, VertexAttributeCreate(BIND_TEXCOORD, 2, FLOAT))
+	g_vertexLayout = append(g_vertexLayout, VertexAttributeCreate(ATTRIBUTE_POSITION, 3, FLOAT))
+	g_vertexLayout = append(g_vertexLayout, VertexAttributeCreate(ATTRIBUTE_COLOR, 4, FLOAT))
+	g_vertexLayout = append(g_vertexLayout, VertexAttributeCreate(ATTRIBUTE_TEXCOORD, 2, FLOAT))
 
 	gfx_red   = mat.v4_(1.0, 0.0, 0.0, 1.0)
 	gfx_green = mat.v4_(0.0, 1.0, 0.0, 1.0)
 	gfx_blue  = mat.v4_(0.0, 0.0, 1.0, 1.0)
 	gfx_pink  = mat.v4_(1.0, 0.0, 1.0, 1.0)
 	gfx_white = mat.v4_(1.0, 1.0, 1.0, 1.0)
+	gfx_black = mat.v4_(0.0, 0.0, 0.0, 1.0)
 	gfx_zero  = mat.v4_(0.0, 0.0, 0.0, 0.0)
 
 	g_clearColor = gfx_pink
-
-	var vsPassThrough str = os.ReadAllText(sprintf("%s/shaders/pass_through.vsh", dataDir))
-	var vsPerspective str = os.ReadAllText(sprintf("%s/shaders/perspective.vsh", dataDir))
-
-	var psVertexColor str = os.ReadAllText(sprintf("%s/shaders/vertex_color.psh", dataDir))
-	var psTexture str = os.ReadAllText(sprintf("%s/shaders/texture.psh", dataDir))
-	var psSky str = os.ReadAllText(sprintf("%s/shaders/sky.psh", dataDir))
-	var psColor str = os.ReadAllText(sprintf("%s/shaders/color.psh", dataDir))
-	var psTransition_0 str = os.ReadAllText(sprintf("%s/shaders/transition_0.psh", dataDir))
-	var psTransition_1 str = os.ReadAllText(sprintf("%s/shaders/transition_1.psh", dataDir))
-	var psPbr str = os.ReadAllText(sprintf("%s/shaders/pbr.psh", dataDir))
 
 	gl.Init()
 	panicIf(GlError(), "gl.Init")
@@ -569,127 +559,108 @@ func Init(width i32, height i32, dataDir str)() {
 
 	resizeViewport(width, height)
 
-	printf("fxVertexColor\n")
-	g_fxVertexColor = EffectCreate()
-	EffectAppendVertexSource(g_fxVertexColor, "#version 130\n")
-	EffectAppendVertexSource(g_fxVertexColor, vsPassThrough)
-	EffectAppendPixelSource(g_fxVertexColor, "#version 130\n")
-	EffectAppendPixelSource(g_fxVertexColor, psVertexColor)
-	EffectCompile(g_fxVertexColor)
-	EffectBindAttribute(g_fxVertexColor, 0, "i_v3Position")
-	EffectBindAttribute(g_fxVertexColor, 1, "i_v4Albedo")
-	EffectTryBindUniform(g_fxVertexColor, "DEBUG_0")
+	shaderInit(dataDir)
 
-	printf("fxTexture\n")
-	g_fxTexture = EffectCreate()
-	EffectAppendVertexSource(g_fxTexture, "#version 130\n")
-	EffectAppendVertexSource(g_fxTexture, vsPassThrough)
-	EffectAppendPixelSource(g_fxTexture, "#version 130\n")
-	EffectAppendPixelSource(g_fxTexture, psTexture)
-	EffectCompile(g_fxTexture)
-	EffectBindAttribute(g_fxTexture, 0, "i_v3Position")
-	EffectBindAttribute(g_fxTexture, 2, "i_v2Texcoord")
-	EffectBindSampler(g_fxTexture, "u_t2Albedo")
-	EffectTryBindUniform(g_fxTexture, "DEBUG_0")
+	g_tfxDefault = TemplateCreate("fxTemplateDefault", "default.vsh", "default.psh")
+	g_tfxFade = TemplateCreate("fxTemplateFade", "default.vsh", "fade.psh")
+	g_tfxSky = TemplateCreate("fxTemplateSky", "default.vsh", "sky.psh")
+	g_tfxPbr = TemplateCreate("fxTemplatePbr", "default.vsh", "default.psh")
 
-	printf("fxTrans_0\n")
-	g_fxTrans_0 = EffectCreate()
-	EffectAppendVertexSource(g_fxTrans_0, "#version 130\n")
-	EffectAppendVertexSource(g_fxTrans_0, vsPassThrough)
-	EffectAppendPixelSource(g_fxTrans_0, "#version 130\n")
-	EffectAppendPixelSource(g_fxTrans_0, psTransition_0)
-	EffectCompile(g_fxTrans_0)
-	EffectBindAttribute(g_fxTrans_0, 0, "i_v3Position")
-	EffectBindAttribute(g_fxTrans_0, 2, "i_v2Texcoord")
-	EffectBindSampler(g_fxTrans_0, "u_t2Src")
-	EffectBindSampler(g_fxTrans_0, "u_t2Dst")
-	EffectTryBindUniform(g_fxTrans_0, "DEBUG_0")
-	EffectBindUniform(g_fxTrans_0, "u_fTime")
+	// default
+	TemplateReset(g_tfxDefault)
+	TemplateSetKey(g_tfxDefault, USE_COLOR_VTX, true)
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_COLOR, "i_v4Color")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_DEBUG_0, "DEBUG_0")
+	g_fxVertexColor2D = TemplateInstance(g_tfxDefault)
 
-	printf("fxTrans_1\n")
-	g_fxTrans_1 = EffectCreate()
-	EffectAppendVertexSource(g_fxTrans_1, "#version 130\n")
-	EffectAppendVertexSource(g_fxTrans_1, vsPassThrough)
-	EffectAppendPixelSource(g_fxTrans_1, "#version 130\n")
-	EffectAppendPixelSource(g_fxTrans_1, psTransition_1)
-	EffectCompile(g_fxTrans_1)
-	EffectBindAttribute(g_fxTrans_1, 0, "i_v3Position")
-	EffectBindAttribute(g_fxTrans_1, 2, "i_v2Texcoord")
-	EffectBindSampler(g_fxTrans_1, "u_t2Src")
-	EffectBindSampler(g_fxTrans_1, "u_t2Dst")
-	EffectTryBindUniform(g_fxTrans_1, "DEBUG_0")
-	EffectBindUniform(g_fxTrans_1, "u_fTime")
+	TemplateReset(g_tfxDefault)
+	TemplateSetKey(g_tfxDefault, USE_COLOR_VTX, true)
+	TemplateSetKey(g_tfxDefault, USE_COLOR_MAP, true)
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_COLOR, "i_v4Color")
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
+	TemplateBindSampler(g_tfxDefault, SAMPLER_COLOR_0, "u_t2Color", TEXTURE_2D)
+	TemplateBindUniform(g_tfxDefault, UNIFORM_DEBUG_0, "DEBUG_0")
+	g_fxTexture2D = TemplateInstance(g_tfxDefault)
 
-	printf("fxPerspectiveColor\n")
-	g_fxPerspectiveColor = EffectCreate()
-	EffectAppendVertexSource(g_fxPerspectiveColor, "#version 130\n")
-	EffectAppendVertexSource(g_fxPerspectiveColor, vsPerspective)
-	EffectAppendPixelSource(g_fxPerspectiveColor, "#version 130\n")
-	EffectAppendPixelSource(g_fxPerspectiveColor, psColor)
-	EffectCompile(g_fxPerspectiveColor)
-	EffectBindAttribute(g_fxPerspectiveColor, 0, "i_v3Position")
-	EffectTryBindUniform(g_fxPerspectiveColor, "DEBUG_0")
-	EffectBindUniform(g_fxPerspectiveColor, "u_m44World")
-	EffectBindUniform(g_fxPerspectiveColor, "u_m44View")
-	EffectBindUniform(g_fxPerspectiveColor, "u_m44Projection")
-	EffectBindUniform(g_fxPerspectiveColor, "u_v4Albedo")
+	TemplateReset(g_tfxDefault)
+	TemplateSetVertexKey(g_tfxDefault, USE_TRANSFORM, true)
+	TemplateSetPixelKey(g_tfxDefault, USE_COLOR_UNI, true)
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_DEBUG_0, "DEBUG_0")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_WORLD, "u_m44World")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_VIEW, "u_m44View")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_PROJECTION, "u_m44Projection")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_COLOR, "u_v4Color")
+	g_fxUniformColor3D = TemplateInstance(g_tfxDefault)
 
-	printf("fxPerspectiveTexture\n")
-	g_fxPerspectiveTexture = EffectCreate()
-	EffectAppendVertexSource(g_fxPerspectiveTexture, "#version 130\n")
-	EffectAppendVertexSource(g_fxPerspectiveTexture, vsPerspective)
-	EffectAppendPixelSource(g_fxPerspectiveTexture, "#version 130\n")
-	EffectAppendPixelSource(g_fxPerspectiveTexture, psTexture)
-	EffectCompile(g_fxPerspectiveTexture)
-	EffectBindAttribute(g_fxPerspectiveTexture, 0, "i_v3Position")
-	EffectBindAttribute(g_fxPerspectiveTexture, 1, "i_v4Albedo")
-	EffectBindAttribute(g_fxPerspectiveTexture, 2, "i_v2Texcoord")
-	EffectBindSampler(g_fxPerspectiveTexture, "u_t2Albedo")
-	EffectTryBindUniform(g_fxPerspectiveTexture, "DEBUG_0")
-	EffectBindUniform(g_fxPerspectiveTexture, "u_m44World")
-	EffectBindUniform(g_fxPerspectiveTexture, "u_m44View")
-	EffectBindUniform(g_fxPerspectiveTexture, "u_m44Projection")
+	TemplateReset(g_tfxDefault)
+	TemplateSetVertexKey(g_tfxDefault, USE_TRANSFORM, true)
+	TemplateSetKey(g_tfxDefault, USE_COLOR_VTX, true)
+	TemplateSetKey(g_tfxDefault, USE_COLOR_MAP, true)
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_COLOR, "i_v4Color")
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
+	TemplateBindSampler(g_tfxDefault, SAMPLER_COLOR_0, "u_t2Color", TEXTURE_2D)
+	TemplateBindUniform(g_tfxDefault, UNIFORM_DEBUG_0, "DEBUG_0")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_WORLD, "u_m44World")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_VIEW, "u_m44View")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_PROJECTION, "u_m44Projection")
+	g_fxTexture3D = TemplateInstance(g_tfxDefault)
 
-	printf("fxPerspectiveSky\n")
-	g_fxPerspectiveSky = EffectCreate()
-	EffectAppendVertexSource(g_fxPerspectiveSky, "#version 130\n")
-	EffectAppendVertexSource(g_fxPerspectiveSky, vsPerspective)
-	EffectAppendPixelSource(g_fxPerspectiveSky, "#version 130\n")
-	EffectAppendPixelSource(g_fxPerspectiveSky, psSky)
-	EffectCompile(g_fxPerspectiveSky)
-	EffectBindAttribute(g_fxPerspectiveSky, 0, "i_v3Position")
-	//EffectBindAttribute(g_fxPerspectiveSky, 1, "i_v4Albedo")
-	//EffectBindAttribute(g_fxPerspectiveSky, 2, "i_v2Texcoord")
-	EffectBindSampler(g_fxPerspectiveSky, "u_tcAlbedo")
-	EffectTryBindUniform(g_fxPerspectiveSky, "DEBUG_0")
-	EffectBindUniform(g_fxPerspectiveSky, "u_m44World")
-	EffectBindUniform(g_fxPerspectiveSky, "u_m44View")
-	EffectBindUniform(g_fxPerspectiveSky, "u_m44Projection")
+	// fade
+	TemplateReset(g_tfxFade)
+	TemplateSetKey(g_tfxFade, USE_COLOR_MAP, true)
+	TemplateSetPixelKey(g_tfxFade, USE_PASS_0, true)
+	TemplateBindAttribute(g_tfxFade, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindAttribute(g_tfxFade, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
+	TemplateBindSampler(g_tfxFade, SAMPLER_COLOR_0, "u_t2Src", TEXTURE_2D)
+	TemplateBindSampler(g_tfxFade, SAMPLER_COLOR_1, "u_t2Dst", TEXTURE_2D)
+	TemplateBindUniform(g_tfxFade, UNIFORM_DEBUG_0, "DEBUG_0")
+	TemplateBindUniform(g_tfxFade, UNIFORM_TIME, "u_fTime")
+	g_fxFade_0 = TemplateInstance(g_tfxFade)
 
-	printf("fxPerspectivePbr\n")
-	g_fxPerspectivePbr = EffectCreate()
-	EffectAppendVertexSource(g_fxPerspectivePbr, "#version 130\n")
-	EffectAppendVertexSource(g_fxPerspectivePbr, vsPerspective)
-	EffectAppendPixelSource(g_fxPerspectivePbr, "#version 130\n")
-	EffectAppendPixelSource(g_fxPerspectivePbr, psPbr)
-	EffectCompile(g_fxPerspectivePbr)
-	EffectBindAttribute(g_fxPerspectivePbr, 0, "i_v3Position")
-	//EffectBindAttribute(g_fxPerspectivePbr, 1, "i_v4Albedo")
-	EffectBindAttribute(g_fxPerspectivePbr, 2, "i_v2Texcoord")
-	EffectBindAttribute(g_fxPerspectivePbr, 3, "i_v3Normal")
-	//EffectBindAttribute(g_fxPerspectivePbr, 4, "i_v4Tangent")
-	EffectBindSampler(g_fxPerspectivePbr, "u_tcEnvironmentSpecular")
-	EffectBindSampler(g_fxPerspectivePbr, "u_t2Albedo")
-	EffectBindSampler(g_fxPerspectivePbr, "u_t2MetalRough")
-	EffectBindSampler(g_fxPerspectivePbr, "u_tcEnvironmentDiffuse")
-	EffectBindSampler(g_fxPerspectivePbr, "u_t2BRDF")
-	EffectTryBindUniform(g_fxPerspectivePbr, "DEBUG_0")
-	EffectBindUniform(g_fxPerspectivePbr, "u_m44World")
-	EffectBindUniform(g_fxPerspectivePbr, "u_m44View")
-	EffectBindUniform(g_fxPerspectivePbr, "u_m44Projection")
-	EffectTryBindUniform(g_fxPerspectivePbr, "u_v4Albedo")
-	EffectBindUniform(g_fxPerspectivePbr, "u_v4CameraPosition")
-	EffectBindUniform(g_fxPerspectivePbr, "u_v4MetalRough")
+	TemplateReset(g_tfxFade)
+	TemplateSetKey(g_tfxFade, USE_COLOR_MAP, true)
+	TemplateSetPixelKey(g_tfxFade, USE_PASS_1, true)
+	TemplateBindAttribute(g_tfxFade, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindAttribute(g_tfxFade, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
+	TemplateBindSampler(g_tfxFade, SAMPLER_COLOR_0, "u_t2Src", TEXTURE_2D)
+	TemplateBindSampler(g_tfxFade, SAMPLER_COLOR_1, "u_t2Dst", TEXTURE_2D)
+	TemplateBindUniform(g_tfxFade, UNIFORM_DEBUG_0, "DEBUG_0")
+	TemplateBindUniform(g_tfxFade, UNIFORM_TIME, "u_fTime")
+	g_fxFade_1 = TemplateInstance(g_tfxFade)
+
+	// sky
+	TemplateReset(g_tfxSky)
+	TemplateSetVertexKey(g_tfxSky, USE_TRANSFORM, true)
+	TemplateBindAttribute(g_tfxSky, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindSampler(g_tfxSky, SAMPLER_ENV_DIFFUSE, "u_tcEnvironmentDiffuse", TEXTURE_CUBE_MAP)
+	TemplateBindUniform(g_tfxSky, UNIFORM_DEBUG_0, "DEBUG_0")
+	TemplateBindUniform(g_tfxSky, UNIFORM_WORLD, "u_m44World")
+	TemplateBindUniform(g_tfxSky, UNIFORM_VIEW, "u_m44View")
+	TemplateBindUniform(g_tfxSky, UNIFORM_PROJECTION, "u_m44Projection")
+	g_fxSky = TemplateInstance(g_tfxSky)
+
+	// pbr
+	TemplateReset(g_tfxPbr)
+	TemplateSetVertexKey(g_tfxPbr, USE_TRANSFORM, true)
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_NORMAL, "i_v3Normal")
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
+	TemplateBindSampler(g_tfxPbr, SAMPLER_COLOR_0, "u_t2Color", TEXTURE_2D)
+	TemplateBindSampler(g_tfxPbr, SAMPLER_METAL_ROUGH, "u_t2MetalRough", TEXTURE_2D)
+	TemplateBindSampler(g_tfxPbr, SAMPLER_BRDF, "u_t2BRDF", TEXTURE_2D)
+	TemplateBindSampler(g_tfxPbr, SAMPLER_ENV_SPECULAR, "u_tcEnvironmentSpecular", TEXTURE_CUBE_MAP)
+	TemplateBindSampler(g_tfxPbr, SAMPLER_ENV_DIFFUSE, "u_tcEnvironmentDiffuse", TEXTURE_CUBE_MAP)
+	TemplateBindUniform(g_tfxPbr, UNIFORM_DEBUG_0, "DEBUG_0")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_WORLD, "u_m44World")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_VIEW, "u_m44View")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_PROJECTION, "u_m44Projection")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_CAMERA_POSITION, "u_v4CameraPosition")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_COLOR, "u_v4Color")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_METAL_ROUGH, "u_v4MetalRough")
 }
 
 // Resize ...
@@ -717,7 +688,7 @@ func Destroy()() {
 
 	gl.Destroy()
 
-	UseProgram(NullProgram())
+	ProgramUse(NullProgram())
 
 	var i i32
 	for i = 0; i < len(g_programs); i = i + 1 {

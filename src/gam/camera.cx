@@ -73,33 +73,32 @@ func FpsCameraCreate() (out FpsCameraId) {
 	var camera FpsCamera
 	camera.id = out
 
-	var rotateX []f32 = mat.MatrixAlloc()
-	rotateX = mat.MatrixIdentity(rotateX)
+	var rotateX []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
+	rotateX = mat.MatrixIdentity(rotateX) // ISSUE : invalid reference assignment camera
 	camera.rotateX = rotateX
 
-	var rotateY []f32 = mat.MatrixAlloc()
-	rotateY = mat.MatrixIdentity(rotateY)
+	var rotateY []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
+	rotateY = mat.MatrixIdentity(rotateY) // ISSUE : invalid reference assignment camera
 	camera.rotateY = rotateY
 
-	var rotate []f32 = mat.MatrixAlloc()
-	rotate = mat.MatrixIdentity(rotate)
+	var rotate []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
+	rotate = mat.MatrixIdentity(rotate) // ISSUE : invalid reference assignment camera
 	camera.rotate = rotate
-	//camera.rotate = mat.MatrixIdentity(camera.rotate) // ISSUE : function 'MatrixIdentity' expected input argument of type '[]f32'; 'f32' was provided
 
-	var translate []f32 = mat.MatrixAlloc()
-	translate = mat.MatrixIdentity(translate)
+	var translate []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
+	translate = mat.MatrixIdentity(translate) // ISSUE : invalid reference assignment camera
 	camera.translate = translate
 
-	var transform []f32 = mat.MatrixAlloc()
-	transform = mat.MatrixIdentity(transform)
+	var transform []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
+	transform = mat.MatrixIdentity(transform) // ISSUE : invalid reference assignment camera
 	camera.transform = transform
 
-	var view []f32 = mat.MatrixAlloc()
-	view = mat.MatrixIdentity(view)
+	var view []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
+	view = mat.MatrixIdentity(view) // ISSUE : invalid reference assignment camera
 	camera.view = view
 
-	var projection []f32 = mat.MatrixAlloc()
-	projection = mat.MatrixIdentity(projection)
+	var projection []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
+	projection = mat.MatrixIdentity(projection) // ISSUE : invalid reference assignment camera
 	camera.projection = projection
 
 	g_fpsCameras = append(g_fpsCameras, camera)

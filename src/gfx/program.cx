@@ -16,7 +16,7 @@ func NullProgram()(out Program) {
 }
 
 // ProgramCreate ...
-func ProgramCreate(vertex str, pixel str) (out Program) {
+func ProgramCreate(attributes []Location, samplers []Location, uniforms []Location, vertex str, pixel str) (out Program) {
 	// vertex shader
 	var vertexShader i32 = gl.CreateShader(gl.VERTEX_SHADER)
 	panicIf(GlError(), "gl.CreateShader")
@@ -42,6 +42,15 @@ func ProgramCreate(vertex str, pixel str) (out Program) {
 	panicIf(GlError(), "gl.CreateProgram")
 	g_programs = append(g_programs, out.name)
 
+	var attributeCount i32 = len(attributes)
+	for i := 0; i < attributeCount; i++ {
+		var location i32 = attributes[i].location
+		if location >= 0 {
+			var name str = attributes[i].name
+ 			ProgramBindAttribute(out, location, name)
+		}
+	}
+
 	gl.AttachShader(out.name, vertexShader)
 	panicIf(GlError(), "gl.AttachShader")
 
@@ -62,40 +71,58 @@ func ProgramCreate(vertex str, pixel str) (out Program) {
 
 	gl.DeleteShader(pixelShader)
 	panicIf(GlError(), "gl.DeleteShader")
+
+	ProgramUse(out)
+
+	var samplerCount i32 = len(samplers)
+	for i := 0; i < samplerCount; i++ {
+		var name str = samplers[i].name
+		if name != "" {
+			samplers[i].location = ProgramTryBindSampler(out, name)
+		}
+	}
+
+	var uniformCount i32 = len(uniforms)
+	for i := 0; i < uniformCount; i++ {
+		var name str = uniforms[i].name
+		if name != "" {
+			uniforms[i].location = ProgramTryBindUniform(out, name)
+		}
+	}
 }
 
-// UseProgram ...
-func UseProgram(program Program) {
-	//printf("use_program(%d)\n", program)
+// ProgramUse ...
+func ProgramUse(program Program) {
 	gl.UseProgram(program.name)
 	panicIf(GlError(), "gl.UseProgram")
 }
 
-// BindAttribute ...
-func BindAttribute(program Program, location i32, name str) () {
-
+// ProgramBindAttribute ...
+func ProgramBindAttribute(program Program, location i32, name str) () {
 	gl.BindAttribLocation(program.name, location, name)
-	panicIf(GlError(), "gl.BindAttribute")
-
-	var newLocation i32 = gl.GetAttribLocation(program.name, name)
-	panicIf(GlError(), "gl.GetAttribLocation")
-	panicIfNot(newLocation == location, sprintf("attribute not found : %s\n", name))
+	panicIf(GlError(), sprintf("gl.BindAttributeLocation(%d, %d, %s)", program.name, location, name))
 }
 
-// BindUniform ...
-func BindUniform(program Program, name str) (uniform i32) {
-	uniform = TryBindUniform(program, name)
+// ProgramBindUniform ...
+func ProgramBindUniform(program Program, name str) (uniform i32) {
+	uniform = ProgramTryBindUniform(program, name)
 	panicIfNot(uniform >= 0, "uniform>= 0")
 }
 
-// TryBindUniform ...
-func TryBindUniform(program Program, name str) (uniform i32) {
+// ProgramTryBindUniform ...
+func ProgramTryBindUniform(program Program, name str) (uniform i32) {
 	uniform = gl.GetUniformLocation(program.name, name) // ##2 crash find a way to test if str is present in gl.Strs
 	panicIf(GlError(), "gl.GetUniformLocation")
 }
 
-// BindTexture ...
-func BindTexture(program Program, name str) (sampler i32) {
-	sampler = BindUniform(program, name)
+// ProgramBindSampler ...
+func ProgramBindSampler(program Program, name str) (sampler i32) {
+	sampler = ProgramBindUniform(program, name)
 }
+
+// ProgramTryBindSampler ...
+func ProgramTryBindSampler(program Program, name str) (sampler i32) {
+	sampler = ProgramTryBindUniform(program, name)
+}
+
 

@@ -121,7 +121,7 @@ func PictureResize(id PictureId) () {
 
 	var frame i32 = g_pictures[id.picture].frame
 	var texture gfx.TextureId = g_animations[animation.index].textures[frame]
-	g_pictures[id.picture].batch = gfx.GetBatch(gfx.g_fxTexture, texture, 0, gfx.g_linearWrap, g_pictures[id.picture].alpha, 128)
+	g_pictures[id.picture].batch = gfx.GetBatch(gfx.g_fxTexture2D, texture, 0, gfx.g_linearWrap, g_pictures[id.picture].alpha, 128)
 	//ControlPrint("PictureResize : AFTER", id.base, false)
 }
 

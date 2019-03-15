@@ -153,8 +153,7 @@ func RenderBatches(alpha bool) {
 				var effect EffectId = g_batches[batch].effect
 				var texture TextureId = g_batches[batch].texture
 				EffectUse(effect)
-				EffectAssignTexture(effect, g_batches[batch].slot, texture)
-				TextureSamplerState(texture, g_batches[batch].sampler)
+				EffectAssignTexture(effect, g_batches[batch].slot, texture, g_batches[batch].sampler)
 				MeshRender(meshId)
 			}
 		}

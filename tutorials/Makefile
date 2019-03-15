@@ -15,6 +15,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -66,6 +67,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -117,6 +119,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -168,6 +171,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -219,6 +223,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -270,6 +275,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -321,6 +327,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -372,6 +379,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -423,6 +431,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -474,6 +483,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
@@ -525,6 +535,7 @@
 		../src/gfx/graphics.cx\
 		../src/gfx/state.cx\
 		../src/gfx/effect.cx\
+		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\

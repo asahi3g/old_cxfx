@@ -1,7 +1,34 @@
 package gfx
 
+// Constants ...
+var ATTRIBUTE_POSITION i32 = 0
+var ATTRIBUTE_COLOR i32 = 1
+var ATTRIBUTE_TEXCOORD i32 = 2
+var ATTRIBUTE_NORMAL i32 = 3
+var ATTRIBUTE_TANGENT i32 = 4
+
+var SAMPLER_COLOR_0 i32 = 0
+var SAMPLER_COLOR_1 i32 = 1
+var SAMPLER_NORMAL i32 = 2
+var SAMPLER_EMISSIVE i32 = 3
+var SAMPLER_OCCLUSION i32 = 4
+var SAMPLER_METAL_ROUGH i32 = 5
+var SAMPLER_BRDF i32 = 6
+var SAMPLER_ENV_SPECULAR i32 = 7
+var SAMPLER_ENV_DIFFUSE i32 = 8
+
+var UNIFORM_DEBUG_0 i32 = 0
+var UNIFORM_TIME i32 = 1
+var UNIFORM_WORLD i32 = 2
+var UNIFORM_VIEW i32 = 3
+var UNIFORM_PROJECTION i32 = 4
+var UNIFORM_CAMERA_POSITION i32 = 5
+var UNIFORM_COLOR i32 = 6
+var UNIFORM_METAL_ROUGH i32 = 7
+
 // Globals ...
-var g_effects[] Effect
+var g_templates []Template // TODO : use map
+var g_effects []Effect // TODO : use map
 
 // EffectId ...
 type EffectId struct {
@@ -10,152 +37,305 @@ type EffectId struct {
 
 // Effect ...
 type Effect struct {
-	id EffectId
+	key i64
 	program Program
-	vertex str
-	pixel str
-	attributes []Attribute
-	samplers []Sampler
-	uniforms []Uniform
+	attributes []Location
+	samplers []Location
+	uniforms []Location
 }
 
-// InvalidEffect ...
-func InvalidEffect() (out EffectId) {
+// EffectIsValid ...
+func EffectIsValid(id EffectId) (out bool) {
+	out = id.effect >= 0 && id.effect < len(g_effects)
+}
+
+// EffectInvalid ...
+func EffectInvalid() (out EffectId) {
 	out.effect = -1
 }
 
-// IsValidEffect ...
-func IsValidEffect(id EffectId) (out bool) {
-	out = id.effect >= 0 && id.effect < len(g_effects)// && is_valid_program(id.program) ##2 program id ??
-}
-
 // EffectCreate ...
-func EffectCreate() (out EffectId) {
-	out.effect = len(g_effects)
-
+func EffectCreate(key i64, attributes []Location, samplers []Location, uniforms []Location, vertexShader ShaderId, pixelShader ShaderId) (out EffectId) {
 	var effect Effect
-	effect.id = out
-	effect.program = NullProgram()
+	effect.key = key
 
+	var attr []Location = effect.attributes
+	attr = appendLocations(attr, attributes)
+	effect.attributes = attr
+
+	var samp []Location = effect.samplers
+	samp = appendLocations(samp, samplers)
+	effect.samplers = samp
+
+	var unif []Location = effect.uniforms
+	unif = appendLocations(unif, uniforms)
+	effect.uniforms = unif
+
+	effect.program = ProgramCreate(attr, samp, unif, ShaderGetGlsl(vertexShader), ShaderGetGlsl(pixelShader))
+	out.effect = len(g_effects)
 	g_effects = append(g_effects, effect)
-
-	panicIfNot(IsValidEffect(out), "invalid id")
 }
 
-// EffectCompile ...
-func EffectCompile(id EffectId) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	var vertex str = g_effects[id.effect].vertex
-	//printf("// vertex --------------------------------------------> :\n%s\n", vertex)
-	var pixel str = g_effects[id.effect].pixel
-	//printf("// pixel  --------------------------------------------> :\n%s\n", pixel)
-	g_effects[id.effect].program = ProgramCreate(vertex, pixel)
+// EffectGetKey ...
+func EffectGetKey(id EffectId) (out i64) {
+	panicIfNot(EffectIsValid(id), "invalid id")
+	out = g_effects[id.effect].key
 }
 
-// EffectAppendVertexSource ...
-func EffectAppendVertexSource(id EffectId, source str) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	var vertex str = g_effects[id.effect].vertex
-	vertex = str.concat(vertex, source) // ISSUE : can't concat with operator +
-	g_effects[id.effect].vertex = vertex
-}
-
-// EffectAppendPixelSource ...
-func EffectAppendPixelSource(id EffectId, source str) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	var pixel str = g_effects[id.effect].pixel
-	pixel = str.concat(pixel, source)
-	g_effects[id.effect].pixel = pixel
+// EffectUse ...
+func EffectUse(id EffectId) {
+	panicIfNot(EffectIsValid(id), "invalid id")
+	ProgramUse(g_effects[id.effect].program)
 }
 
 // EffectIsValidSamplerSlot ...
 func EffectIsValidSamplerSlot(id EffectId, slot i32) (out bool) {
-	panicIfNot(IsValidEffect(id), "invalid id")
+	panicIfNot(EffectIsValid(id), "invalid id")
 	out = slot >= 0 && slot < len(g_effects[id.effect].samplers)
 }
 
 // EffectIsValidUniformSlot ...
 func EffectIsValidUniformSlot(id EffectId, slot i32) (out bool) {
-	panicIfNot(IsValidEffect(id), "invalid id")
+	panicIfNot(EffectIsValid(id), "invalid id")
 	out = slot >= 0 && slot < len(g_effects[id.effect].uniforms)
 }
 
 // EffectIsValidUniformLocation ...
 func EffectIsValidUniformLocation(id EffectId, slot i32) (out bool) {
 	out = false
-	panicIfNot(IsValidEffect(id), "invalid id")
+	panicIfNot(EffectIsValid(id), "invalid id")
 	if EffectIsValidUniformSlot(id, slot) {
 		out = g_effects[id.effect].uniforms[slot].location >= 0
 	}
 }
 
-
-// EffectUse ...
-func EffectUse(id EffectId) () {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	UseProgram(g_effects[id.effect].program)
-}
-
-// EffectBindAttribute ...
-func EffectBindAttribute(id EffectId, location i32, name str) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	BindAttribute(g_effects[id.effect].program, location, name)
-	g_effects[id.effect].attributes = append(g_effects[id.effect].attributes, NewAttribute(location, name))
-}
-
-// EffectBindSampler ...
-func EffectBindSampler(id EffectId, name str) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	var location i32 = BindTexture(g_effects[id.effect].program, name)
-	g_effects[id.effect].samplers = append(g_effects[id.effect].samplers, NewSampler(location, name))
-}
-
-// EffectBindUniform ...
-func EffectBindUniform(id EffectId, name str) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	var location i32 = BindUniform(g_effects[id.effect].program, name)
-	g_effects[id.effect].uniforms = append(g_effects[id.effect].uniforms, NewUniform(location, name))
-}
-
-// EffectTryBindUniform ...
-func EffectTryBindUniform(id EffectId, name str) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	var location i32 = TryBindUniform(g_effects[id.effect].program, name)
-	g_effects[id.effect].uniforms = append(g_effects[id.effect].uniforms, NewUniform(location, name))
+// EffectTryAssignTexture ...
+func EffectTryAssignTexture(id EffectId, slot i32, texture TextureId, sampler SamplerState) () {
+	if EffectIsValidSamplerSlot(id, slot) {
+		EffectAssignTexture(id, slot, texture, sampler)
+	}
 }
 
 // EffectAssignTexture ...
-func EffectAssignTexture(id EffectId, slot i32, texture TextureId) () {
-	panicIfNot(IsValidEffect(id), "invalid effect")
+func EffectAssignTexture(id EffectId, slot i32, texture TextureId, sampler SamplerState) () {
+	panicIfNot(EffectIsValid(id), "invalid effect")
 	panicIfNot(EffectIsValidSamplerSlot(id, slot), "invalid sampler slot")
-	panicIfNot(IsValidTexture(texture), "invalid texture")
-	assignTexture(TextureTarget(texture), slot, g_effects[id.effect].samplers[slot].location, TextureName(texture))
-}
-
-// EffectRemoveTexture ...
-func EffectRemoveTexture(id EffectId, slot i32, target i32) {
-	panicIfNot(IsValidEffect(id), "invalid id")
-	panicIfNot(EffectIsValidSamplerSlot(id, slot), "invalid sampler slot")
-	assignTexture(target, slot, g_effects[id.effect].samplers[slot].location, 0)
+	//panicIfNot(IsValidTexture(texture), "invalid texture")
+	var location i32 = g_effects[id.effect].samplers[slot].location
+	var textureName i32 = 0
+	var validTexture bool = IsValidTexture(texture)
+	if validTexture {
+		textureName = TextureName(texture)
+	}
+	assignTexture(g_effects[id.effect].samplers[slot].Type, slot, location, textureName)
+	if validTexture {
+		TextureSamplerState(texture, sampler)
+	}
 }
 
 // EffectAssignFloat ...
 func EffectAssignFloat(id EffectId, slot i32, value f32) {
-	panicIfNot(IsValidEffect(id), "invalid id")
+	panicIfNot(EffectIsValid(id), "invalid id")
 	panicIfNot(EffectIsValidUniformSlot(id, slot), "invalid uniform slot")
 	assignFloat(g_effects[id.effect].uniforms[slot].location, value)
 }
 
 // EffectAssignVector4 ...
 func EffectAssignVector4(id EffectId, slot i32, value []f32) {
-	panicIfNot(IsValidEffect(id), "invalid id")
+	panicIfNot(EffectIsValid(id), "invalid id")
 	panicIfNot(EffectIsValidUniformSlot(id, slot), "invalid uniform slot")
 	assignVector4(g_effects[id.effect].uniforms[slot].location, value)
 }
 
 // EffectAssignMatrix4 ...
 func EffectAssignMatrix4(id EffectId, slot i32, value []f32, transpose bool) {
-	panicIfNot(IsValidEffect(id), "invalid id")
+	panicIfNot(EffectIsValid(id), "invalid id")
 	panicIfNot(EffectIsValidUniformSlot(id, slot), "invalid uniform slot")
 	assignMatrix4(g_effects[id.effect].uniforms[slot].location, value, transpose)
 }
+
+// TemplateId ...
+type TemplateId struct {
+	template i32
+}
+
+// Template ...
+type Template struct {
+	name str
+
+	variantAttributes []Location
+	variant i64
+
+	vertexVariant i64
+	pixelVariant i64
+
+	vertexKey ShaderKey
+	pixelKey ShaderKey
+
+	attributes []Location
+	samplers []Location
+	uniforms []Location
+	effect EffectId
+}
+
+func appendLocations(dst []Location, src []Location) (out []Location) {
+	var count i32 = len(src)
+	dst = resize(dst, 0)
+	for i := 0; i < count; i++ {
+		dst = append(dst, src[i])
+	}
+
+	//dst = resize(dst, count)
+	//var i i32 = copy(dst, src) // ISSUE : memory corruption
+
+	out = dst
+}
+
+// TemplateInvalid ...
+func TemplateInvalid() (out TemplateId) {
+	out.template = -1
+}
+
+// TemplateIsValid ...
+func TemplateIsValid(id TemplateId) (out bool) {
+	out = id.template >= 0 && id.template < len(g_templates)// && is_valid_program(id.program) ##2 program id ??
+}
+
+// TemplateCreate ...
+func TemplateCreate(name str, vertexFilename str, pixelFilename str) (out TemplateId) {
+	var vertexVariant i64 = ShaderAddVariant(vertexFilename)
+	var pixelVariant i64 = ShaderAddVariant(pixelFilename)
+	var templateVariant i64 = (vertexVariant << SHADER_VARIANT) | pixelVariant
+
+	/*var templateCount i32 = len(g_templates)
+	for i := 0; i < templateCount; i++ { // TODO : use map
+		if g_templates[i].variant == templateVariant {
+			out.template = i
+			return
+		}
+	}*/
+
+	out.template = len(g_templates)
+
+	var template Template
+	template.name = name
+	template.variant = templateVariant
+	template.vertexVariant = vertexVariant
+	template.pixelVariant = pixelVariant
+	g_templates = append(g_templates, template)
+
+	panicIfNot(TemplateIsValid(out), "invalid id")
+}
+
+// TemplateReset ...
+func TemplateReset(id TemplateId) {
+	TemplateClearKey(id)
+	g_templates[id.template].attributes = resize(g_templates[id.template].attributes, 0)
+	g_templates[id.template].samplers = resize(g_templates[id.template].samplers, 0)
+	g_templates[id.template].uniforms = resize(g_templates[id.template].uniforms, 0)
+}
+
+// TemplateClearKey ...
+func TemplateClearKey(id TemplateId) {
+	TemplateClearVertexKey(id)
+	TemplateClearPixelKey(id)
+}
+
+// TemplateSetKey ...
+func TemplateSetKey(id TemplateId, flag i64, value bool) {
+	TemplateSetVertexKey(id, flag, value)
+	TemplateSetPixelKey(id, flag, value)
+}
+
+// TemplateClearVertexKey ...
+func TemplateClearVertexKey(id TemplateId) {
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	g_templates[id.template].vertexKey = ShaderKeyClear()
+}
+
+// TemplateSetVertexKey ...
+func TemplateSetVertexKey(id TemplateId, flag i64, value bool) {
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	g_templates[id.template].vertexKey = ShaderKeySet(g_templates[id.template].vertexKey, flag, value)
+}
+
+// TemplateClearPixelKey ...
+func TemplateClearPixelKey(id TemplateId) {
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	g_templates[id.template].pixelKey = ShaderKeyClear()
+}
+
+// TemplateSetPixelKey ...
+func TemplateSetPixelKey(id TemplateId, flag i64, value bool) {
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	g_templates[id.template].pixelKey = ShaderKeySet(g_templates[id.template].pixelKey, flag, value)
+}
+
+// TemplateBindAttribute ...
+func TemplateBindAttribute(id TemplateId, location i32, name str) {
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	g_templates[id.template].attributes = LocationBind(g_templates[id.template].attributes, location, location, name, -1)
+}
+
+// TemplateBindSampler ...
+func TemplateBindSampler(id TemplateId, slot i32, name str, Type i32) {
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	g_templates[id.template].samplers = LocationBind(g_templates[id.template].samplers, -1, slot, name, Type)
+}
+
+// TemplateBindUniform ...
+func TemplateBindUniform(id TemplateId, slot i32, name str) {
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	g_templates[id.template].uniforms = LocationBind(g_templates[id.template].uniforms, -1, slot, name, -1)
+}
+
+// TemplateInstance ...
+func TemplateInstance(id TemplateId) (out EffectId){
+	out = EffectInvalid()
+	panicIfNot(TemplateIsValid(id), "invalid id")
+	var templateVariant i64 = g_templates[id.template].variant
+
+	var vertexVariant i64 = g_templates[id.template].vertexVariant
+	var vertexFlags i64 = g_templates[id.template].vertexKey.value
+	var vertexKey i64 = (vertexFlags << SHADER_VARIANT) | vertexVariant
+	var vertexShader ShaderId = ShaderCreate(SHADER_VERTEX, vertexVariant, vertexFlags, vertexKey)
+
+	var pixelVariant i64 = g_templates[id.template].pixelVariant
+	var pixelFlags i64 = g_templates[id.template].pixelKey.value
+	var pixelKey i64 = (pixelFlags << SHADER_VARIANT) | pixelVariant
+	var pixelShader ShaderId = ShaderCreate(SHADER_PIXEL, pixelVariant, pixelFlags, pixelKey)
+
+	var effectKey i64 = vertexKey << 32L | pixelKey
+	var effectId EffectId = g_templates[id.template].effect
+	var validEffect bool = false
+	if EffectIsValid(effectId) == true { // ISSUE : no short-circuit evaluation
+		if EffectGetKey(effectId) == effectKey {
+			validEffect = true
+		}
+	}
+
+	if validEffect == false {
+		var effectCount i32 = len(g_effects)
+		for i := 0; i < effectCount; i++ {
+			if g_effects[effectId.effect].key == effectKey {
+				effectId.effect = i
+				i = effectCount
+				validEffect = true
+			}
+		}
+	}
+
+	if validEffect == false {
+		effectId = EffectCreate(effectKey,
+				g_templates[id.template].attributes,
+				g_templates[id.template].samplers,
+				g_templates[id.template].uniforms,
+				vertexShader,
+				pixelShader)
+	}
+
+	g_templates[id.template].effect = effectId
+	EffectUse(effectId)
+	out = effectId
+}
+

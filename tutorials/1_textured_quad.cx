@@ -44,8 +44,8 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 func gameOnRender(controlIndex i32, controlAction i32) {
-	gfx.EffectUse(gfx.g_fxTexture)
-	gfx.EffectAssignTexture(gfx.g_fxTexture, 0, texture)
+	gfx.EffectUse(gfx.g_fxTexture2D)
+	gfx.EffectAssignTexture(gfx.g_fxTexture2D, gfx.SAMPLER_COLOR_0, texture, gfx.g_linearWrap)
 	gfx.MeshRender(mesh)
 }
 

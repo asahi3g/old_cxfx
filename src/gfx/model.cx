@@ -108,7 +108,7 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		}
 
 		vertexCount = accessor.count
-		if accessor.componentType != gl.FLOAT { // ISSUE : how to pass []struct to BufferData ?
+		if accessor.componentType != gl.FLOAT { // TODO : how to pass []struct to BufferData ?
 			printf("buffer type not implemented\n")
 			out = InvalidMesh()
 			return
@@ -124,15 +124,15 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		var attributeType i32 = primitive.attributes[a].attributeType
 		var binding i32 = -1
 		if attributeType == gltf.ATTRIBUTE_POSITION {
-			binding = BIND_POSITION
+			binding = ATTRIBUTE_POSITION
 		} else if attributeType == gltf.ATTRIBUTE_NORMAL {
-			binding = BIND_NORMAL
+			binding = ATTRIBUTE_NORMAL
 		} else if attributeType == gltf.ATTRIBUTE_COLOR {
-			binding = BIND_COLOR
+			binding = ATTRIBUTE_COLOR
 		} else if attributeType == gltf.ATTRIBUTE_TEXCOORD {
-			binding = BIND_TEXCOORD
+			binding = ATTRIBUTE_TEXCOORD
 		} else if attributeType == gltf.ATTRIBUTE_TANGENT {
-			binding = BIND_TANGENT
+			binding = ATTRIBUTE_TANGENT
 		}
 
 		attribute.binding = binding
@@ -271,7 +271,17 @@ func loadTexture(asset AssetId, dataDir str, index i32) (out TextureId) {
 }
 
 // ModelRender ...
-func ModelRender(id ModelId, alpha bool) {
+func ModelRender(id ModelId) {
+	DisableBlending()
+	DepthState(true, LESS, true)
+	modelRender(id, false)
+
+	EnableBlending(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
+	DepthState(true, LESS, false)
+	modelRender(id, true)
+}
+
+func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 	panicIfNot(ModelIsValid(id), "invalid model")
 
 	var asset gltf.AssetId = g_models[id.model].asset
@@ -358,52 +368,32 @@ func ModelRender(id ModelId, alpha bool) {
 				if ((alphaMode == gltf.ALPHA_BLEND) && alpha) || ((alphaMode == gltf.ALPHA_OPAQUE) && (alpha == false)) {
 
 					if IsValidMesh(render) {
-						var effect EffectId = g_fxPerspectivePbr
-						EffectUse(effect)
 
-						if IsValidTexture(baseTexture) {
-							EffectAssignTexture(effect, 1, baseTexture)
-							TextureSamplerState(baseTexture, g_linearWrap) // TODO: use sampler
-							DEBUG_0[0] = 1.0
-							//printf("BASE_TEXTURE %d\n", baseTexture.texture)
-						} else {
-							EffectRemoveTexture(effect, 1, TEXTURE_2D)
-							DEBUG_0[0] = 0.0
-						}
+						var useColorUni bool = true
+						var useColorVtx bool = false
+						var useColorMap bool = IsValidTexture(baseTexture)
 
-						if IsValidTexture(metalRoughTexture) {
-							EffectAssignTexture(effect, 2, metalRoughTexture)
-							TextureSamplerState(metalRoughTexture, g_linearWrap)
-							DEBUG_0[2] = 1.0
-							//printf("ROUGH_TEXTURE %d\n", metalRoughTexture.texture)
-						} else {
-							EffectRemoveTexture(effect, 2, TEXTURE_2D)
-							DEBUG_0[2] = 0.0
-						}
+						var usePbrMap bool = IsValidTexture(metalRoughTexture)
+						var usePbrUni bool = usePbrMap == false
 
-						var environmentSpecular TextureId = g_models[id.model].environmentSpecular
-						if IsValidTexture(environmentSpecular) {
-							EffectAssignTexture(effect, 0, environmentSpecular)
-							TextureSamplerState(environmentSpecular, g_linearWrap)
-						} else {
-							EffectRemoveTexture(effect, 0, TEXTURE_CUBE_MAP)
-						}
+						TemplateSetKey(g_tfxPbr, USE_COLOR_UNI, useColorUni)
+						TemplateSetKey(g_tfxPbr, USE_COLOR_VTX, useColorVtx)
+						TemplateSetKey(g_tfxPbr, USE_COLOR_MAP, useColorMap)
 
-						var environmentDiffuse TextureId = g_models[id.model].environmentDiffuse
-						if IsValidTexture(environmentDiffuse) {
-							EffectAssignTexture(effect, 3, environmentDiffuse)
-							TextureSamplerState(environmentDiffuse, g_linear0Wrap)
-						} else {
-							EffectRemoveTexture(effect, 3, TEXTURE_CUBE_MAP)
-						}
+						TemplateSetKey(g_tfxPbr, USE_PBR_UNI, usePbrUni)
+						TemplateSetKey(g_tfxPbr, USE_PBR_MAP, usePbrMap)
 
-						var brdf TextureId = g_models[id.model].brdf
-						if IsValidTexture(brdf) {
-							EffectAssignTexture(effect, 4, brdf)
-							TextureSamplerState(brdf, g_linear0Wrap)
-						} else {
-							EffectRemoveTexture(effect, 0, TEXTURE_2D)
-						}
+						TemplateSetKey(g_tfxPbr, USE_NORMAL_VTX, true)
+
+						TemplateSetKey(g_tfxPbr, USE_DEBUG_A, true)
+
+						var effect EffectId = TemplateInstance(g_tfxPbr)
+
+						EffectTryAssignTexture(effect, SAMPLER_COLOR_0, baseTexture, g_linearWrap) // TODO : use gltf sampler
+						EffectTryAssignTexture(effect, SAMPLER_METAL_ROUGH, metalRoughTexture, g_linearWrap) // TODO : use gltf sampler
+						EffectTryAssignTexture(effect, SAMPLER_ENV_SPECULAR, g_models[id.model].environmentSpecular, g_linearWrap) // TODO : use gltf sampler
+						EffectTryAssignTexture(effect, SAMPLER_ENV_DIFFUSE, g_models[id.model].environmentDiffuse, g_linear0Wrap) // TODO : use gltf sampler
+						EffectTryAssignTexture(effect, SAMPLER_BRDF, g_models[id.model].brdf, g_linear0Wrap) // TODO : use gltf sampler
 
 						var tmp []f32 = g_models[id.model].tmp
 						var world []f32 = g_models[id.model].world
@@ -413,15 +403,11 @@ func ModelRender(id ModelId, alpha bool) {
 						var last []f32 = mat.MatrixStackLast(matrixStack)
 						tmp = mat.MatrixMultiply(tmp, last, world)
 
-						//mat.MatrixPrint("WORLD : ", tmp)
-						//mat.MatrixPrint("LAST : ", last)
-						//mat.MatrixPrint("TMP : ", tmp)
+						EffectAssignMatrix4(effect, UNIFORM_WORLD, tmp, false)
+						EffectAssignMatrix4(effect, UNIFORM_VIEW, view, false)
+						EffectAssignMatrix4(effect, UNIFORM_PROJECTION, projection, false)
 
-						EffectAssignMatrix4(effect, 1, tmp, false)
-						EffectAssignMatrix4(effect, 2, view, false)
-						EffectAssignMatrix4(effect, 3, projection, false)
-
-						if EffectIsValidUniformLocation(effect, 4) {
+						if EffectIsValidUniformLocation(effect, UNIFORM_COLOR) {
 							var color []f32 = g_models[id.model].color
 							var baseColorFactor [4]f32
 							baseColorFactor = metallicRoughness.baseColorFactor
@@ -429,21 +415,21 @@ func ModelRender(id ModelId, alpha bool) {
 							color[1] = baseColorFactor[1]
 							color[2] = baseColorFactor[2]
 							color[3] = baseColorFactor[3]
-							EffectAssignVector4(effect, 4, color)
+							EffectAssignVector4(effect, UNIFORM_COLOR, color)
 						}
 
-						if EffectIsValidUniformLocation(effect, 6) {
+						if EffectIsValidUniformLocation(effect, UNIFORM_METAL_ROUGH) {
 							var color []f32 = g_models[id.model].color
 							color[0] = 0.0
 							color[1] = metallicRoughness.roughnessFactor
 							color[2] = metallicRoughness.metallicFactor
 							color[3] = 0.0
-							EffectAssignVector4(effect, 6, color)
+							EffectAssignVector4(effect, UNIFORM_METAL_ROUGH, color)
 						}
 
 						var cameraPosition []f32 = g_models[id.model].cameraPosition
-						EffectAssignVector4(effect, 5, cameraPosition)
-						EffectAssignVector4(effect, 0, DEBUG_0)
+						EffectAssignVector4(effect, UNIFORM_CAMERA_POSITION, cameraPosition)
+						EffectAssignVector4(effect, UNIFORM_DEBUG_0, DEBUG_0)
 
 						MeshRender(render)
 					}

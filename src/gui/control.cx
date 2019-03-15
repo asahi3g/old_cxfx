@@ -929,8 +929,8 @@ func ControlRender(id ControlId, clip mat.v4, stack i32) () {
 			panicIfNot(IsValidControl(child), "invalid child control")
 			var childVisible i32 = g_controls[child.control].visible
 			if (childVisible > 0) {
-				var guiType i32 = g_controls[child].gui_type
-				var guiIndex i32 = g_controls[child].gui_index
+				var guiType i32 = g_controls[child.control].gui_type
+				var guiIndex i32 = g_controls[child.control].gui_index
 
 				if (guiType == GUI_INVALID) {
 					panicIfNot(false, "invalid gui type (GUI_INVALID)")

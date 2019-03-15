@@ -597,8 +597,7 @@ func AssetPrint(id AssetId) { // TODO : format as json
 	printf("scenes, count : %d [\n", sceneCount)
 	for i := 0; i < sceneCount; i++ {
 		printf("---- scene %d, name '%s'\n", i, g_assets[id.asset].scenes[i].name)
-		var nodes []i32 = g_assets[id.asset].scenes[i].nodes
-		printI32Array("---- ---- nodes", nodes) // ISSUE
+		printI32Array("---- ---- nodes", g_assets[id.asset].scenes[i].nodes)
 	}
 	printf("]\n")
 
@@ -609,9 +608,9 @@ func AssetPrint(id AssetId) { // TODO : format as json
 		printf("---- node %d, name '%s'\n", i, nodes[i].name)
 		printf("---- ---- mesh %d\n", nodes[i].mesh)
 		var children []i32 = nodes[i].children
-		printI32Array("---- ---- children", children) // ISSUE : can't use g_assets[id.asset].nodes[i].children : function 'printI32Array' expected input argument of type '[]i32'; 'i32' was provided
+		printI32Array("---- ---- children", g_assets[id.asset].nodes[i].children)
 		var matrix []f32 = nodes[i].matrix
-		printF32Array("---- ---- matrix", matrix) // ISSUE
+		printF32Array("---- ---- matrix", nodes[i].matrix)
 		printf("---- ---- camera %d\n", nodes[i].camera)
 	}
 	printf("]\n")
@@ -633,12 +632,11 @@ func AssetPrint(id AssetId) { // TODO : format as json
 			var attributeCount i32 = len(attributes)
 			printf("---- ---- ---- attributes, count %d\n", attributeCount)
 			for a := 0; a < attributeCount; a++ {
-				printf("---- ---- ---- attribute %d, name '%s'\n", a, attributes[a].name) // ISSUtE
+				printf("---- ---- ---- attribute %d, name '%s'\n", a, attributes[a].name)
 				printf("---- ---- ---- ---- type %d\n", attributes[a].attributeType)
 				printf("---- ---- ---- ---- index %d\n", attributes[a].index)
 				printf("---- ---- ---- ---- accessor %d\n", attributes[a].accessor)
-				//var morphs []i32 = primitives[p].attributes
-				//printI32Array("---- ---- ---- morphs", morphs) // ISSUE
+				//printI32Array("---- ---- ---- morphs", morphs)
 			}
 		}
 	}
@@ -1049,40 +1047,30 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 				}
 				node.mesh = mesh
 			} else if key == "children" {
-				var children []i32
-				out, children = parseI32Array(file, id) // ISSUE : can't use node.children as receiver
+				out, node.children = parseI32Array(file, id)
 				if AssetIsValid(out) == false {
 					return
 				}
-				node.children = children
 			} else if key == "matrix" {
-				var matrix []f32
-				out, matrix = parseF32Array(file, id) // ISSUE : can't use node.matrix as receiver
+				out, node.matrix = parseF32Array(file, id)
 				if AssetIsValid(out) == false {
 					return
 				}
-				node.matrix = matrix
 			} else if key == "rotation" {
-				var rotation []f32
-				out, rotation = parseF32Array(file, id)
+				out, node.rotation = parseF32Array(file, id)
 				if AssetIsValid(out) == false {
 					return
 				}
-				node.rotation = rotation
 			} else if key == "translation" {
-				var translation []f32
-				out, translation = parseF32Array(file, id)
+				out, node.translation = parseF32Array(file, id)
 				if AssetIsValid(out) == false {
 					return
 				}
-				node.translation = translation
 			} else if key == "scale" {
-				var scale []f32
-				out, scale = parseF32Array(file, id)
+				out, node.scale = parseF32Array(file, id)
 				if AssetIsValid(out) == false {
 					return
 				}
-				node.scale = scale
 			} else if key == "camera" {
 				json.Next(file)
 				var camera i32
