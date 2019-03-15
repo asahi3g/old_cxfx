@@ -43,7 +43,7 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 func gameOnRender(controlIndex i32, controlAction i32) {
-	gfx.EffectUse(gfx.g_fxVertexColor)
+	gfx.EffectUse(gfx.g_fxVertexColor2D)
 	gfx.MeshRender(mesh)
 }
 

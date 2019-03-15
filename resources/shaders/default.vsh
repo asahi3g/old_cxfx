@@ -1,18 +1,18 @@
 #ifdef USE_COLOR_MAP
 #define USE_TEXCOORD
-#elif USE_PBR_MAP
+#elif defined(USE_PBR_MAP)
 #define USE_TEXCOORD
-#elif USE_NORMAL_MAP
+#elif defined(USE_NORMAL_MAP)
 #define USE_TEXCOORD
-#elif USE_OCCLUSION_MAP
+#elif defined(USE_OCCLUSION_MAP)
 #define USE_TEXCOORD
-#elif USE_EMISSIVE_MAP
+#elif defined(USE_EMISSIVE_MAP)
 #define USE_TEXCOORD
 #endif
 
 #ifdef USE_NORMAL_VTX
 #define USE_NORMAL
-#elif USE_NORMAL_MAP
+#elif defined(USE_NORMAL_MAP)
 #define USE_NORMAL
 #endif
 

@@ -19,6 +19,9 @@ var USE_NORMAL_VTX    i64 = 1L << 7L
 var USE_NORMAL_MAP    i64 = 1L << 8L
 var USE_OCCLUSION_MAP i64 = 1L << 9L
 var USE_EMISSIVE_MAP  i64 = 1L << 10L
+var USE_DEBUG_A       i64 = 1L << 11L
+var USE_PASS_0        i64 = 1L << 12L
+var USE_PASS_1        i64 = 1L << 13L
 
 // Globals ...
 var g_shaderPath str
@@ -78,6 +81,8 @@ func ShaderDefineGetStr(flag i64) (out str) {
 			return
 		}
 	}
+
+	panicIf(true, "invalid flag")
 }
 
 // ShaderDefineGetHeader ...
@@ -104,6 +109,9 @@ func shaderInit(dataDir str) {
 	ShaderDefineAdd(USE_NORMAL_MAP, "#define USE_NORMAL_MAP\n")
 	ShaderDefineAdd(USE_OCCLUSION_MAP, "#define USE_OCCLUSION_MAP\n")
 	ShaderDefineAdd(USE_EMISSIVE_MAP, "#define USE_EMISSIVE_MAP\n")
+	ShaderDefineAdd(USE_DEBUG_A, "#define USE_DEBUG_A\n")
+	ShaderDefineAdd(USE_PASS_0, "#define USE_PASS_0\n")
+	ShaderDefineAdd(USE_PASS_1, "#define USE_PASS_1\n")
 }
 
 // ShaderKeyClear ...

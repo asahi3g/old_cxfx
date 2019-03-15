@@ -252,7 +252,7 @@ func LabelResize(id LabelId) () {
 	g_labels[id.label].textPosition = position
 	//printf("LABEL_TEXT_POSITION %f, %f\n", position.x, position.y)
 	var fontTexture gfx.TextureId = g_fonts[fontIndex].textures[textureIndex]
-	g_labels[id.label].batch = gfx.GetBatch(gfx.g_fxTexture, fontTexture, 0, gfx.g_linearWrap, true, 4096) // ##0 panic if g_fonts[fontIndex].textures[textureIndex] is used as arg0
+	g_labels[id.label].batch = gfx.GetBatch(gfx.g_fxTexture2D, fontTexture, 0, gfx.g_linearWrap, true, 4096) // ##0 panic if g_fonts[fontIndex].textures[textureIndex] is used as arg0
 	//ControlPrint("LabelResize :", id.base, false)
 }
 

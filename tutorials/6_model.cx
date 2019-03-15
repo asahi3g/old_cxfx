@@ -151,7 +151,7 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 		}
 
 		var textureId gfx.TextureId = gui.AnimationGetFrame(animation, frame) // ISSUE : can't be named texture : silently clash with global variable
-		var batch gfx.BatchId = gfx.GetBatch(gfx.g_fxPerspectivePbr, textureId, 0, gfx.g_linearClamp, false, g_synthCount * 12)
+		var batch gfx.BatchId = gfx.GetBatch(gfx.g_fxTexture3D, textureId, 0, gfx.g_linearClamp, false, g_synthCount * 12)
 		g_synths[i].batch = batch
 		g_synths[i].frame = frame
 		g_synths[i].ty = ty
@@ -184,31 +184,26 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, mat.v4_(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
 
 	//skyMesh
-	gfx.EffectUse(gfx.g_fxPerspectiveSky)
-	gfx.EffectAssignTexture(gfx.g_fxPerspectiveSky, 0, skySpecular)
-	gfx.TextureSamplerState(skySpecular, gfx.g_linearWrap)
-	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveSky, 1, identity, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveSky, 2, view, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveSky, 3, projection, false)
+	gfx.EffectUse(gfx.g_fxSky)
+	gfx.EffectAssignTexture(gfx.g_fxSky, gfx.SAMPLER_ENV_DIFFUSE, skySpecular, gfx.g_linearWrap)
+	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_WORLD, identity, false)
+	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_VIEW, view, false)
+	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_PROJECTION, projection, false)
 	gfx.MeshRender(skyMesh)
 
-	//gfx.DisableBlending()
-	//gfx.DepthState(true, gfx.LESS, true)
-
 	// groundMesh
-	gfx.EffectUse(gfx.g_fxPerspectiveTexture)
-	gfx.EffectAssignTexture(gfx.g_fxPerspectiveTexture, 0, texture)
-	gfx.TextureSamplerState(texture, gfx.g_linearWrap)
-	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 1, identity, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 2, view, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxPerspectiveTexture, 3, projection, false)
+	gfx.EffectUse(gfx.g_fxTexture3D)
+	gfx.EffectAssignTexture(gfx.g_fxTexture3D, gfx.SAMPLER_COLOR_0, texture, gfx.g_linearWrap)
+	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, identity, false)
+	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_VIEW, view, false)
+	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_PROJECTION, projection, false)
 	gfx.MeshRender(groundMesh)
 
+	// batches
 	gfx.RenderBatches(false)
 
 	// model
 	var model gfx.ModelId = models[currentModel]
-
 	gfx.ModelSetWorld(model, world)
 	gfx.ModelSetView(model, view)
 	gfx.ModelSetProjection(model, projection)
@@ -216,21 +211,7 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 	gfx.ModelSetEnvironmentDiffuse(model, skyDiffuse)
 	gfx.ModelSetBRDF(model, brdf)
 	gfx.ModelSetCameraPosition(model, cameraPosition)
-	gfx.DisableBlending()
-	gfx.DepthState(true, gfx.LESS, true)
-	gfx.ModelRender(model, false)
-
-	gfx.ModelSetWorld(model, world)
-	gfx.ModelSetView(model, view)
-	gfx.ModelSetProjection(model, projection)
-	gfx.ModelSetEnvironmentSpecular(model, skySpecular)
-	gfx.ModelSetEnvironmentDiffuse(model, skyDiffuse)
-	gfx.ModelSetBRDF(model, brdf)
-	gfx.ModelSetCameraPosition(model, cameraPosition)
-	gfx.EnableBlending(gfx.SRC_ALPHA, gfx.ONE_MINUS_SRC_ALPHA)
-	gfx.DepthState(true, gfx.LESS, false)
-	gfx.ModelRender(model, true)
-
+	gfx.ModelRender(model)
 }
 
 //-----------------------------------------------------------------------------
