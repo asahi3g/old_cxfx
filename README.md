@@ -133,6 +133,8 @@ make 6_model
 - writing apps with cxfx
 - writing documentation for the lib (should be driven by the tutorials)
 - feedback regarding the usage (what needs to be improved, what functionalities are missing etc)
+- 3d assets (synth 3d model and animations, skycoin hardware...)
+- audio assets (synth sound pack)
 
 #### Tutorials :
 
@@ -174,7 +176,7 @@ make 6_model
 
 ```
 // WIP pbr
-make pbr
+make 6_model
 ```
 <img width="100%" height="100%" src="screenshots/pbr_tutorial.png">
 
