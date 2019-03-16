@@ -2,56 +2,139 @@
 
 ## Cx game library.
 
+#### Installation :
+
+##### Install patched cx (cxfx temporarly relies on unpublished cx modifications, this will be fixed in the future):
+```
+mkdir -p ~/go/src/github.com/skycoin/
+cd ~/go/src/github.com/skycoin/
+git clone https://github.com/asahi3g/cx/
+cd cx
+git checkout develop_cxfx
+make build
+```
+##### Install cxfx :
+```
+mkdir -p ~/go/src/github.com/skycoin/
+cd ~/go/src/github.com/skycoin/
+git clone https://github.com/skycoin/cxfx
+cd cxfx/tutorials
+make 6_model
+```
+
+##### Controls in tutorials :
+
+```ctrl+(left/right)``` : Switch rendered model
+ 
+```up/down/left/right (or wasd) + mouse``` : Control the camera 
+
+```alt+enter``` : Toggle fullscreen 
+
+```escape``` : Exit 
+
 #### Wip :
-- openal abstraction (wav playback)
-- opengl abstraction (texture/shaders/meshes)
-- matrix
-- 2d gui toolkit
-- cameras
-- gltf loader
-- pbr
 
-#### Needed :
+- [ ] math:
+  - [ ] matrix
+    - [x] basic matrix operations
+  - [ ] vector
+  - [ ] quaternion
+  - [ ] spline
+- [ ] graphics:
+  - [ ] textures:
+    - [ ] texture 2d
+      - [x] generate mipmaps
+      - [ ] load mipmaps
+    - [ ] texture cube 
+      - [x] generate mipmaps
+      - [ ] load mipmaps
+    - [ ] texture array
+    - [ ] texture 3d
+    - [ ] texture compression
+    - [ ] srgb
+  - [ ] shaders:
+    - [x] shader permutations
+    - [ ] shader hot reload
+    - [ ] shader reflection (parse glsl and extract uniforms)
+    - [ ] shader uniform binding in gui
+  - [ ] rendering:
+    - [ ] physically based renderer
+      - [x] kronos implementation
+        - [ ] debug
+      - [ ] diffuse irradiance
+      - [ ] specular irradiance
+      - [ ] hdr maps
+      - [ ] custom brdf
+      - [ ] realtime cubemap
+    - [ ] normal map
+    - [ ] emmissive map
+    - [ ] occlusion map
+    - [ ] order independent transparency
+    - [ ] particles
+    - [ ] anti aliasing
+    - [ ] atmospheric scattering
+  - [ ] terrain
+- [ ] audio:
+  - [x] wav 8bps/16bps
+  - [ ] wav f32/f64
+  - [ ] 3d audio
+  - [ ] audio streaming:
+  - [ ] compressed audio
+- [ ] phycics:
+  - [ ] collision/intersection/response
+    - [ ] ellipsoid/triangle
+    - [ ] ellipsoid/ellipsoid 
+    - [ ] ray/ellipsoid
+    - [ ] ray/OBB
+    - [ ] ray/AABB
+  - [ ] gravity
+  - [ ] torque
+- [ ] cameras:
+  - [x] free camera
+  - [ ] first person camera
+  - [ ] third person camera
+  - [ ] smooth motions
+  - [ ] cinematic camera
+- [ ] gltf support (loader/renderer/exporter):
+  - [x] flat mesh
+  - [x] textured mesh
+  - [x] hierarchical mesh
+  - [x] pbr materials
+  - [ ] skinning
+  - [ ] animations
+  - [ ] cameras
+  - [ ] lights
+  - [ ] exporter
+- [ ] 2d gui toolkit:
+  - [x] game screens
+  - [x] label
+  - [x] picture
+  - [x] scrollbar
+  - [x] list
+  - [ ] json serialization
+- [ ] application:
+  - [x] resize events
+  - [x] toggle fullscreen
+  - [ ] cli
+  - [ ] mobile:
+    - [ ] virtual keyboard
+    - [ ] ios
+    - [ ] android
+- [ ] skycoin:
+  - [ ] cxo
+  - [ ] blockchain
 
-##### user contribution :
-- writing apps with cxfx
+
+#### How to contribute :
+
 - testing the tutorials
-- reporting bugs
-- feedback regarding the usage (what needs to be improved, what functionalities are missing etc)
 - writing documentation for the tutorials code
+- writing tutorials
+- writing apps with cxfx
 - writing documentation for the lib (should be driven by the tutorials)
-- writing small self contained examples. Tutorials are a walkthrough a little game creation, we should also have some small examples.
-- writing gui examples
+- feedback regarding the usage (what needs to be improved, what functionalities are missing etc)
 
-##### developer contribution :
-- math lib (matrix/vector/quaternion)
-- collision detection
-- physics
-- model export and loading
-- handling resize events (toggle fullscreen)
-- cameras (tps, fps ..., smooth motions)
-- audio streaming
-- 3d audio
-- mp3 playback
-- wav f32 and f64
-- lighting/shading
-- hot reload of shader files
-- refactor/improve/debug/bulletproof the 2d ui toolkit (it's unstable now)
-- texture compression
-- grep -RHn TODO in lib/cxfx/ 
-- grep -RHn ISSUE in lib/cxfx/ those are cx language issues, they need to be extracted in small cx programs and opened as issue on skycoin/cx
-- gui serialization in json
-- cxo leaderboards ?
-- cx linter ?
-- blockchain integration
-- code cleanup
-- resource cleanup
-- optimizations
-- api design
-- porting to mobile
-- r&d regarding ios metal and android vulkan
-
-## Tutorials :
+#### Tutorials :
 
 ```
 make 0_colored_quad
