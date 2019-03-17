@@ -8,6 +8,7 @@ const vec3 c_v3LightColor = vec3(1, 1, 1);
 uniform sampler2D u_t2Color;
 uniform sampler2D u_t2MetalRough;
 uniform sampler2D u_t2BRDF;
+uniform sampler2D u_t2Emissive;
 uniform samplerCube u_tcEnvironmentSpecular;
 uniform samplerCube u_tcEnvironmentDiffuse;
 
@@ -17,6 +18,7 @@ uniform vec4 u_v4Color;
 uniform mat4 u_m44World;
 uniform vec4 u_v4CameraPosition;
 uniform vec4 u_v4MetalRough;
+uniform vec4 u_v4Emissive;
 
 #ifdef USE_COLOR_MAP
 #define USE_TEXCOORD
@@ -250,10 +252,15 @@ void main()
 	color = mix(color, color * ao, u_OcclusionStrength);
 #endif*/
 
-/*#ifdef HAS_EMISSIVEMAP
-	vec3 emissive = gamma(texture2D(u_EmissiveSampler, u_v3Texcoord).rgb) * u_EmissiveFactor;
-	color += emissive;
-#endif*/
+#ifdef USE_EMISSIVE_UNI
+#ifdef USE_EMISSIVE_MAP
+	color += u_v4emissive.rgb * gamma(texture2D(u_t2Emissive, v_v2Texcoord).rgba);
+#else
+	color += u_v4Emissive.rgb;
+#endif
+#elif defined( USE_EMISSIVE_MAP)
+	color += gamma(texture2D(u_t2Emissive, v_v2Texcoord).rgb);
+#endif
 
 	o_v4Color = vec4(invgamma(color), v4Base.a);
 }

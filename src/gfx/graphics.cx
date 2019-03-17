@@ -652,6 +652,7 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindSampler(g_tfxPbr, SAMPLER_COLOR_0, "u_t2Color", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_METAL_ROUGH, "u_t2MetalRough", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_BRDF, "u_t2BRDF", TEXTURE_2D)
+	TemplateBindSampler(g_tfxPbr, SAMPLER_EMISSIVE, "u_t2Emissive", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_ENV_SPECULAR, "u_tcEnvironmentSpecular", TEXTURE_CUBE_MAP)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_ENV_DIFFUSE, "u_tcEnvironmentDiffuse", TEXTURE_CUBE_MAP)
 	TemplateBindUniform(g_tfxPbr, UNIFORM_DEBUG_0, "DEBUG_0")
@@ -661,6 +662,7 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindUniform(g_tfxPbr, UNIFORM_CAMERA_POSITION, "u_v4CameraPosition")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_COLOR, "u_v4Color")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_METAL_ROUGH, "u_v4MetalRough")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_EMISSIVE, "u_v4Emissive")
 }
 
 // Resize ...
