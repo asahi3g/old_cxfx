@@ -17,12 +17,13 @@ var USE_PBR_MAP       i64 = 1L << 5L
 var USE_TANGENT       i64 = 1L << 6L
 var USE_NORMAL_VTX    i64 = 1L << 7L
 var USE_NORMAL_MAP    i64 = 1L << 8L
-var USE_OCCLUSION_MAP i64 = 1L << 9L
-var USE_EMISSIVE_UNI  i64 = 1L << 10L
-var USE_EMISSIVE_MAP  i64 = 1L << 11L
-var USE_DEBUG_A       i64 = 1L << 12L
-var USE_PASS_0        i64 = 1L << 13L
-var USE_PASS_1        i64 = 1L << 14L
+var USE_TANGENT_VTX   i64 = 1L << 9L
+var USE_OCCLUSION_MAP i64 = 1L << 10L
+var USE_EMISSIVE_UNI  i64 = 1L << 11L
+var USE_EMISSIVE_MAP  i64 = 1L << 12L
+var USE_DEBUG_A       i64 = 1L << 13L
+var USE_PASS_0        i64 = 1L << 14L
+var USE_PASS_1        i64 = 1L << 15L
 
 // Globals ...
 var g_shaderPath str
@@ -108,6 +109,7 @@ func shaderInit(dataDir str) {
 	ShaderDefineAdd(USE_TANGENT, "#define USE_TANGENT\n")
 	ShaderDefineAdd(USE_NORMAL_VTX, "#define USE_NORMAL_VTX\n")
 	ShaderDefineAdd(USE_NORMAL_MAP, "#define USE_NORMAL_MAP\n")
+	ShaderDefineAdd(USE_TANGENT_VTX, "#define USE_TANGENT_VTX\n")
 	ShaderDefineAdd(USE_OCCLUSION_MAP, "#define USE_OCCLUSION_MAP\n")
 	ShaderDefineAdd(USE_EMISSIVE_UNI, "#define USE_EMISSIVE_UNI\n")
 	ShaderDefineAdd(USE_EMISSIVE_MAP, "#define USE_EMISSIVE_MAP\n")

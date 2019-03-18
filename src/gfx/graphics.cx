@@ -210,13 +210,11 @@ type Location struct {
 // LocationBind ...
 func LocationBind(locations []Location, location i32, slot i32, name str, Type i32) (out []Location) {
 	var count i32 = len(locations)
-	if slot >= count {
-		//locations = resize(locations, slot + 1) // ISSUE : resize with []struct
-		for i := count; i < slot; i++ {
-			locations = append(locations, LocationCreate(-1, "", -1))
-		}
+	for i := count; i <= slot; i++ {
+		locations = append(locations, LocationCreate(-1, "", -1))
 	}
-	locations = append(locations, LocationCreate(location, name, Type))
+
+	locations[slot] = LocationCreate(location, name, Type)
 	out = locations
 }
 
@@ -237,12 +235,6 @@ func assignTexture(target i32, slot i32, sampler i32, name i32) () {
 	panicIf(GlError(), "gl.ActiveTexture")
 
 	bindTexture(target, name)
-	
-
-	if target == gl.TEXTURE_CUBE_MAP {
-		//printf("LOCATION %d, SLOT %d, NAME %d\n", sampler, slot, name)
-	}
-
 }
 
 func assignFloat(slot i32, value f32) {
@@ -263,17 +255,17 @@ func assignMatrix4(slot i32, value []f32, transpose bool) {
 
 func bindTexture(target i32, name i32) {
 	if target == gl.TEXTURE_2D {
-		if g_texture2D != name  {
+		//if g_texture2D != name  { // TODO : fix cache
 			gl.BindTexture(gl.TEXTURE_2D, name)
 			panicIf(GlError(), "gl.BindTexture")
 			g_texture2D = name
-		}
+		//}
 	} else if target == gl.TEXTURE_CUBE_MAP {
-		if g_textureCUBE != name  {
+		//if g_textureCUBE != name  { // TODO : fix cache
 			gl.BindTexture(gl.TEXTURE_CUBE_MAP, name)
 			panicIf(GlError(), "gl.BindTexture")
 			g_textureCUBE = name
-		}
+		//}
 	}
 }
 
@@ -649,7 +641,9 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_POSITION, "i_v3Position")
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_NORMAL, "i_v3Normal")
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_TANGENT, "i_v4Tangent")
 	TemplateBindSampler(g_tfxPbr, SAMPLER_COLOR_0, "u_t2Color", TEXTURE_2D)
+	TemplateBindSampler(g_tfxPbr, SAMPLER_NORMAL, "u_t2Normal", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_METAL_ROUGH, "u_t2MetalRough", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_BRDF, "u_t2BRDF", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_EMISSIVE, "u_t2Emissive", TEXTURE_2D)

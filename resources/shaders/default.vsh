@@ -10,10 +10,20 @@
 #define USE_TEXCOORD
 #endif
 
-#ifdef USE_NORMAL_VTX
+#ifdef USE_PBR
+#define USE_NORMAL
+#elif defined(USE_NORMAL_VTX)
 #define USE_NORMAL
 #elif defined(USE_NORMAL_MAP)
 #define USE_NORMAL
+#endif
+
+#ifdef USE_NORMAL
+#ifndef USE_TANGENT_VTX
+#ifndef USE_TEXCOORD
+#define USE_TEXCOORD
+#endif
+#endif
 #endif
 
 // uniforms
@@ -38,11 +48,19 @@ uniform mat4 u_m44Projection;
 /*layout(location = 3)*/ in vec2 i_v2Texcoord;
 #endif
 
+#ifdef USE_TANGENT_VTX
+/*layout(location = 4)*/ in vec4 i_v4Tangent;
+#endif
+
 // varyings
 out vec3 v_v3Position;
 
 #ifdef USE_NORMAL
+#ifdef USE_TANGENT_VTX
+out mat3 v_m3Tbn;
+#else
 out vec3 v_v3Normal;
+#endif
 #endif
 
 #ifdef USE_COLOR_VTX
@@ -53,16 +71,21 @@ out vec4 v_v4Color;
 out vec2 v_v2Texcoord;
 #endif
 
+out vec2 v_v2Screen;
+
 void main()
 {
 	vec4 v4Position = vec4(i_v3Position, 1);
 
 #ifdef USE_TRANSFORM
-	gl_Position = u_m44Projection * u_m44View * u_m44World * v4Position;
+	vec4 v4ProjPos = u_m44Projection * u_m44View * u_m44World * v4Position;
+	gl_Position = v4ProjPos;
 	v_v3Position = (u_m44World * v4Position).xyz;
+	v_v2Screen = v4ProjPos.xy;
 #else
 	gl_Position = v4Position;
 	v_v3Position = v4Position.xyz;
+	v_v2Screen = v4Position.xy;
 #endif
 
 #ifdef USE_TEXCOORD
@@ -70,7 +93,14 @@ void main()
 #endif
 
 #ifdef USE_NORMAL
-	v_v3Normal = mat3(u_m44World) * i_v3Normal;
+#ifdef USE_TANGENT_VTX
+	vec3 normalW = normalize(mat3(u_m44World) * i_v3Normal.xyz); // TODO : use normal inverse tranpose
+	vec3 tangentW = normalize(mat3(u_m44World) * i_v4Tangent.rgb);
+	vec3 bitangentW = cross(normalW, tangentW) * i_v4Tangent.w;
+	v_m3Tbn = mat3(tangentW, bitangentW, normalW);
+#else
+	v_v3Normal = normalize(mat3(u_m44World) * i_v3Normal);
+#endif
 #endif
 
 #ifdef USE_COLOR_VTX

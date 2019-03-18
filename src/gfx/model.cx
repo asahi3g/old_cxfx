@@ -18,6 +18,7 @@ type Model struct {
 	baseTextures []TextureId
 	metalRoughTextures []TextureId
 	emissiveTextures []TextureId
+	normalTextures []TextureId
 	world []f32
 	view []f32 // TODO : remove
 	projection []f32 // TODO : remove
@@ -93,6 +94,12 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		return
 	}
 
+	var usePosition bool
+	var useNormal bool
+	var useColor bool
+	var useTexcoord bool
+	var useTangent bool
+
 	// attributes
 	var channels []channelInfo
 	var attributes []VertexAttribute
@@ -128,12 +135,16 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 			binding = ATTRIBUTE_POSITION
 		} else if attributeType == gltf.ATTRIBUTE_NORMAL {
 			binding = ATTRIBUTE_NORMAL
+			useNormal = true
 		} else if attributeType == gltf.ATTRIBUTE_COLOR {
 			binding = ATTRIBUTE_COLOR
+			useColor = true
 		} else if attributeType == gltf.ATTRIBUTE_TEXCOORD {
 			binding = ATTRIBUTE_TEXCOORD
+			useTexcoord = true
 		} else if attributeType == gltf.ATTRIBUTE_TANGENT {
 			binding = ATTRIBUTE_TANGENT
+			useTangent = true
 		}
 
 		attribute.binding = binding
@@ -206,6 +217,11 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		MeshBegin(out) // TODO : remove MeshBegin/MeshEnd, data should be uploaded with BufferData in MeshInstance.
 		g_meshes[out.mesh].vertices = vertices
 		g_meshes[out.mesh].indices = indices
+		g_meshes[out.mesh].usePosition = usePosition
+		g_meshes[out.mesh].useNormal = useNormal
+		g_meshes[out.mesh].useColor = useColor
+		g_meshes[out.mesh].useTexcoord = useTexcoord
+		g_meshes[out.mesh].useTangent = useTangent
 		MeshEnd(out)
 	}
 }
@@ -326,6 +342,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 				var baseTexture TextureId = InvalidTexture()
 				var metalRoughTexture TextureId = InvalidTexture()
 				var emissiveTexture TextureId = InvalidTexture()
+				var normalTexture TextureId = InvalidTexture()
 
 				var primitive gltf.Primitive = primitives[p]
 				var meshCount i32 = len(g_models[id.model].meshes)
@@ -337,6 +354,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 					baseTexture = g_models[id.model].baseTextures[m] // ISSUE : no out of bounds exception
 					metalRoughTexture = g_models[id.model].metalRoughTextures[m]
 					emissiveTexture = g_models[id.model].emissiveTextures[m]
+					normalTexture = g_models[id.model].normalTextures[m]
 				} else { // TODO : move in init
 					var meshCacheKey []i32 = g_models[id.model].meshCacheKey
 					var meshCacheVal []MeshId = g_models[id.model].meshCacheVal
@@ -367,6 +385,9 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 					emissiveTexture = loadTexture(asset, dataDir, material.emissiveTexture.index)
 					g_models[id.model].emissiveTextures = append(g_models[id.model].emissiveTextures, emissiveTexture)
+
+					normalTexture = loadTexture(asset, dataDir, material.normalTexture.index)
+					g_models[id.model].normalTextures = append(g_models[id.model].normalTextures, normalTexture)
 				}
 				m++
 
@@ -375,7 +396,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 					if IsValidMesh(render) {
 
-						var useColorVtx bool = false
+						var useColorVtx bool = MeshUseColor(render)
 						var useColorMap bool = IsValidTexture(baseTexture)
 						var useColorUni bool = useColorMap == false
 
@@ -384,6 +405,10 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 						var useEmissiveMap bool = IsValidTexture(emissiveTexture)
 						var useEmissiveUni bool = useEmissiveMap == false
+
+						var useNormalMap bool = IsValidTexture(normalTexture)
+						var useNormalVtx bool = MeshUseNormal(render)
+						var useTangentVtx bool = MeshUseTangent(render)
 
 						TemplateSetKey(g_tfxPbr, USE_COLOR_UNI, useColorUni)
 						TemplateSetKey(g_tfxPbr, USE_COLOR_VTX, useColorVtx)
@@ -395,13 +420,16 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 						TemplateSetKey(g_tfxPbr, USE_EMISSIVE_UNI, useEmissiveUni)
 						TemplateSetKey(g_tfxPbr, USE_EMISSIVE_MAP, useEmissiveMap)
 
-						TemplateSetKey(g_tfxPbr, USE_NORMAL_VTX, true)
+						TemplateSetKey(g_tfxPbr, USE_NORMAL_VTX, useNormalVtx)
+						TemplateSetKey(g_tfxPbr, USE_NORMAL_MAP, useNormalMap)
+						TemplateSetKey(g_tfxPbr, USE_TANGENT_VTX, useTangentVtx)
 
 						TemplateSetKey(g_tfxPbr, USE_DEBUG_A, true)
 
 						var effect EffectId = TemplateInstance(g_tfxPbr)
 
 						EffectTryAssignTexture(effect, SAMPLER_COLOR_0, baseTexture, g_linearWrap) // TODO : use gltf sampler
+						EffectTryAssignTexture(effect, SAMPLER_NORMAL, normalTexture, g_linearWrap) // TODO : use gltf sampler
 						EffectTryAssignTexture(effect, SAMPLER_METAL_ROUGH, metalRoughTexture, g_linearWrap) // TODO : use gltf sampler
 						EffectTryAssignTexture(effect, SAMPLER_ENV_SPECULAR, g_models[id.model].environmentSpecular, g_linearWrap) // TODO : use gltf sampler
 						EffectTryAssignTexture(effect, SAMPLER_ENV_DIFFUSE, g_models[id.model].environmentDiffuse, g_linear0Wrap) // TODO : use gltf sampler

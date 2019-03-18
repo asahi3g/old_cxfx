@@ -6,11 +6,12 @@ const vec3 c_v3LightColor = vec3(1, 1, 1);
 
 // Samplers ...
 uniform sampler2D u_t2Color;
+uniform sampler2D u_t2Normal;
 uniform sampler2D u_t2MetalRough;
-uniform sampler2D u_t2BRDF;
-uniform sampler2D u_t2Emissive;
 uniform samplerCube u_tcEnvironmentSpecular;
 uniform samplerCube u_tcEnvironmentDiffuse;
+uniform sampler2D u_t2BRDF;
+uniform sampler2D u_t2Emissive;
 
 // Uniforms ...
 uniform vec4 DEBUG_0;
@@ -38,11 +39,30 @@ uniform vec4 u_v4Emissive;
 #define USE_PBR
 #endif
 
+#ifdef USE_PBR
+#define USE_NORMAL
+#elif defined(USE_NORMAL_VTX)
+#define USE_NORMAL
+#elif defined(USE_NORMAL_MAP)
+#define USE_NORMAL
+#endif
+
+#ifdef USE_NORMAL
+#ifndef USE_TANGENT_VTX
+#ifndef USE_TEXCOORD
+#define USE_TEXCOORD
+#endif
+#endif
+#endif
 
 // Varyings ...
 in vec3 v_v3Position;
-#ifdef USE_NORMAL_VTX
+#ifdef USE_NORMAL
+#ifdef USE_TANGENT_VTX
+in mat3 v_m3Tbn;
+#else
 in vec3 v_v3Normal;
+#endif
 #endif
 
 #ifdef USE_COLOR_VTX
@@ -52,6 +72,8 @@ in vec4 v_v4Color;
 #ifdef USE_TEXCOORD
 in vec2 v_v2Texcoord;
 #endif
+
+in vec2 v_v2Screen;
 
 // Outputs ...
 out vec4 o_v4Color;
@@ -117,7 +139,7 @@ vec3 getIBLContribution(pbr_s pbrInputs, vec3 n, vec3 reflection)
 	//diffuse *= u_ScaleIBLAmbient.x;
 	//specular *= u_ScaleIBLAmbient.y;
 
-	return (diffuse + specular) * 4.0;
+	return (diffuse + specular) * 2.0;
 }
 
 vec3 diffuse(pbr_s pbrInputs)
@@ -148,25 +170,57 @@ float microfacetDistribution(pbr_s pbrInputs)
 	return roughnessSq / (M_PI * f * f);
 }
 
+#ifdef USE_NORMAL
+vec3 getNormal()
+{
+	// Retrieve the tangent space matrix
+#ifdef USE_TANGENT_VTX
+	mat3 tbn = v_m3Tbn;
+#else
+	vec3 pos_dx = dFdx(v_v3Position);
+	vec3 pos_dy = dFdy(v_v3Position);
+	vec3 tex_dx = dFdx(vec3(v_v2Texcoord, 0.0));
+	vec3 tex_dy = dFdy(vec3(v_v2Texcoord, 0.0));
+	vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
+
+#ifdef USE_NORMAL_VTX
+	vec3 ng = normalize(v_v3Normal);
+#else
+	vec3 ng = cross(pos_dx, pos_dy);
+#endif
+
+	t = normalize(t - ng * dot(ng, t));
+	vec3 b = normalize(cross(ng, t));
+	mat3 tbn = mat3(t, b, ng);
+#endif
+
+#ifdef USE_NORMAL_MAP
+	vec3 n = texture2D(u_t2Normal, v_v2Texcoord).rgb;
+	n = normalize(tbn * ((2.0 * n - 1.0) /** vec3(u_NormalScale, u_NormalScale, 1.0)*/)); // TODO : implement u_v3NormalScale
+#else
+	vec3 n = normalize(tbn[2].xyz);
+#endif
+
+	return n;
+}
+#endif
+
 void main()
 {
 	vec3 v3Light = normalize(vec3(-287.7438660, 204.4289093, -409.5520630));
 
-#ifdef USE_NORMAL_VTX
-	vec3 v3Normal = normalize(v_v3Normal);
-#endif
-
+#ifdef USE_PBR
+	vec3 v3Normal = getNormal();
 	vec3 v3Direction = normalize(u_v4CameraPosition.xyz - v_v3Position);
 	vec3 v3Half = normalize(v3Light + v3Direction);
-#ifdef USE_NORMAL_VTX
-	vec3 v3Reflect = -normalize(reflect(v3Direction, v3Normal));
 
+	vec3 v3Reflect = -normalize(reflect(v3Direction, v3Normal));
 	float NdotL = clamp(dot(v3Normal, v3Light), 0.001, 1.0);
 	float NdotV = clamp(abs(dot(v3Normal, v3Direction)), 0.001, 1.0);
 	float NdotH = clamp(dot(v3Normal, v3Half), 0.0, 1.0);
-#endif
 	float LdotH = clamp(dot(v3Light, v3Half), 0.0, 1.0);
 	float VdotH = clamp(dot(v3Direction, v3Half), 0.0, 1.0);
+#endif
 
 	vec4 v4Base = vec4(1);
 #ifdef USE_COLOR_UNI
@@ -195,12 +249,10 @@ void main()
 	//float metal = 1.0;
 #endif
 
-#ifdef USE_PBR_MAP
-	rough = clamp(rough, c_MinRoughness, 1.0);
-#endif
-
 #ifdef USE_PBR
-	vec3 f0 = vec3(0.04);
+	rough = clamp(rough, c_MinRoughness, 1.0);
+
+    vec3 f0 = vec3(0.04);
 	vec3 f1 = vec3(1.0) - f0;
 
 	vec3 v3Diffuse = v4Base.rgb* f1 * (1.0 - metal);
@@ -248,7 +300,7 @@ void main()
 #endif
 
 /*#ifdef HAS_OCCLUSIONMAP
-	float ao = texture2D(u_OcclusionSampler, u_v2Texcoord).r;
+	float ao = texture2D(u_OcclusionSampler, v_v2Texcoord).r;
 	color = mix(color, color * ao, u_OcclusionStrength);
 #endif*/
 
