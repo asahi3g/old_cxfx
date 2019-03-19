@@ -61,6 +61,11 @@ type Mesh struct {
 	dataSize i32
 	bufferSize i32
 	index i32
+	usePosition bool
+	useNormal bool
+	useColor bool
+	useTexcoord bool
+	useTangent bool
 }
 
 // InvalidMesh ...
@@ -71,6 +76,36 @@ func InvalidMesh() (out MeshId) {
 // IsValidMesh ...
 func IsValidMesh(id MeshId) (out bool) {
 	out = id.mesh >= 0 && id.mesh < len(g_meshes)
+}
+
+// MeshUsePosition ...
+func MeshUsePosition(id MeshId) (out bool) {
+	panicIfNot(IsValidMesh(id), "invalid id")
+	out = g_meshes[id.mesh].usePosition
+}
+
+// MeshUseNormal ...
+func MeshUseNormal(id MeshId) (out bool) {
+	panicIfNot(IsValidMesh(id), "invalid id")
+	out = g_meshes[id.mesh].useNormal
+}
+
+// MeshUseColor ...
+func MeshUseColor(id MeshId) (out bool) {
+	panicIfNot(IsValidMesh(id), "invalid id")
+	out = g_meshes[id.mesh].useColor
+}
+
+// MeshUseTexcoord ...
+func MeshUseTexcoord(id MeshId) (out bool) {
+	panicIfNot(IsValidMesh(id), "invalid id")
+	out = g_meshes[id.mesh].useTexcoord
+}
+
+// MeshUseTangent...
+func MeshUseTangent(id MeshId) (out bool) {
+	panicIfNot(IsValidMesh(id), "invalid id")
+	out = g_meshes[id.mesh].useTangent
 }
 
 // MeshPrint ...
