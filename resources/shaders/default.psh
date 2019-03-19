@@ -1,38 +1,3 @@
-// Constants ...
-const float REMOVE = 0.0000001;
-const float M_PI = 3.141592653589793;
-const float c_MinRoughness = 0.04;
-const vec3 c_v3LightColor = vec3(1, 1, 1);
-
-// Samplers ...
-uniform sampler2D u_t2Color;
-uniform sampler2D u_t2Normal;
-uniform sampler2D u_t2MetalRough;
-uniform samplerCube u_tcEnvironmentSpecular;
-uniform samplerCube u_tcEnvironmentDiffuse;
-uniform sampler2D u_t2BRDF;
-uniform sampler2D u_t2Emissive;
-
-// Uniforms ...
-uniform vec4 DEBUG_0;
-uniform vec4 u_v4Color;
-uniform mat4 u_m44World;
-uniform vec4 u_v4CameraPosition;
-uniform vec4 u_v4MetalRough;
-uniform vec4 u_v4Emissive;
-
-#ifdef USE_COLOR_MAP
-#define USE_TEXCOORD
-#elif defined(USE_PBR_MAP)
-#define USE_TEXCOORD
-#elif defined(USE_NORMAL_MAP)
-#define USE_TEXCOORD
-#elif defined(USE_OCCLUSION_MAP)
-#define USE_TEXCOORD
-#elif defined(USE_EMISSIVE_MAP)
-#define USE_TEXCOORD
-#endif
-
 #ifdef USE_PBR_UNI
 #define USE_PBR
 #elif defined(USE_PBR_MAP)
@@ -47,6 +12,19 @@ uniform vec4 u_v4Emissive;
 #define USE_NORMAL
 #endif
 
+// Samplers ...
+#ifdef USE_COLOR_MAP
+#define USE_TEXCOORD
+#elif defined(USE_NORMAL_MAP)
+#define USE_TEXCOORD
+#elif defined(USE_PBR)
+#define USE_TEXCOORD
+#elif defined(USE_OCCLUSION_MAP)
+#define USE_TEXCOORD
+#elif defined(USE_EMISSIVE_MAP)
+#define USE_TEXCOORD
+#endif
+
 #ifdef USE_NORMAL
 #ifndef USE_TANGENT_VTX
 #ifndef USE_TEXCOORD
@@ -54,6 +32,47 @@ uniform vec4 u_v4Emissive;
 #endif
 #endif
 #endif
+
+// Constants ...
+const float REMOVE = 0.0000001;
+const float M_PI = 3.141592653589793;
+const float c_MinRoughness = 0.04;
+const vec3 c_v3LightColor = vec3(1, 1, 1);
+
+// Samplers ...
+#ifdef USE_COLOR_MAP
+uniform sampler2D u_t2Color;
+#endif
+
+#ifdef USE_NORMAL_MAP
+uniform sampler2D u_t2Normal;
+#endif
+
+#ifdef USE_PBR
+uniform sampler2D u_t2BRDF;
+uniform samplerCube u_tcEnvironmentSpecular;
+uniform samplerCube u_tcEnvironmentDiffuse;
+#endif
+
+#ifdef USE_PBR_MAP
+uniform sampler2D u_t2MetalRough;
+#endif
+
+#ifdef USE_EMISSIVE_MAP
+uniform sampler2D u_t2Emissive;
+#endif
+
+#ifdef USE_OCCLUSION_MAP
+uniform sampler2D u_t2Occlusion;
+#endif
+
+// Uniforms ...
+uniform vec4 DEBUG_0;
+uniform vec4 u_v4Color;
+uniform mat4 u_m44World;
+uniform vec4 u_v4CameraPosition;
+uniform vec4 u_v4MetalRough;
+uniform vec4 u_v4Emissive;
 
 // Varyings ...
 in vec3 v_v3Position;
@@ -122,6 +141,7 @@ vec3 tonemap(vec3 color)
 	return uncharted2(color);
 }
 
+#ifdef USE_PBR
 vec3 getIBLContribution(pbr_s pbrInputs, vec3 n, vec3 reflection)
 {
 	float mipCount = 11.0; // resolution of 512x512
@@ -169,6 +189,7 @@ float microfacetDistribution(pbr_s pbrInputs)
 	float f = (pbrInputs.NdotH * roughnessSq - pbrInputs.NdotH) * pbrInputs.NdotH + 1.0;
 	return roughnessSq / (M_PI * f * f);
 }
+#endif
 
 #ifdef USE_NORMAL
 vec3 getNormal()
@@ -252,7 +273,7 @@ void main()
 #ifdef USE_PBR
 	rough = clamp(rough, c_MinRoughness, 1.0);
 
-    vec3 f0 = vec3(0.04);
+	vec3 f0 = vec3(0.04);
 	vec3 f1 = vec3(1.0) - f0;
 
 	vec3 v3Diffuse = v4Base.rgb* f1 * (1.0 - metal);
@@ -299,10 +320,10 @@ void main()
 #ifdef USE_DEBUG_A
 #endif
 
-/*#ifdef HAS_OCCLUSIONMAP
-	float ao = texture2D(u_OcclusionSampler, v_v2Texcoord).r;
-	color = mix(color, color * ao, u_OcclusionStrength);
-#endif*/
+#ifdef USE_OCCLUSION_MAP
+	float ao = texture2D(u_t2Occlusion, v_v2Texcoord).r; // TODO : pack with metalRoughTexture
+	color *= ao;
+#endif
 
 #ifdef USE_EMISSIVE_UNI
 #ifdef USE_EMISSIVE_MAP

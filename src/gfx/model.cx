@@ -18,6 +18,7 @@ type Model struct {
 	baseTextures []TextureId
 	metalRoughTextures []TextureId
 	emissiveTextures []TextureId
+	occlusionTextures []TextureId
 	normalTextures []TextureId
 	world []f32
 	view []f32 // TODO : remove
@@ -343,6 +344,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 				var metalRoughTexture TextureId = InvalidTexture()
 				var emissiveTexture TextureId = InvalidTexture()
 				var normalTexture TextureId = InvalidTexture()
+				var occlusionTexture TextureId = InvalidTexture()
 
 				var primitive gltf.Primitive = primitives[p]
 				var meshCount i32 = len(g_models[id.model].meshes)
@@ -355,6 +357,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 					metalRoughTexture = g_models[id.model].metalRoughTextures[m]
 					emissiveTexture = g_models[id.model].emissiveTextures[m]
 					normalTexture = g_models[id.model].normalTextures[m]
+					occlusionTexture = g_models[id.model].occlusionTextures[m]
 				} else { // TODO : move in init
 					var meshCacheKey []i32 = g_models[id.model].meshCacheKey
 					var meshCacheVal []MeshId = g_models[id.model].meshCacheVal
@@ -388,6 +391,9 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 					normalTexture = loadTexture(asset, dataDir, material.normalTexture.index)
 					g_models[id.model].normalTextures = append(g_models[id.model].normalTextures, normalTexture)
+
+					occlusionTexture = loadTexture(asset, dataDir, material.occlusionTexture.index)
+					g_models[id.model].occlusionTextures = append(g_models[id.model].occlusionTextures, occlusionTexture)
 				}
 				m++
 
@@ -410,6 +416,8 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 						var useNormalVtx bool = MeshUseNormal(render)
 						var useTangentVtx bool = MeshUseTangent(render)
 
+						var useOcclusionTexture bool = IsValidTexture(occlusionTexture)
+
 						TemplateSetKey(g_tfxPbr, USE_COLOR_UNI, useColorUni)
 						TemplateSetKey(g_tfxPbr, USE_COLOR_VTX, useColorVtx)
 						TemplateSetKey(g_tfxPbr, USE_COLOR_MAP, useColorMap)
@@ -424,6 +432,8 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 						TemplateSetKey(g_tfxPbr, USE_NORMAL_MAP, useNormalMap)
 						TemplateSetKey(g_tfxPbr, USE_TANGENT_VTX, useTangentVtx)
 
+						TemplateSetKey(g_tfxPbr, USE_OCCLUSION_MAP, useOcclusionTexture)
+
 						TemplateSetKey(g_tfxPbr, USE_DEBUG_A, true)
 
 						var effect EffectId = TemplateInstance(g_tfxPbr)
@@ -435,6 +445,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 						EffectTryAssignTexture(effect, SAMPLER_ENV_DIFFUSE, g_models[id.model].environmentDiffuse, g_linear0Wrap) // TODO : use gltf sampler
 						EffectTryAssignTexture(effect, SAMPLER_BRDF, g_models[id.model].brdf, g_linear0Wrap) // TODO : use gltf sampler
 						EffectTryAssignTexture(effect, SAMPLER_EMISSIVE, emissiveTexture, g_linearWrap) // TODO : use gltf sampler
+						EffectTryAssignTexture(effect, SAMPLER_OCCLUSION, occlusionTexture, g_linearWrap) // TODO : use gltf sampler
 
 						var tmp []f32 = g_models[id.model].tmp
 						var world []f32 = g_models[id.model].world
