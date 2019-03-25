@@ -218,14 +218,12 @@ type Mesh struct {
 	name str
 }
 
-/*
 type Skin struct {
 	inverseBindMatrices i32
 	skeleton i32
 	joints []i32
 	name str
 }
-*/
 
 type PerspectiveCamera struct {
 	aspectRatio f32
@@ -275,7 +273,7 @@ type Animation struct {
 type Node struct {
 	camera i32
 	children []i32
-	//skin i32
+	skin i32
 	matrix []f32
 	mesh i32
 	rotation []f32
@@ -314,7 +312,7 @@ type Asset struct {
 	samplers []Sampler
 	scene i32
 	scenes []Scene
-	//skins []Skin
+	skins []Skin
 	textures []Texture
 
 	path str
@@ -1084,6 +1082,14 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 					return
 				}
 				node.camera = camera
+			} else if key == "skin" {
+				json.Next(file)
+				var skin i32
+				if getJsonI32(file, &skin) == false {
+					out = AssetInvalid()
+					return
+				}
+				node.skin = skin
 			} else {
 				printf("invalid key %s\n", key)
 				out = AssetInvalid()
@@ -1190,7 +1196,7 @@ func parseAttributes(file i32, id AssetId) (out AssetId, attributes []Attribute)
 			attributeType = ATTRIBUTE_COLOR
 		} else if key == "JOINTS_0" {
 			attributeType = ATTRIBUTE_JOINTS
-		} else if key == "WEIGHTs_)" {
+		} else if key == "WEIGHTS_0" {
 			attributeType = ATTRIBUTE_WEIGHTS
 		} else {
 			printf("invalid key %s\n", key)
@@ -2481,6 +2487,91 @@ func parseAnimations(file i32, id AssetId) (out AssetId) {
 	out = AssetInvalid()
 }
 
+//------------------------------------------------------------------------------
+func parseSkins(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var skin Skin
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "name" {
+				json.Next(file)
+				var name str
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				skin.name = name
+			} else if key == "inverseBindMatrices" {
+				json.Next(file)
+				var inverseBindMatrices i32
+				if getJsonI32(file, &inverseBindMatrices) == false {
+					out = AssetInvalid()
+					return
+				}
+				skin.inverseBindMatrices = inverseBindMatrices
+			} else if key == "skeleton" {
+				json.Next(file)
+				var skeleton i32
+				if getJsonI32(file, &skeleton) == false {
+					out = AssetInvalid()
+					return
+				}
+				skin.skeleton = skeleton
+			} else if key == "joints" {
+				var joints []i32
+				out, joints = parseI32Array(file, id)
+				if AssetIsValid(out) == false {
+					out = AssetInvalid()
+					return
+				}
+				skin.joints = joints
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		g_assets[id.asset].skins = append(g_assets[id.asset].skins, skin)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
 // AssetGetRootNodes ...
 func AssetGetRootNodes(id AssetId) (out []i32) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
@@ -2612,7 +2703,7 @@ func NodeGetAnimation(id AssetId, node i32) (animation i32, channel AnimationCha
 				animation = i
 				channel = channels[c]
 				sampler = animations[i].samplers[channel.sampler]
-                return
+				return
 			}
 		}
 	}
@@ -2754,6 +2845,10 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 					printf(">>>>>>>>>>>>> parse ANIMATIONS\n")
 					out = parseAnimations(file, out)
 					printf("<<<<<<<<<<<<< parse ANIMATIONS\n")
+				} else if key == "skins" {
+					printf(">>>>>>>>>>>>> parse SKINS\n")
+					out = parseSkins(file, out)
+					printf("<<<<<<<<<<<<< parse SKINS\n")
 				} else {
 					printf("gltf : parsing not implemented : %s\n", key)
 					out = AssetInvalid()
