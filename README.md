@@ -66,9 +66,11 @@ make 6_model
       - [ ] hdr maps
       - [ ] custom brdf
       - [ ] realtime cubemap
-    - [ ] normal map
-    - [ ] emmissive map
+    - [x] normal map
+    - [x] emmissive map
     - [ ] occlusion map
+    - [ ] output scene depth in a texture
+    - [ ] multiple render targets
     - [ ] order independent transparency
     - [ ] particles
     - [ ] anti aliasing
