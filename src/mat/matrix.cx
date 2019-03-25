@@ -408,7 +408,7 @@ func MatrixStackPush(stack []f32, matrix []f32) (out []f32) {
 		matrixScratch0 = MatrixStackLast(stack)
 		//printf("RIGHT\n")//, ISSUE : can use , here : printf is not executed
 		//MatrixPrint(matrix)
-		matrixScratch1 = MatrixMultiply(matrixScratch1, matrixScratch0, matrix)
+		matrixScratch1 = MatrixMultiply(matrixScratch1, matrix, matrixScratch0)
 		tmp = matrixScratch1
 		//tmp = matrix
 	} else {

@@ -102,6 +102,13 @@ func v4_zw(in v4) (out v2) {
 	out.y = in.w
 }
 
+func v4_neg(a v4) (out v4) {
+	out.x = 0.0-a.x
+	out.y = 0.0-a.y
+	out.z = 0.0-a.z
+	out.w = 0.0-a.w
+}
+
 func v4_mul(a v4, b v4) (out v4) {
 	out.x = a.x * b.x
 	out.y = a.y * b.y
@@ -115,4 +122,21 @@ func v4_mix(a v4, b v4, t f32) (out v4) {
 	out.z = a.z + t * (b.z - a.z)
 	out.w = a.w + t * (b.w - a.w)
 }
+
+func v4_dot(a v4, b v4) (out f32) {
+	out = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
+}
+
+func v4_length(a v4) (out f32) {
+	out = f32.sqrt(a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w)
+}
+
+func v4_normalize(a v4) (out v4) {
+	var l f32 = v4_length(a)
+	out.x = a.x / l
+	out.y = a.y / l
+	out.z = a.z / l
+	out.w = a.w / l
+}
+
 

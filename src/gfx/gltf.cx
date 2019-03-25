@@ -58,13 +58,17 @@ var PRIMIITVE_TRIANGLE_FAN i32 = 6
 var ALPHA_OPAQUE i32 = 0
 var ALPHA_MASK i32 = 1
 var ALPHA_BLEND i32 = 2
-/*
+
 var ANIMATION_PATH_INVALID i32 = 0
 var ANIMATION_PATH_TRANSLATION i32 = 1
 var ANIMATION_PATH_ROTATION i32 = 2
 var ANIMATION_PATH_SCALE i32 = 3
 var ANIMATION_PATH_WEIGHTS i32 = 4
-*/
+
+var INTERPOLATION_LINEAR i32 = 0
+var INTERPOLATION_STEP i32 = 1
+var INTERPOLATION_CUBIC_SPLINE i32 = 2
+
 var CAMERA_INVALID i32 = 0
 var CAMERA_PERSPECTIVE i32 = 1
 var CAMERA_ORTHOGRAPHIC i32 = 2
@@ -247,11 +251,12 @@ type Light struct {
 	innerConeAngle f32
 	outerConeAngle f32
 }
+*/
 
 type AnimationSampler struct {
-	animationSamplerType i32
-	inputA i32 // ISSUE can't be named input
-	outputA i32 // ISSUE can't be named output
+	interpolation i32
+	inputA i32
+	outputA i32
 }
 
 type AnimationChannel struct {
@@ -261,11 +266,11 @@ type AnimationChannel struct {
 }
 
 type Animation struct {
-	channels []i32
-	samplers []i32
+	channels []AnimationChannel
+	samplers []AnimationSampler
 	name str
 }
-*/
+
 
 type Node struct {
 	camera i32
@@ -298,7 +303,7 @@ type Asset struct {
 	//extensionsUsed
 	//extensionsRequired
 	accessors []Accessor
-	//animations []Animation
+	animations []Animation
 	buffers []Buffer
 	bufferViews []BufferView
 	cameras []Camera
@@ -2200,6 +2205,282 @@ func parseBuffers(file i32, id AssetId) (out AssetId) {
 	out = AssetInvalid()
 }
 
+//------------------------------------------------------------------------------
+func parseAnimationSamplers(file i32, id AssetId) (out AssetId, samplers []AnimationSampler) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var sampler AnimationSampler
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "interpolation" {
+				json.Next(file)
+				var interpolation str
+				if getJsonStr(file, &interpolation) == false {
+					out = AssetInvalid()
+					return
+				}
+				if interpolation == "LINEAR" {
+					sampler.interpolation = INTERPOLATION_LINEAR
+				} else if interpolation == "STEP" {
+					sampler.interpolation = INTERPOLATION_STEP
+				} else if interpolation == "CUBICSPLINE" {
+					sampler.interpolation = INTERPOLATION_CUBIC_SPLINE
+				} else {
+					printf("invalid interpolation %s\n", interpolation)
+					out = AssetInvalid()
+					return
+				}
+			} else if key == "input" {
+				json.Next(file)
+				var inp i32
+				if getJsonI32(file, &inp) == false {
+					printf("invalid input\n")
+					out = AssetInvalid()
+					return
+				}
+				sampler.inputA = inp
+			}  else if key == "output" {
+				json.Next(file)
+				var outs i32 // ISSUE : variable can be name out without compilation error
+				if getJsonI32(file, &outs) == false {
+					printf("invalid output\n")
+					out = AssetInvalid()
+					return
+				}
+				sampler.outputA = outs
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		samplers = append(samplers, sampler)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseAnimationChannels(file i32, id AssetId) (out AssetId, channels []AnimationChannel) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var channel AnimationChannel
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "sampler" {
+				json.Next(file)
+				var index i32
+				if getJsonI32(file, &index) == false {
+					out = AssetInvalid()
+					return
+				}
+				channel.sampler= index
+			} else if key == "target" {
+				json.Next(file)
+				if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+					out = AssetInvalid()
+					return
+				}
+
+				for json.More(file) {
+					json.Next(file)
+					var targetKey str
+					if getJsonStr(file, &targetKey) == false {
+						out = AssetInvalid()
+						return
+					}
+					if targetKey == "node" {
+						json.Next(file)
+						var node i32
+						if getJsonI32(file, &node) == false {
+							out = AssetInvalid()
+							return
+						}
+						channel.node = node
+					} else if targetKey == "path" {
+						json.Next(file)
+						var path str
+						if getJsonStr(file, &path) == false {
+							out = AssetInvalid()
+							return
+						}
+						if path == "translation" {
+							channel.path = ANIMATION_PATH_TRANSLATION
+						} else if path == "rotation" {
+							channel.path = ANIMATION_PATH_ROTATION
+						} else if path == "scale" {
+							channel.path = ANIMATION_PATH_SCALE
+						} else if path == "weights" {
+							channel.path = ANIMATION_PATH_WEIGHTS
+						} else {
+							out = AssetInvalid()
+							return
+						}
+					} else {
+						printf("invalid key %s\n", targetKey)
+					}
+				}
+
+				json.Next(file)
+				if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+					out = AssetInvalid()
+					return
+				}
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		channels = append(channels, channel)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
+//------------------------------------------------------------------------------
+func parseAnimations(file i32, id AssetId) (out AssetId) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for json.More(file) {
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		var animation Animation
+
+		for json.More(file) {
+			json.Next(file)
+			var key str
+			if getJsonStr(file, &key) == false {
+				out = AssetInvalid()
+				return
+			}
+
+			if key == "name" {
+				json.Next(file)
+				var name str
+				if getJsonStr(file, &name) == false {
+					out = AssetInvalid()
+					return
+				}
+				animation.name = name
+			} else if key == "channels" {
+				var channels []AnimationChannel
+				out, channels = parseAnimationChannels(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				animation.channels = channels
+			} else if key == "samplers" {
+				var samplers []AnimationSampler
+				out, samplers = parseAnimationSamplers(file, id)
+				if AssetIsValid(out) == false {
+					return
+				}
+				animation.samplers = samplers
+			} else {
+				printf("invalid key %s\n", key)
+				out = AssetInvalid()
+				return
+			}
+		}
+
+		json.Next(file)
+		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		g_assets[id.asset].animations = append(g_assets[id.asset].animations, animation)
+	}
+
+	json.Next(file)
+	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
 // AssetGetRootNodes ...
 func AssetGetRootNodes(id AssetId) (out []i32) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
@@ -2314,6 +2595,57 @@ func NodeGetChildren(id AssetId, node i32) (out []i32) {
 	}
 }
 
+// NodeGetAnimation ...
+func NodeGetAnimation(id AssetId, node i32) (animation i32, channel AnimationChannel, sampler AnimationSampler) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+		// ISSUES : no compilation error : len(animations[i])
+	animation = -1
+	channel.node = -1
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var animations []Animation = g_assets[id.asset].animations
+	var count i32 = len(animations)
+	for i := 0; i < count; i++ {
+		var channelCount i32 = len(animations[i].channels)
+		for c := 0; c < channelCount; c++ {
+		var channels []AnimationChannel = animations[i].channels
+		if channels[c].node == node {
+				animation = i
+				channel = channels[c]
+				sampler = animations[i].samplers[channel.sampler]
+                return
+			}
+		}
+	}
+}
+
+// AnimationGetLength ...
+func AnimationGetLength(id AssetId, animation i32) (min f32, max f32) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var animations []Animation = g_assets[id.asset].animations
+	var count i32 = len(animations)
+	min = mat.FLOAT_MAX
+	max = mat.FLOAT_MIN
+	if animation >= 0 && animation < count {
+		var accessors []Accessor = g_assets[id.asset].accessors
+		var accessorCount i32 = len(accessors)
+		var samplers []AnimationSampler = animations[animation].samplers
+		var samplerCount i32 = len(samplers)
+		for i := 0; i < samplerCount; i++ {
+			var accessor i32 = samplers[i].inputA
+			if accessor >= 0 && accessor < accessorCount {
+				if accessors[accessor].attributeTypeEnum == TYPE_SCALAR {
+					if accessors[accessor].min[0] < min {
+						min = accessors[accessor].min[0]
+					}
+					if accessors[accessor].max[0] > max {
+						max = accessors[accessor].max[0]
+					}
+				}
+			}
+		}
+	}
+}
+
 // MeshGetPrimitives ...
 func MeshGetPrimitives(id AssetId, mesh i32) (out []Primitive) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
@@ -2418,6 +2750,10 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 					printf(">>>>>>>>>>>>> parse BUFFERS\n")
 					out = parseBuffers(file, out)
 					printf("<<<<<<<<<<<<< parse BUFFERS\n")
+				} else if key == "animations" {
+					printf(">>>>>>>>>>>>> parse ANIMATIONS\n")
+					out = parseAnimations(file, out)
+					printf("<<<<<<<<<<<<< parse ANIMATIONS\n")
 				} else {
 					printf("gltf : parsing not implemented : %s\n", key)
 					out = AssetInvalid()

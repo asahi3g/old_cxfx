@@ -231,6 +231,8 @@ func main()() {
 	gam.Init("Model Tutorial", 1024, 768, 60, "")
 
 	loadModel("glTF-Sample-Models/Box/glTF", "Box.gltf", 1.0, 1.0)
+	loadModel("glTF-Sample-Models/BoxAnimated/glTF", "BoxAnimated.gltf", 3.0, 1.0)
+	loadModel("glTF-Sample-Models/CesiumMilkTruck/glTF", "CesiumMilkTruck.gltf", 3.0, 1.0)
 	loadModel("glTF-Sample-Models/NormalTangentTest/glTF", "NormalTangentTest.gltf", 3.0, 1.0)
 	loadModel("glTF-Sample-Models/NormalTangentMirrorTest/glTF", "NormalTangentMirrorTest.gltf", 3.0, 1.0)
 	loadModel("glTF-Sample-Models/Duck/glTF", "Duck.gltf", 1.0, 1.0)
