@@ -649,6 +649,7 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindSampler(g_tfxPbr, SAMPLER_EMISSIVE, "u_t2Emissive", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_ENV_SPECULAR, "u_tcEnvironmentSpecular", TEXTURE_CUBE_MAP)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_ENV_DIFFUSE, "u_tcEnvironmentDiffuse", TEXTURE_CUBE_MAP)
+	TemplateBindSampler(g_tfxPbr, SAMPLER_OCCLUSION, "u_t2Occlusion", TEXTURE_2D)
 	TemplateBindUniform(g_tfxPbr, UNIFORM_DEBUG_0, "DEBUG_0")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_WORLD, "u_m44World")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_VIEW, "u_m44View")
