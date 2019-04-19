@@ -1,3 +1,18 @@
+// TODO : refactor in header
+#ifdef USE_PBR_UNI
+#define USE_PBR
+#elif defined(USE_PBR_MAP)
+#define USE_PBR
+#endif
+
+#ifdef USE_PBR
+#define USE_NORMAL
+#elif defined(USE_NORMAL_VTX)
+#define USE_NORMAL
+#elif defined(USE_NORMAL_MAP)
+#define USE_NORMAL
+#endif
+
 #ifdef USE_COLOR_MAP
 #define USE_TEXCOORD
 #elif defined(USE_NORMAL_MAP)
@@ -8,14 +23,6 @@
 #define USE_TEXCOORD
 #elif defined(USE_OCCLUSION_MAP)
 #define USE_TEXCOORD
-#endif
-
-#ifdef USE_PBR
-#define USE_NORMAL
-#elif defined(USE_NORMAL_VTX)
-#define USE_NORMAL
-#elif defined(USE_NORMAL_MAP)
-#define USE_NORMAL
 #endif
 
 #ifdef USE_NORMAL
@@ -52,6 +59,14 @@ uniform mat4 u_m44Projection;
 /*layout(location = 4)*/ in vec4 i_v4Tangent;
 #endif
 
+#ifdef USE_WEIGHT
+/*layout(location = 5)*/ in vec4 i_v4Weight;
+#endif
+
+#ifdef USE_JOINT
+/*layout(location = 6)*/ in vec4 i_v4Joint;
+#endif
+
 // varyings
 out vec3 v_v3Position;
 
@@ -69,6 +84,14 @@ out vec4 v_v4Color;
 
 #ifdef USE_TEXCOORD
 out vec2 v_v2Texcoord;
+#endif
+
+#ifdef USE_WEIGHT
+out vec4 v_v4Weight;
+#endif
+
+#ifdef USE_JOINT
+out vec4 v_v4Joint;
 #endif
 
 out vec2 v_v2Screen;

@@ -9,6 +9,7 @@ import "os"
 //
 // Constants ...
 var TRIANGLES i32 = gl.TRIANGLES
+var UNSIGNED_SHORT i32 = gl.UNSIGNED_SHORT
 var LINEAR i32 = gl.LINEAR
 var CLAMP_TO_EDGE i32 = gl.CLAMP_TO_EDGE
 var REPEAT i32 = gl.REPEAT
@@ -27,8 +28,10 @@ var ZERO i32 = gl.ZERO
 // Globals ...
 var DEBUG_0 []f32
 
-var g_sizeofFloat i32 = 4
-var g_sizeofInt32 i32 = 4
+var g_sizeofF32 i32 = 4
+var g_sizeofI32 i32 = 4
+var g_sizeofUI32 i32 = 4
+var g_sizeofUI16 i32 = 2
 
 var g_colorMaskRed bool = true
 var g_colorMaskGreen bool = true
@@ -642,6 +645,8 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_NORMAL, "i_v3Normal")
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_TANGENT, "i_v4Tangent")
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_WEIGHT, "i_v4Weights")
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_JOINT, "i_v4Joints")
 	TemplateBindSampler(g_tfxPbr, SAMPLER_COLOR_0, "u_t2Color", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_NORMAL, "u_t2Normal", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_METAL_ROUGH, "u_t2MetalRough", TEXTURE_2D)

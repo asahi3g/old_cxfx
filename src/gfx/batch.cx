@@ -36,7 +36,7 @@ func BatchGetMesh(id BatchId) (out MeshId) {
 }
 
 // GetBatch ...
-func GetBatch(effect EffectId, texture TextureId, slot i32, sampler SamplerState, alpha bool, primitiveCount i32) (out BatchId) {
+func GetBatch(effect EffectId, texture TextureId, slot i32, sampler SamplerState, alpha bool, primitiveCount i32) (out BatchId) { // TODO : use real index/vertex count
 
 	out.batch = -1
 	var i i32 = 0
@@ -66,7 +66,7 @@ func GetBatch(effect EffectId, texture TextureId, slot i32, sampler SamplerState
 
 		var batch Batch
 		batch.effect = effect
-		batch.mesh = MeshLock(gl.TRIANGLES, VertexLayout(), primitiveCount * 3, primitiveCount * 3)
+		batch.mesh = MeshLock(gl.TRIANGLES, gl.UNSIGNED_SHORT, primitiveCount * 3, VertexLayout(), primitiveCount * 3)
 		batch.texture = texture
 		batch.slot = slot
 		batch.sampler = sampler

@@ -26,8 +26,8 @@ var ATTRIBUTE_NORMAL i32 = 2
 var ATTRIBUTE_TANGENT i32 = 3
 var ATTRIBUTE_TEXCOORD i32 = 4
 var ATTRIBUTE_COLOR i32 = 5
-var ATTRIBUTE_JOINTS i32 = 6
-var ATTRIBUTE_WEIGHTS i32 = 7
+var ATTRIBUTE_JOINT i32 = 6
+var ATTRIBUTE_WEIGHT i32 = 7
 
 /*
 var COMPONENT_INVALID i32 = 0
@@ -1195,9 +1195,9 @@ func parseAttributes(file i32, id AssetId) (out AssetId, attributes []Attribute)
 		} else if key == "COLOR_0" {
 			attributeType = ATTRIBUTE_COLOR
 		} else if key == "JOINTS_0" {
-			attributeType = ATTRIBUTE_JOINTS
+			attributeType = ATTRIBUTE_JOINT
 		} else if key == "WEIGHTS_0" {
-			attributeType = ATTRIBUTE_WEIGHTS
+			attributeType = ATTRIBUTE_WEIGHT
 		} else {
 			printf("invalid key %s\n", key)
 			out = AssetInvalid()
@@ -2959,9 +2959,9 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 			printf("reading ui16 bin %d\n", count)
 			for i := 0; i < count; i++ {
 				for c := 0; c < componentCount; c++ {
-					var value ui32 = os.ReadUI16(uri)
+					var value ui16 = os.ReadUI16(uri)
 					//printf("ui16 %d/%d : %d\n", i * componentCount + c, count * componentCount, value)
-					dataUI32 = append(dataUI32, value)
+					dataUI16 = append(dataUI16, value)
 				}
 			}
 		} else if componentType == gl.UNSIGNED_INT {

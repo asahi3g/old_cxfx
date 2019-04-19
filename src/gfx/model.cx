@@ -94,8 +94,12 @@ func ModelCreateFromFile(dataDir str, filename str) (out ModelId){
 
 type channelInfo struct {
 	count i32
-	data []f32
+	dataType i32
 	dataLen i32
+	dataF32 []f32
+	dataUI8 []byte
+	dataUI16 []ui16
+	dataUI32 []ui32
 }
 
 func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
@@ -116,6 +120,8 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 	var useColor bool
 	var useTexcoord bool
 	var useTangent bool
+	var useWeight bool
+	var useJoint bool
 
 	// attributes
 	var channels []channelInfo
@@ -133,16 +139,35 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		}
 
 		vertexCount = accessor.count
-		if accessor.componentType != gl.FLOAT { // TODO : how to pass []struct to BufferData ?
-			printf("buffer type not implemented\n")
+
+   		var channel channelInfo
+		var attribute VertexAttribute
+
+		if accessor.componentType == gl.FLOAT { // TODO : how to pass []struct to BufferData ?
+			channel.dataF32 = accessor.dataF32
+			channel.dataLen = len(channel.dataF32)
+   			channel.dataType = gl.FLOAT
+			attribute.componentType = gl.FLOAT
+			attribute.componentByteSize = g_sizeofF32
+		} else if accessor.componentType == gl.UNSIGNED_SHORT {
+			channel.dataUI16 = accessor.dataUI16
+			channel.dataLen = len(channel.dataUI16)
+   			channel.dataType = gl.UNSIGNED_SHORT
+			attribute.componentType = gl.UNSIGNED_SHORT
+			attribute.componentByteSize = g_sizeofUI16
+		} else if accessor.componentType == gl.UNSIGNED_INT {
+			channel.dataUI32 = accessor.dataUI32
+			channel.dataLen = len(channel.dataUI32)
+			channel.dataType = gl.UNSIGNED_INT
+			attribute.componentType = gl.UNSIGNED_INT
+			attribute.componentByteSize = g_sizeofUI32
+		} else {
+			printf("buffer type not implemented %d\n", accessor.componentType)
 			out = InvalidMesh()
 			return
 		}
 
-		var attribute VertexAttribute
 		attribute.componentCount = accessor.componentCount
-		attribute.componentType = gl.FLOAT // TODO : handle non float attributes
-		attribute.componentByteSize = g_sizeofFloat // TODO handle non float attributes
 		attribute.componentOffset = componentStride
 		attribute.byteOffset = byteStride
 
@@ -162,18 +187,20 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		} else if attributeType == gltf.ATTRIBUTE_TANGENT {
 			binding = ATTRIBUTE_TANGENT
 			useTangent = true
+		} else if attributeType == gltf.ATTRIBUTE_WEIGHT {
+			binding = ATTRIBUTE_WEIGHT
+			useWeight = true
+		} else if attributeType == gltf.ATTRIBUTE_JOINT {
+			binding = ATTRIBUTE_JOINT
+			useJoint = true
 		}
 
 		attribute.binding = binding
-
-		attributes = append(attributes, attribute)
-
-		var channel channelInfo
-		channel.data = accessor.dataF32
-		channel.dataLen = len(channel.data)
 		channel.count = attribute.componentCount
 
+		attributes = append(attributes, attribute)
 		channels = append(channels, channel)
+
 		byteStride = byteStride + attribute.componentCount * attribute.componentByteSize
 		componentStride = componentStride + attribute.componentCount
 	}
@@ -185,21 +212,37 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		return
 	}
 
-	// vertices
-	var vertices []f32 // TODO : test perf with loop reordering + resize(vertices, vertexLen)
+	// vertices // TODO : generate buffers from go data ?
+	var vertices []byte // TODO : test perf with loop reordering + resize(vertices, vertexLen)
 	for v := 0; v < vertexCount; v++ {
 		for c := 0; c < attributeCount; c++ {
-			var data []f32 = channels[c].data
+			var dataType i32 = channels[c].dataType
 			var dataLen i32 = channels[c].dataLen
 			var count i32 = channels[c].count
-			for i := 0; i < count; i++ {
-				vertices = append(vertices, data[v * count + i])
+			var offset i32 = v * count
+			if dataType == gl.FLOAT {
+				var data []f32 = channels[c].dataF32
+				for i := 0; i < count; i++ {
+					vertices = gl.AppendF32(vertices, data[offset + i])
+				}
+			} else if dataType == gl.UNSIGNED_SHORT {
+				var data []ui16 = channels[c].dataUI16
+				for i := 0; i < count; i++ {
+					vertices = gl.AppendUI16(vertices, data[offset + i])
+				}
+			} else if dataType == gl.UNSIGNED_INT {
+				var data []ui32 = channels[c].dataUI32
+				for i := 0; i < count; i++ {
+					vertices = gl.AppendUI32(vertices, data[offset + i])
+				}
+			} else {
+				panicIf(true, "unhandled dataType")
 			}
 		}
 	}
 
 	// indices
-	var indices []ui32
+	var indices []byte
 	var indicesAccessor gltf.Accessor = gltf.AssetGetAccessor(id, primitive.indices)
 	var indicesType i32 = indicesAccessor.componentType
 	if indicesAccessor.componentCount != 1 ||
@@ -211,15 +254,21 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		return
 	}
 
-	if indicesType == gl.UNSIGNED_SHORT { // TODO : use unsigned short indices
-		/*var indicesUI16 []ui16 = indicesAccessor.dataUI16
-		var indexCount i32 = len(indicesUI16)
-		for i := 0; i < indexCount; i++ {
-			indices = append(indices, ui16.ui32(indicesUI16))
-		}*/
-		indices = indicesAccessor.dataUI32
+	var indexByteCount i32 = 0
+	if indicesType == gl.UNSIGNED_SHORT {
+		var data []ui16 = indicesAccessor.dataUI16
+		var count i32 = len(data)
+		indexByteCount = 2
+		for i := 0; i < count; i++ {
+			indices = gl.AppendUI16(indices, data[i])
+		}
 	} else if indicesType == gl.UNSIGNED_INT {
-		indices = indicesAccessor.dataUI32
+		var data []ui32 = indicesAccessor.dataUI32
+		var count i32 = len(data)
+		indexByteCount = 4
+		for i := 0; i < count; i++ {
+			indices = gl.AppendUI32(indices, data[i])
+		}
 	} else {
 		printf("invalid index buffer type\n")
 		out = InvalidMesh()
@@ -228,9 +277,7 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 
 	printf("meshInstance %d, %d, %d\n", len(attributes), len(indices), len(vertices))
 	if len(attributes) > 0 && len(indices) > 0 && len(vertices) > 0 {
-		var nullIndices []ui32
-		var nullVertices []f32
-		out = MeshCreate(mode, attributes, len(indices), len(vertices))
+		out = MeshCreate(mode, indicesType, len(indices) / indexByteCount, attributes, len(vertices) / byteStride) // TODO : use real index/vertex count instead of bytecount
 		MeshBegin(out) // TODO : remove MeshBegin/MeshEnd, data should be uploaded with BufferData in MeshInstance.
 		g_meshes[out.mesh].vertices = vertices
 		g_meshes[out.mesh].indices = indices
@@ -239,6 +286,8 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		g_meshes[out.mesh].useColor = useColor
 		g_meshes[out.mesh].useTexcoord = useTexcoord
 		g_meshes[out.mesh].useTangent = useTangent
+		g_meshes[out.mesh].useWeight = useWeight
+		g_meshes[out.mesh].useJoint = useJoint
 		MeshEnd(out)
 	}
 }
@@ -566,7 +615,6 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 				var alphaMode i32 = material.alphaMode
 				if ((alphaMode == gltf.ALPHA_BLEND) && alpha) || ((alphaMode == gltf.ALPHA_OPAQUE) && (alpha == false)) {
-
 					if IsValidMesh(render) {
 
 						var useColorVtx bool = MeshUseColor(render)
@@ -585,6 +633,9 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 						var useOcclusionTexture bool = IsValidTexture(occlusionTexture)
 
+						var useWeights bool = MeshUseWeight(render)
+						var useJoints bool = MeshUseJoint(render)
+
 						TemplateSetKey(g_tfxPbr, USE_COLOR_UNI, useColorUni)
 						TemplateSetKey(g_tfxPbr, USE_COLOR_VTX, useColorVtx)
 						TemplateSetKey(g_tfxPbr, USE_COLOR_MAP, useColorMap)
@@ -600,6 +651,9 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 						TemplateSetKey(g_tfxPbr, USE_TANGENT_VTX, useTangentVtx)
 
 						TemplateSetKey(g_tfxPbr, USE_OCCLUSION_MAP, useOcclusionTexture)
+
+						TemplateSetKey(g_tfxPbr, USE_WEIGHT, useWeights)
+						TemplateSetKey(g_tfxPbr, USE_JOINT, useJoints)
 
 						TemplateSetKey(g_tfxPbr, USE_DEBUG_A, true)
 

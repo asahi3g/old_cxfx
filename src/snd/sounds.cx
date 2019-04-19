@@ -122,9 +122,10 @@ func Update()() {
 		var used VoiceId = g_used[i]
 
 		var source i32 = g_voices[used.voice].source
-		panicIf(source < 0, "")
+		panicIf(source < 0, sprintf("invalid source %d (voice : %d)", source, used.voice))
 
 		var alState i32 = al.SourceState(source)
+		panicIf(AlError(), "al.SourceState")
 		if alState == al.Stopped {
 			VoiceStop(used)
 		} else {

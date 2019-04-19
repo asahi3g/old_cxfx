@@ -6,6 +6,8 @@ var ATTRIBUTE_COLOR i32 = 1
 var ATTRIBUTE_TEXCOORD i32 = 2
 var ATTRIBUTE_NORMAL i32 = 3
 var ATTRIBUTE_TANGENT i32 = 4
+var ATTRIBUTE_WEIGHT i32 = 5
+var ATTRIBUTE_JOINT i32 = 6
 
 var SAMPLER_COLOR_0 i32 = 0
 var SAMPLER_NORMAL i32 = 1
@@ -318,7 +320,7 @@ func TemplateInstance(id TemplateId) (out EffectId){
 	if validEffect == false {
 		var effectCount i32 = len(g_effects)
 		for i := 0; i < effectCount; i++ {
-			if g_effects[effectId.effect].key == effectKey {
+			if g_effects[i].key == effectKey {
 				effectId.effect = i
 				i = effectCount
 				validEffect = true
