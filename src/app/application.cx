@@ -1,6 +1,6 @@
 package app
 
-import "arg"
+import "args"
 import "cx"
 import "glfw"
 import "os"
@@ -94,6 +94,7 @@ func Parse() {
 	var fps i32
 	var hints i32
 	var dataDir str
+	var help bool
 	// << tmp issue #214
 
 	var helpMatch bool
@@ -111,11 +112,11 @@ func Parse() {
 	for a := 0; a < argc; a++ {
 		arg := os.Args[a]
 
-		if arg.Match(arg, "++help", &helpMatch) {
+		if args.Bool(arg, "help", &help, &helpMatch) {
 			Help("", 0)
 		}
 
-		if arg.GetValueI32(arg, "++width=", &width, &widthMatch) {
+		if args.I32(arg, "width", &width, &widthMatch) {
 			if (width < 0 || width > 65536) {
 				 Help(sprintf("invalid value %s\n", arg), cx.PANIC)
 			}
@@ -123,7 +124,7 @@ func Parse() {
 			continue
 		}
 
-		if arg.GetValueI32(arg, "++height=", &height, &heightMatch) {
+		if args.I32(arg, "height", &height, &heightMatch) {
 			if (height < 0 || height > 65536) {
 				 Help(sprintf("invalid value %s\n", arg), cx.PANIC)
 			}
@@ -131,7 +132,7 @@ func Parse() {
 			continue
 		}
 
-		if arg.GetValueI32(arg, "++fps=", &fps, &fpsMatch) {
+		if args.I32(arg, "fps", &fps, &fpsMatch) {
 			if (fps < 0 || fps > 65536) {
 				 Help(sprintf("invalid value %s\n", arg), cx.PANIC)
 			}
@@ -139,14 +140,16 @@ func Parse() {
 			continue
 		}
 
-		if arg.GetValueStr(arg, "++data=", &dataDir, &dataDirMatch) {
+		if args.Str(arg, "data", &dataDir, &dataDirMatch) {
 			g_application.options.dataDir = dataDir
 			continue
 		}
 
-		if arg.GetFlags(arg, "++hints=", &hints, &hintsMatch, hintNames, hintValues) {
+		if args.Flags(arg, "hints", &hints, &hintsMatch, hintNames, hintValues) {
 			continue
 		}
+
+		Help(sprintf("invalid argument %s", arg), cx.ASSERT)
 	}
 }
 

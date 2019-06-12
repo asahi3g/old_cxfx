@@ -51,19 +51,22 @@ type Mesh struct {
 	primitive i32
 	index i32
 
-	indices []byte
+	indices []ui8
 	indexFormat i32
 	indexByteStride i32
 	indexComponentStride i32
 	indexByteCount i32
 	indexCount i32
 
-	vertices []byte
+	vertices []ui8
 	attributes []VertexAttribute
 	vertexByteStride i32
 	vertexComponentStride i32
 	vertexByteCount i32
 	vertexCount i32
+
+	frontFace i32
+	cullFace i32
 
 	vao i32
 	ibo i32
@@ -129,6 +132,13 @@ func MeshUseJoint(id MeshId) (out bool) {
 	out = g_meshes[id.mesh].useJoint
 }
 
+// MeshSetCulling ...
+func MeshSetCulling(id MeshId, frontFace i32, cullFace i32) {
+	panicIfNot(IsValidMesh(id), "invalid id")
+	g_meshes[id.mesh].frontFace = frontFace
+	g_meshes[id.mesh].cullFace = cullFace
+}
+
 // MeshPrint ...
 func MeshPrint(message str, id MeshId) {
 	panicIfNot(IsValidMesh(id), "invalid id")
@@ -174,7 +184,7 @@ func MeshUnlock(id MeshId) {
 	g_freeMeshes = append(g_freeMeshes, id)
 }
 
-func meshCreate(primitive i32, indexType i32, indexCount i32, indices []byte, attributes []VertexAttribute, vertexCount i32,  vertices []byte, usage i32) (out MeshId) {
+func meshCreate(primitive i32, indexType i32, indexCount i32, indices []ui8, attributes []VertexAttribute, vertexCount i32,  vertices []ui8, usage i32) (out MeshId) {
 	out.mesh = len(g_meshes)
 
 	if primitive == gl.TRIANGLES {
@@ -187,7 +197,8 @@ func meshCreate(primitive i32, indexType i32, indexCount i32, indices []byte, at
 	mesh.attributes = attributes
 	mesh.primitive = primitive
 	mesh.indexFormat = indexType;
-
+	mesh.frontFace = CCW
+	mesh.cullFace = BACK
 
 	// stride
 	var indexByteStride i32 = 0
@@ -281,14 +292,14 @@ func meshCreate(primitive i32, indexType i32, indexCount i32, indices []byte, at
 }
 
 // MeshInstance ...
-func MeshInstance(primitive i32, indexFormat i32, indices []byte, attributes []VertexAttribute, vertices []byte) (out MeshId) {
+func MeshInstance(primitive i32, indexFormat i32, indices []ui8, attributes []VertexAttribute, vertices []ui8) (out MeshId) {
 	out = meshCreate(primitive, indexFormat, 0, indices, attributes, 0, vertices, gl.STATIC_DRAW)
 }
 
 // MeshCreate ...
 func MeshCreate(primitive i32, indexFormat i32, indexCount i32, attributes []VertexAttribute, vertexCount i32) (out MeshId) { // TODO: refactor
-	var indices []byte
-	var vertices []byte
+	var indices []ui8
+	var vertices []ui8
 	out = meshCreate(primitive, indexFormat, indexCount, indices, attributes, vertexCount, vertices, gl.STREAM_DRAW)
 }
 
@@ -352,6 +363,14 @@ func MeshRender(id MeshId) {
 	var null []i32
 	var indexFormat i32 = g_meshes[mesh].indexFormat
 	var indexCount i32 = g_meshes[mesh].indexCount
+
+	var cullFace i32 = g_meshes[mesh].cullFace
+	if cullFace == NONE {
+		DisableCulling()
+	} else {
+		EnableCulling(g_meshes[mesh].frontFace, g_meshes[mesh].cullFace)
+	}
+
 	gl.DrawElements(g_meshes[mesh].primitive, indexCount, indexFormat, null)
 	panicIf(GlError(), "gl.DrawArrays")
 }
@@ -414,8 +433,8 @@ func MeshAppendOrthoLine(id MeshId, line mat.v4, color mat.v4, clip mat.v4, dept
 			x1 = 2.0 * x1 / gfx_width - 1.0
 			y1 = 2.0 * y1 / gfx_height - 1.0
 
-			var indices []byte = g_meshes[mesh].indices
-			var vertices []byte = g_meshes[mesh].vertices
+			var indices []ui8 = g_meshes[mesh].indices
+			var vertices []ui8 = g_meshes[mesh].vertices
 			var offset i32 = len(vertices) / g_meshes[mesh].vertexByteStride
 
 			var indexFormat i32 = g_meshes[mesh].indexFormat
@@ -544,8 +563,8 @@ func MeshAppendOrthoQuad(id MeshId, rect mat.v4, uv mat.v4, color mat.v4, clip m
 			x1 = 2.0 * i32.f32(f32.i32(x1)) / gfx_width - 1.0
 			y1 = 2.0 * i32.f32(f32.i32(y1)) / gfx_height - 1.0
 
-			var vertices []byte = g_meshes[mesh].vertices
-			var indices []byte = g_meshes[mesh].indices
+			var vertices []ui8 = g_meshes[mesh].vertices
+			var indices []ui8 = g_meshes[mesh].indices
 			var offset i32 = len(vertices) / g_meshes[mesh].vertexByteStride // TODO : ui64 offset
 
 			var indexFormat i32 = g_meshes[mesh].indexFormat
@@ -626,13 +645,13 @@ func MeshAppendPlane(id MeshId, position mat.v3, width mat.v3, height mat.v3, re
 	var primitive i32 = g_meshes[mesh].primitive
 	panicIfNot(primitive == gl.TRIANGLES, "(*mesh).primitive == gl.TRIANGLES")
 
-	var vertices []byte = g_meshes[mesh].vertices
+	var vertices []ui8 = g_meshes[mesh].vertices
 	var base i32 = len(vertices) / 9
 
 	var fw f32 = i32.f32(resx) - 1.0
 	var fh f32 = i32.f32(resy) - 1.0
 
-	var indices []byte = g_meshes[mesh].indices
+	var indices []ui8 = g_meshes[mesh].indices
 	var indexFormat i32 = g_meshes[mesh].indexFormat
 	for x := 0; x < resx; x++ {
 		var fx f32 = i32.f32(x)
@@ -704,7 +723,7 @@ func MeshAppendPlane(id MeshId, position mat.v3, width mat.v3, height mat.v3, re
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-func appendV9(vertices []byte, x f32, y f32, z f32, r f32, g f32, b f32, a f32, u f32, v f32) (out []byte) {
+func appendV9(vertices []ui8, x f32, y f32, z f32, r f32, g f32, b f32, a f32, u f32, v f32) (out []ui8) {
 	out = vertices
 	out = gl.AppendF32(out, x)
 	out = gl.AppendF32(out, y)
@@ -749,8 +768,8 @@ func MeshAppendCube(id MeshId, position mat.v3, size mat.v3, color mat.v4) {
 	var b f32 = color.z
 	var a f32 = color.w
 
-	var vertices []byte = g_meshes[mesh].vertices
-	var indices []byte = g_meshes[mesh].indices
+	var vertices []ui8 = g_meshes[mesh].vertices
+	var indices []ui8 = g_meshes[mesh].indices
 	var offset i32 = len(vertices) / g_meshes[mesh].vertexByteStride
 
 	var indexFormat i32 = g_meshes[mesh].indexFormat

@@ -336,228 +336,11 @@ func AssetIsValid(id AssetId) (out bool) {
 	out = id.asset >= 0 && id.asset <= len(g_assets)
 }
 
-//------------------------------------------------------------------------------
-func debugJson(file i32, t i32) { // TODO : move in json
-	printf("DEBUG_JSON_TYPE %d\n", t)
-	if t == json.TOKEN_DELIM {
-		printf("DEBUG_JSON_DELIM\n")
-		var value i32 = json.Delim(file)
-		if value == JSON_DELIM_LEFT_BRACKET {
-			printf("{\n")
-		} else if value == JSON_DELIM_RIGHT_BRACKET {
-			printf("}\n")
-		} else if value == JSON_DELIM_LEFT_A {
-			printf("[\n")
-		} else if value == JSON_DELIM_RIGHT_A {
-			printf("]\n")
-		}
-	} else if t == json.TOKEN_BOOL {
-		printf("DEBUG_JSON_BOOL\n")
-		var value bool = json.Bool(file)
-		if value {
-			printf("true\n")
-		} else {
-			printf("false\n")
-		}
-	} else if t == json.TOKEN_F64 {
-		printf("DEBUG_JSON_F64\n")
-		var value f64 = json.Float64(file)
-		printf("%f\n", value)
-	} else if t == json.TOKEN_NUMBER {
-		printf("DEBUG_JSON_NUMBER\n")
-		var value f64 = json.Float64(file)
-		printf("%f\n", value)
-	} else if t == json.TOKEN_STR {
-		printf("DEBUG_JSON_STR\n")
-		var value str = json.Str(file)
-		printf("%s\n", value)
-	} else {
-		panicIf(true, sprintf("invalid token type : %d", t))
-	}
+func alwaysMore(file i32) (more bool) {
+	var success bool
+	more, success = json.More(file)
+	more = more && success
 }
-
-func getJsonStr(file i32, value *str) (success bool) { // TODO : move in json
-	t := json.Type(file)
-	if t == json.TOKEN_STR {
-		*value = json.Str(file)
-		success = true
-	} else {
-		debugJson(file, t)
-	}
-}
-
-func getJsonBool(file i32, value *bool) (success bool) { // TODO : move in json
-	t := json.Type(file)
-	if t == json.TOKEN_BOOL {
-		*value = json.Bool(file)
-		success = true
-	} else {
-		debugJson(file, t)
-	}
-}
-
-func getJsonI64(file i32, value *i64) (success bool) { // TODO : move in json
-	t := json.Type(file)
-	if t == json.TOKEN_NUMBER {
-		*value = json.Int64(file)
-		success = true
-	} else {
-		debugJson(file, t)
-	}
-}
-
-func getJsonF64(file i32, value *f64) (success bool) { // TODO : move in json
-	t := json.Type(file)
-	if t == json.TOKEN_NUMBER || t == json.TOKEN_F64 {
-		*value = json.Float64(file)
-		success = true
-	} else {
-		debugJson(file, t)
-	}
-}
-
-func getJsonI32(file i32, value *i32) (success bool) { // TODO : move in json
-	t := json.Type(file)
-	if t == json.TOKEN_NUMBER {
-		*value = i64.i32(json.Int64(file))
-		success = true
-	} else {
-		debugJson(file, t)
-	}
-}
-
-func getJsonF32(file i32, value *f32) (success bool) { // TODO : move in json
-	t := json.Type(file)
-	if t == json.TOKEN_NUMBER || t == json.TOKEN_F64 {
-		*value = f64.f32(json.Float64(file))
-		success = true
-	} else {
-		debugJson(file, t)
-	}
-}
-
-func getJsonDelim(file i32, delim i32) (success bool) { // TODO : move in json
-	t := json.Type(file)
-	if t == json.TOKEN_DELIM {
-		if json.Delim(file) == delim {
-			success = true
-		} else {
-			debugJson(file, t)
-		}
-	} else {
-		debugJson(file, t)
-	}
-}
-
-func getJsonF32Vec4(file i32, array *[4]f32) (success bool) {
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
-		return
-	}
-
-	var i i32
-	for json.More(file) {
-		json.Next(file)
-		var value f32
-		if getJsonF32(file, &value) == false {
-			return
-		}
-		(*array)[i] = value
-		i++
-	}
-
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
-		success = true
-		return
-	}
-}
-
-// ISSUE : cx panic if duplicate func signature
-func getJsonF32Vec3(file i32, array *[3]f32) (success bool) { // TODO : refactor with getJsonF32Vec4 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
-		return
-	}
-
-	var i i32
-	for json.More(file) {
-		json.Next(file)
-		var value f32
-		if getJsonF32(file, &value) == false {
-			return
-		}
-		(*array)[i] = value
-		i++
-	}
-
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
-		success = true
-		return
-	}
-}
-
-func parseI32Array(file i32, id AssetId) (out AssetId, array []i32) { // TODO : move in json
-	panicIfNot(AssetIsValid(id), "invalid asset")
-
-	out = id
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
-		out = AssetInvalid()
-		return
-	}
-
-	for json.More(file) {
-		json.Next(file)
-		var value i32
-		if getJsonI32(file, &value) == false {
-			out = AssetInvalid()
-			return
-		}
-		array = append(array, value)
-	}
-
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
-		return
-	}
-
-	out = AssetInvalid()
-}
-
-func parseF32Array(file i32, id AssetId) (out AssetId, array []f32) { // TODO : move in json
-	panicIfNot(AssetIsValid(id), "invalid asset")
-
-	out = id
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
-		out = AssetInvalid()
-		return
-	}
-
-	for json.More(file) {
-		json.Next(file)
-		var value f32
-		if getJsonF32(file, &value) == false {
-			out = AssetInvalid()
-			return
-		}
-		array = append(array, value)
-	}
-
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
-		return
-	}
-
-	out = AssetInvalid()
-}
-
-var JSON_DELIM_LEFT_A i32 = 91
-var JSON_DELIM_RIGHT_A i32 = 93
-var JSON_DELIM_LEFT_BRACKET i32 = 123
-var JSON_DELIM_RIGHT_BRACKET i32 = 125
 
 //------------------------------------------------------------------------------
 func printI32Array(message str, array []i32) {
@@ -577,14 +360,6 @@ func printF32Array(message str, array []f32) {
 		printf("%f, ", array[n])
 	}
 	printf("]\n")
-}
-
-// ReadBufferF32 ...
-func ReadBufferF32() {
-}
-
-// ReadBufferUI16 ...
-func ReadBufferUI16() {
 }
 
 // AssetPrint ...
@@ -724,23 +499,20 @@ func parseAsset(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
+	for alwaysMore(file) {
 		var key str
-		if getJsonStr(file, &key) == false {
+		if json.ReadStr(file, &key) == false {
 			out = AssetInvalid()
 			return
 		}
 
-		json.Next(file)
 		var value str
-		if getJsonStr(file, &value) == false {
+		if json.ReadStr(file, &value) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -760,8 +532,7 @@ func parseAsset(file i32, id AssetId) (out AssetId) {
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+	if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) {
 		return
 	}
 
@@ -774,9 +545,8 @@ func parseScene(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
 	var value i32
-	if getJsonI32(file, &value) == false {
+	if json.ReadI32(file, &value) == false {
 		out = AssetInvalid()
 		return
 	}
@@ -790,41 +560,34 @@ func parseScenes(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var scene Scene
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "nodes" {
-				var nodes []i32
-				out, nodes = parseI32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadI32Slice(file, &scene.nodes) == false {
+					out = AssetInvalid()
 					return
 				}
-
-				scene.nodes = nodes
 			} else if key == "name" {
 				var name str
-				json.Next(file)
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -837,15 +600,13 @@ func parseScenes(file i32, id AssetId) (out AssetId) {
 		}
 		g_assets[id.asset].scenes = append(g_assets[id.asset].scenes, scene)
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -858,49 +619,42 @@ func parsePerspectiveCamera(file i32, id AssetId) (out AssetId, perspectiveCamer
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-
+	for alwaysMore(file) {
 		var key str
-		if getJsonStr(file, &key) == false {
+		if json.ReadStr(file, &key) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		if key == "aspectRatio" {
 			var aspectRatio f32
-			json.Next(file)
-			if getJsonF32(file, &aspectRatio) == false {
+			if json.ReadF32(file, &aspectRatio) == false {
 				out = AssetInvalid()
 				return
 			}
 			perspectiveCamera.aspectRatio = aspectRatio
 		} else if key == "yfov" {
 			var yfov f32
-			json.Next(file)
-			if getJsonF32(file, &yfov) == false {
+			if json.ReadF32(file, &yfov) == false {
 				out = AssetInvalid()
 				return
 			}
 			perspectiveCamera.yfov = yfov
 		} else if key == "zfar" {
 			var zfar f32
-			json.Next(file)
-			if getJsonF32(file, &zfar) == false {
+			if json.ReadF32(file, &zfar) == false {
 				out = AssetInvalid()
 				return
 			}
 			perspectiveCamera.zfar = zfar
 		} else if key == "znear" {
 			var znear f32
-			json.Next(file)
-			if getJsonF32(file, &znear) == false {
+			if json.ReadF32(file, &znear) == false {
 				out = AssetInvalid()
 				return
 			}
@@ -912,8 +666,7 @@ func parsePerspectiveCamera(file i32, id AssetId) (out AssetId, perspectiveCamer
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+	if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) {
 		return
 	}
 
@@ -926,33 +679,29 @@ func parseCameras(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var camera Camera
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "name" {
 				var name str
-				json.Next(file)
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -966,8 +715,7 @@ func parseCameras(file i32, id AssetId) (out AssetId) {
 				camera.perspectiveCamera = perspectiveCamera
 			} else if key == "type" {
 				var cameraType str
-				json.Next(file)
-				if getJsonStr(file, &cameraType) == false {
+				if json.ReadStr(file, &cameraType) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -988,15 +736,13 @@ func parseCameras(file i32, id AssetId) (out AssetId) {
 
 		g_assets[id.asset].cameras = append(g_assets[id.asset].cameras, camera)
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -1009,15 +755,13 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -1025,67 +769,62 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 		var node Node
 		node.mesh = -1
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "name" {
-				json.Next(file)
 				var name str
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
 				node.name = name
 			} else if key == "mesh" {
-				json.Next(file)
 				var mesh i32
-				if getJsonI32(file, &mesh) == false {
+				if json.ReadI32(file, &mesh) == false {
 					out = AssetInvalid()
 					return
 				}
 				node.mesh = mesh
 			} else if key == "children" {
-				out, node.children = parseI32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadI32Slice(file, &node.children) == false {
+					out = AssetInvalid()
 					return
 				}
 			} else if key == "matrix" {
-				out, node.matrix = parseF32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadF32Slice(file, &node.matrix) == false {
+					out = AssetInvalid()
 					return
 				}
 			} else if key == "rotation" {
-				out, node.rotation = parseF32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadF32Slice(file, &node.rotation) == false {
+					out = AssetInvalid()
 					return
 				}
 			} else if key == "translation" {
-				out, node.translation = parseF32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadF32Slice(file, &node.translation) == false {
+					out = AssetInvalid()
 					return
 				}
 			} else if key == "scale" {
-				out, node.scale = parseF32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadF32Slice(file, &node.scale) == false {
+					out = AssetInvalid()
 					return
 				}
 			} else if key == "camera" {
-				json.Next(file)
 				var camera i32
-				if getJsonI32(file, &camera) == false {
+				if json.ReadI32(file, &camera) == false {
 					out = AssetInvalid()
 					return
 				}
 				node.camera = camera
 			} else if key == "skin" {
-				json.Next(file)
 				var skin i32
-				if getJsonI32(file, &skin) == false {
+				if json.ReadI32(file, &skin) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -1143,15 +882,13 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 
 		g_assets[id.asset].nodes = append(g_assets[id.asset].nodes, node)
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -1164,17 +901,14 @@ func parseAttributes(file i32, id AssetId) (out AssetId, attributes []Attribute)
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-
+	for alwaysMore(file) {
 		var key str
-		if getJsonStr(file, &key) == false {
+		if json.ReadStr(file, &key) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -1205,8 +939,7 @@ func parseAttributes(file i32, id AssetId) (out AssetId, attributes []Attribute)
 		}
 
 		var accessor i32
-		json.Next(file)
-		if getJsonI32(file, &accessor) == false {
+		if json.ReadI32(file, &accessor) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -1219,8 +952,7 @@ func parseAttributes(file i32, id AssetId) (out AssetId, attributes []Attribute)
 		attributes = append(attributes, attribute)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+	if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) {
 		return
 	}
 
@@ -1234,15 +966,13 @@ func parsePrimitives(file i32, id AssetId) (out AssetId, primitives []Primitive)
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -1252,10 +982,9 @@ func parsePrimitives(file i32, id AssetId) (out AssetId, primitives []Primitive)
 		primitive.material = -1
 		primitive.indices = -1
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
@@ -1269,24 +998,21 @@ func parsePrimitives(file i32, id AssetId) (out AssetId, primitives []Primitive)
 				primitive.attributes = attributes
 			} else if key == "indices" {
 				var indices i32
-				json.Next(file)
-				if getJsonI32(file, &indices) == false {
+				if json.ReadI32(file, &indices) == false {
 					out = AssetInvalid()
 					return
 				}
 				primitive.indices = indices
 			} else if key == "mode" {
 				var mode i32
-				json.Next(file)
-				if getJsonI32(file, &mode) == false {
+				if json.ReadI32(file, &mode) == false {
 					out = AssetInvalid()
 					return
 				}
 				primitive.mode = mode
 			} else if key == "material" {
 				var material i32
-				json.Next(file)
-				if getJsonI32(file, &material) == false {
+				if json.ReadI32(file, &material) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -1300,15 +1026,13 @@ func parsePrimitives(file i32, id AssetId) (out AssetId, primitives []Primitive)
 
 		primitives = append(primitives, primitive)
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -1322,33 +1046,29 @@ func parseMeshes(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var mesh Mesh
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "name" {
-				json.Next(file)
 				var name str
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -1365,15 +1085,13 @@ func parseMeshes(file i32, id AssetId) (out AssetId) {
 
 		g_assets[id.asset].meshes = append(g_assets[id.asset].meshes, mesh)
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -1386,79 +1104,67 @@ func parseAccessors(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var accessor Accessor
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "bufferView" {
 				var bufferView i32
-				json.Next(file)
-				if getJsonI32(file, &bufferView) == false {
+				if json.ReadI32(file, &bufferView) == false {
 					out = AssetInvalid()
 					return
 				}
 				accessor.bufferView = bufferView
 			} else if key == "byteOffset" {
 				var byteOffset i64
-				json.Next(file)
-				if getJsonI64(file, &byteOffset) == false {
+				if json.ReadI64(file, &byteOffset) == false {
 					out = AssetInvalid()
 					return
 				}
 				accessor.byteOffset = byteOffset
 			} else if key == "componentType" {
 				var componentType i32
-				json.Next(file)
-				if getJsonI32(file, &componentType) == false {
+				if json.ReadI32(file, &componentType) == false {
 					out = AssetInvalid()
 					return
 				}
 				accessor.componentType = componentType
 			} else if key == "count" {
 				var count i32
-				json.Next(file)
-				if getJsonI32(file, &count) == false {
+				if json.ReadI32(file, &count) == false {
 					out = AssetInvalid()
 					return
 				}
 				accessor.count = count
 			} else if key == "max" {
-				var max []f32
-				out, max = parseF32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadF32Slice(file, &accessor.max) == false {
+					out = AssetInvalid()
 					return
 				}
-				accessor.max = max
 			} else if key == "min" {
-				var min []f32
-				out, min = parseF32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadF32Slice(file, &accessor.min) == false {
+					out = AssetInvalid()
 					return
 				}
-				accessor.min = min
 			} else if key == "type" {
 				var value str
-				json.Next(file)
-				if getJsonStr(file, &value) == false {
+				if json.ReadStr(file, &value) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -1504,15 +1210,13 @@ func parseAccessors(file i32, id AssetId) (out AssetId) {
 
 		g_assets[id.asset].accessors = append(g_assets[id.asset].accessors, accessor)
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -1523,32 +1227,28 @@ func parseAccessors(file i32, id AssetId) (out AssetId) {
 func parseTexture(file i32, id AssetId) (out AssetId, texture TextureView) {
 	out = id
 	texture = InvalidTextureView()
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
+	for alwaysMore(file) {
 		var key str
-		json.Next(file)
-		if getJsonStr(file, &key) == false {
+		if json.ReadStr(file, &key) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		if key == "index" {
 			var index i32
-			json.Next(file)
-			if getJsonI32(file, &index) == false {
+			if json.ReadI32(file, &index) == false {
 				out = AssetInvalid()
 				return
 			}
 			texture.index = index
 		} else if key == "scale" {
 			var scale f32
-			json.Next(file)
-			if getJsonF32(file, &scale) == false {
+			if json.ReadF32(file, &scale) == false {
 				out = AssetInvalid()
 				return
 			}
@@ -1556,8 +1256,7 @@ func parseTexture(file i32, id AssetId) (out AssetId, texture TextureView) {
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+	if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 		out = AssetInvalid()
 		return
 	}
@@ -1580,24 +1279,21 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 	metallicRoughness.baseColorTexture = InvalidTextureView()
 	metallicRoughness.metallicRoughnessTexture = InvalidTextureView()
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-
+	for alwaysMore(file) {
 		var key str
-		if getJsonStr(file, &key) == false {
+		if json.ReadStr(file, &key) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		if key == "baseColorFactor" {
 			var baseColorFactor [4]f32
-			if getJsonF32Vec4(file, &baseColorFactor) == false {
+			if json.ReadF32Vec4(file, &baseColorFactor) == false {
 				out = AssetInvalid()
 				return
 			}
@@ -1611,8 +1307,7 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 			metallicRoughness.baseColorTexture = texture
 		} else if key == "roughnessFactor" {
 			var roughnessFactor f32
-			json.Next(file)
-			if getJsonF32(file, &roughnessFactor) == false {
+			if json.ReadF32(file, &roughnessFactor) == false {
 				out = AssetInvalid()
 				printf("fail to parse roughnessFactor\n")
 				return
@@ -1620,8 +1315,7 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 			metallicRoughness.roughnessFactor = roughnessFactor
 		} else if key == "metallicFactor" {
 			var metallicFactor f32
-			json.Next(file)
-			if getJsonF32(file, &metallicFactor) == false {
+			if json.ReadF32(file, &metallicFactor) == false {
 				out = AssetInvalid()
 				printf("fail to parse metallicFactor\n")
 				return
@@ -1641,8 +1335,7 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+	if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) {
 		return
 	}
 
@@ -1655,15 +1348,15 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
+		printf("failed to match delim square left\n")
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
+			printf("failed to match delim curly left\n")
 			out = AssetInvalid()
 			return
 		}
@@ -1673,10 +1366,10 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 		material.normalTexture = InvalidTextureView()
 		material.occlusionTexture = InvalidTextureView()
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
+				printf("failed to read material key\n")
 				out = AssetInvalid()
 				return
 			}
@@ -1685,13 +1378,14 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 				var pbrMetallicRoughness MetallicRoughness
 				out, pbrMetallicRoughness = parsePbrMetallicRoughness(file, id)
 				if AssetIsValid(out) == false {
+					printf("failed to read pbr metallic roughness\n")
 					return
 				}
 				material.pbrMetallicRoughness = pbrMetallicRoughness
 			} else if key == "alphaMode" {
 				var alphaMode str
-				json.Next(file)
-				if getJsonStr(file, &alphaMode) == false {
+				if json.ReadStr(file, &alphaMode) == false {
+					printf("failed to read alpha mode\n")
 					out = AssetInvalid()
 					return
 				}
@@ -1714,6 +1408,7 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 				var texture TextureView
 				out, texture = parseTexture(file, id)
 				if AssetIsValid(out) == false {
+					printf("failed to parse normal texture\n")
 					return
 				}
 				material.normalTexture = texture
@@ -1721,6 +1416,7 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 				var texture TextureView
 				out, texture = parseTexture(file, id)
 				if AssetIsValid(out) == false {
+					printf("failed to parse occlusion texture\n")
 					return
 				}
 				material.occlusionTexture = texture
@@ -1728,29 +1424,34 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 				var texture TextureView
 				out, texture = parseTexture(file, id)
 				if AssetIsValid(out) == false {
+					printf("failed to parse emissive texture\n")
 					return
 				}
 				material.emissiveTexture = texture
 			} else if key == "emissiveFactor" {
-				var emissiveFactor [4]f32
-				if getJsonF32Vec4(file, &emissiveFactor) == false {
+				var emissiveFactor [3]f32
+				if json.ReadF32Vec3(file, &emissiveFactor) == false {
 					out = AssetInvalid()
+					printf("failed to parse emissive factor\n")
 					return
 				}
-				material.emissiveFactor = emissiveFactor
+				material.emissiveFactor[0] = emissiveFactor[0]
+				material.emissiveFactor[1] = emissiveFactor[1]
+				material.emissiveFactor[2] = emissiveFactor[2]
+				material.emissiveFactor[3] = 1.0
 			} else if key == "doubleSided" {
 				var doubleSided bool
-				json.Next(file)
-				if getJsonBool(file, &doubleSided) == false {
+				if json.ReadBool(file, &doubleSided) == false {
 					out = AssetInvalid()
+					printf("failed to parse double sided\n")
 					return
 				}
 				material.doubleSided = doubleSided
 			} else if key == "name" {
 				var name str
-				json.Next(file)
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
+					printf("failed to parse name\n")
 					return
 				}
 				material.name = name
@@ -1761,20 +1462,20 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
+			printf("failed to match delim curly right\n")
 			return
 		}
 
 		g_assets[id.asset].materials = append(g_assets[id.asset].materials, material)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
+	printf("failed to match delim square right\n")
 	out = AssetInvalid()
 }
 
@@ -1790,15 +1491,13 @@ func parseTextures(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -1807,34 +1506,30 @@ func parseTextures(file i32, id AssetId) (out AssetId) {
 		texture.source = -1
 		texture.sampler = -1
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "sampler" {
 				var sampler i32
-				json.Next(file)
-				if getJsonI32(file, &sampler) == false {
+				if json.ReadI32(file, &sampler) == false {
 					out = AssetInvalid()
 					return
 				}
 				texture.sampler = sampler
 			} else if key == "source" {
 				var source i32
-				json.Next(file)
-				if getJsonI32(file, &source) == false {
+				if json.ReadI32(file, &source) == false {
 					out = AssetInvalid()
 					return
 				}
 				texture.source = source
 			} else if key == "name" {
 				var name str
-				json.Next(file)
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -1846,8 +1541,7 @@ func parseTextures(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -1855,8 +1549,7 @@ func parseTextures(file i32, id AssetId) (out AssetId) {
 		g_assets[id.asset].textures = append(g_assets[id.asset].textures, texture)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -1869,57 +1562,50 @@ func parseImages(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var image Image
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "uri" {
 				var uri str
-				json.Next(file)
-				if getJsonStr(file, &uri) == false {
+				if json.ReadStr(file, &uri) == false {
 					out = AssetInvalid()
 					return
 				}
 				image.uri = uri
 			} else if key == "mimeType" {
 				var mimeType str
-				json.Next(file)
-				if getJsonStr(file, &mimeType) == false {
+				if json.ReadStr(file, &mimeType) == false {
 					out = AssetInvalid()
 					return
 				}
 				image.mimeType = mimeType
 			} else if key == "bufferView" {
 				var bufferView i32
-				json.Next(file)
-				if getJsonI32(file, &bufferView) == false {
+				if json.ReadI32(file, &bufferView) == false {
 					out = AssetInvalid()
 					return
 				}
 				image.bufferView = bufferView
 			} else if key == "name" {
 				var name str
-				json.Next(file)
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -1931,8 +1617,7 @@ func parseImages(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -1940,8 +1625,7 @@ func parseImages(file i32, id AssetId) (out AssetId) {
 		g_assets[id.asset].images = append(g_assets[id.asset].images, image)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -1954,65 +1638,57 @@ func parseSamplers(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var sampler Sampler
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "magFilter" {
 				var magFilter i32
-				json.Next(file)
-				if getJsonI32(file, &magFilter) == false {
+				if json.ReadI32(file, &magFilter) == false {
 					out = AssetInvalid()
 					return
 				}
 				sampler.magFilter = magFilter
 			} else if key == "minFilter" {
 				var minFilter i32
-				json.Next(file)
-				if getJsonI32(file, &minFilter) == false {
+				if json.ReadI32(file, &minFilter) == false {
 					out = AssetInvalid()
 					return
 				}
 				sampler.minFilter = minFilter
 			} else if key == "wrapS" {
 				var wrapS i32
-				json.Next(file)
-				if getJsonI32(file, &wrapS) == false {
+				if json.ReadI32(file, &wrapS) == false {
 					out = AssetInvalid()
 					return
 				}
 				sampler.wrapS = wrapS
 			} else if key == "wrapT" {
 				var wrapT i32
-				json.Next(file)
-				if getJsonI32(file, &wrapT) == false {
+				if json.ReadI32(file, &wrapT) == false {
 					out = AssetInvalid()
 					return
 				}
 				sampler.wrapT = wrapT
 			} else if key == "name" {
 				var name str
-				json.Next(file)
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -2024,8 +1700,7 @@ func parseSamplers(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -2033,8 +1708,7 @@ func parseSamplers(file i32, id AssetId) (out AssetId) {
 		g_assets[id.asset].samplers = append(g_assets[id.asset].samplers, sampler)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -2047,73 +1721,64 @@ func parseBufferViews(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var bufferView BufferView
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "buffer" {
 				var buffer i32
-				json.Next(file)
-				if getJsonI32(file, &buffer) == false {
+				if json.ReadI32(file, &buffer) == false {
 					out = AssetInvalid()
 					return
 				}
 				bufferView.buffer = buffer
 			} else if key == "byteOffset" {
 				var byteOffset i64
-				json.Next(file)
-				if getJsonI64(file, &byteOffset) == false {
+				if json.ReadI64(file, &byteOffset) == false {
 					out = AssetInvalid()
 					return
 				}
 				bufferView.byteOffset = byteOffset
 			} else if key == "byteLength" {
 				var byteLength i32
-				json.Next(file)
-				if getJsonI32(file, &byteLength) == false {
+				if json.ReadI32(file, &byteLength) == false {
 					out = AssetInvalid()
 					return
 				}
 				bufferView.byteLength = byteLength
 			} else if key == "byteStride" {
 				var byteStride i32
-				json.Next(file)
-				if getJsonI32(file, &byteStride) == false {
+				if json.ReadI32(file, &byteStride) == false {
 					out = AssetInvalid()
 					return
 				}
 				bufferView.byteStride = byteStride
 			} else if key == "target" {
 				var target i32
-				json.Next(file)
-				if getJsonI32(file, &target) == false {
+				if json.ReadI32(file, &target) == false {
 					out = AssetInvalid()
 					return
 				}
 				bufferView.target = target
 			} else if key == "name" {
 				var name str
-				json.Next(file)
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -2127,15 +1792,13 @@ func parseBufferViews(file i32, id AssetId) (out AssetId) {
 
 		g_assets[id.asset].bufferViews = append(g_assets[id.asset].bufferViews, bufferView)
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -2148,41 +1811,36 @@ func parseBuffers(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var buffer Buffer
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "byteLength" {
-				json.Next(file)
 				var byteLength i32
-				if getJsonI32(file, &byteLength) == false {
+				if json.ReadI32(file, &byteLength) == false {
 					out = AssetInvalid()
 					return
 				}
 				buffer.byteLength = byteLength
 			} else if key == "uri" {
-				json.Next(file)
 				var uri str
-				if getJsonStr(file, &uri) == false {
+				if json.ReadStr(file, &uri) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -2194,8 +1852,7 @@ func parseBuffers(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -2203,8 +1860,7 @@ func parseBuffers(file i32, id AssetId) (out AssetId) {
 		g_assets[id.asset].buffers = append(g_assets[id.asset].buffers, buffer)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -2217,33 +1873,29 @@ func parseAnimationSamplers(file i32, id AssetId) (out AssetId, samplers []Anima
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var sampler AnimationSampler
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "interpolation" {
-				json.Next(file)
 				var interpolation str
-				if getJsonStr(file, &interpolation) == false {
+				if json.ReadStr(file, &interpolation) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -2259,18 +1911,16 @@ func parseAnimationSamplers(file i32, id AssetId) (out AssetId, samplers []Anima
 					return
 				}
 			} else if key == "input" {
-				json.Next(file)
 				var inp i32
-				if getJsonI32(file, &inp) == false {
+				if json.ReadI32(file, &inp) == false {
 					printf("invalid input\n")
 					out = AssetInvalid()
 					return
 				}
 				sampler.inputA = inp
 			}  else if key == "output" {
-				json.Next(file)
 				var outs i32 // ISSUE : variable can be name out without compilation error
-				if getJsonI32(file, &outs) == false {
+				if json.ReadI32(file, &outs) == false {
 					printf("invalid output\n")
 					out = AssetInvalid()
 					return
@@ -2283,8 +1933,7 @@ func parseAnimationSamplers(file i32, id AssetId) (out AssetId, samplers []Anima
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -2292,8 +1941,7 @@ func parseAnimationSamplers(file i32, id AssetId) (out AssetId, samplers []Anima
 		samplers = append(samplers, sampler)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -2306,63 +1954,55 @@ func parseAnimationChannels(file i32, id AssetId) (out AssetId, channels []Anima
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var channel AnimationChannel
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "sampler" {
-				json.Next(file)
 				var index i32
-				if getJsonI32(file, &index) == false {
+				if json.ReadI32(file, &index) == false {
 					out = AssetInvalid()
 					return
 				}
 				channel.sampler= index
 			} else if key == "target" {
-				json.Next(file)
-				if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+				if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 					out = AssetInvalid()
 					return
 				}
 
-				for json.More(file) {
-					json.Next(file)
+				for alwaysMore(file) {
 					var targetKey str
-					if getJsonStr(file, &targetKey) == false {
+					if json.ReadStr(file, &targetKey) == false {
 						out = AssetInvalid()
 						return
 					}
 					if targetKey == "node" {
-						json.Next(file)
 						var node i32
-						if getJsonI32(file, &node) == false {
+						if json.ReadI32(file, &node) == false {
 							out = AssetInvalid()
 							return
 						}
 						channel.node = node
 					} else if targetKey == "path" {
-						json.Next(file)
 						var path str
-						if getJsonStr(file, &path) == false {
+						if json.ReadStr(file, &path) == false {
 							out = AssetInvalid()
 							return
 						}
@@ -2383,8 +2023,7 @@ func parseAnimationChannels(file i32, id AssetId) (out AssetId, channels []Anima
 					}
 				}
 
-				json.Next(file)
-				if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+				if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -2395,8 +2034,7 @@ func parseAnimationChannels(file i32, id AssetId) (out AssetId, channels []Anima
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -2404,8 +2042,7 @@ func parseAnimationChannels(file i32, id AssetId) (out AssetId, channels []Anima
 		channels = append(channels, channel)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -2418,33 +2055,29 @@ func parseAnimations(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var animation Animation
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "name" {
-				json.Next(file)
 				var name str
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -2470,8 +2103,7 @@ func parseAnimations(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -2479,8 +2111,7 @@ func parseAnimations(file i32, id AssetId) (out AssetId) {
 		g_assets[id.asset].animations = append(g_assets[id.asset].animations, animation)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -2493,61 +2124,52 @@ func parseSkins(file i32, id AssetId) (out AssetId) {
 
 	out = id
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_A) == false {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	for json.More(file) {
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	for alwaysMore(file) {
+		if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 			out = AssetInvalid()
 			return
 		}
 
 		var skin Skin
 
-		for json.More(file) {
-			json.Next(file)
+		for alwaysMore(file) {
 			var key str
-			if getJsonStr(file, &key) == false {
+			if json.ReadStr(file, &key) == false {
 				out = AssetInvalid()
 				return
 			}
 
 			if key == "name" {
-				json.Next(file)
 				var name str
-				if getJsonStr(file, &name) == false {
+				if json.ReadStr(file, &name) == false {
 					out = AssetInvalid()
 					return
 				}
 				skin.name = name
 			} else if key == "inverseBindMatrices" {
-				json.Next(file)
 				var inverseBindMatrices i32
-				if getJsonI32(file, &inverseBindMatrices) == false {
+				if json.ReadI32(file, &inverseBindMatrices) == false {
 					out = AssetInvalid()
 					return
 				}
 				skin.inverseBindMatrices = inverseBindMatrices
 			} else if key == "skeleton" {
-				json.Next(file)
 				var skeleton i32
-				if getJsonI32(file, &skeleton) == false {
+				if json.ReadI32(file, &skeleton) == false {
 					out = AssetInvalid()
 					return
 				}
 				skin.skeleton = skeleton
 			} else if key == "joints" {
-				var joints []i32
-				out, joints = parseI32Array(file, id)
-				if AssetIsValid(out) == false {
+				if json.ReadI32Slice(file, &skin.joints) == false {
 					out = AssetInvalid()
 					return
 				}
-				skin.joints = joints
 			} else {
 				printf("invalid key %s\n", key)
 				out = AssetInvalid()
@@ -2555,8 +2177,7 @@ func parseSkins(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		json.Next(file)
-		if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) == false {
+		if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) == false {
 			out = AssetInvalid()
 			return
 		}
@@ -2564,8 +2185,7 @@ func parseSkins(file i32, id AssetId) (out AssetId) {
 		g_assets[id.asset].skins = append(g_assets[id.asset].skins, skin)
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_RIGHT_A) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_RIGHT) {
 		return
 	}
 
@@ -2645,6 +2265,22 @@ func NodeGetMesh(id AssetId, node i32) (out i32) {
 	}
 }
 
+// NodeGetSkin ...
+func NodeGetSkin(id AssetId, node i32) (out Skin) { // TODO : handle errors
+	out.inverseBindMatrices = -1
+	out.skeleton = -1
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var nodes []Node = g_assets[id.asset].nodes
+	if node >= 0 && node < len(nodes) {
+		var skin i32 = nodes[node].skin
+		var skins []Skin = g_assets[id.asset].skins
+		if skin >= 0 && skin < len(skins) {
+			out = skins[skin]
+		}
+	}
+}
+
+
 // NodeGetMatrix ...
 func NodeGetMatrix(id AssetId, node i32) (out []f32) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
@@ -2686,24 +2322,46 @@ func NodeGetChildren(id AssetId, node i32) (out []i32) {
 	}
 }
 
-// NodeGetAnimation ...
-func NodeGetAnimation(id AssetId, node i32) (animation i32, channel AnimationChannel, sampler AnimationSampler) {
-	panicIfNot(AssetIsValid(id), "invalid asset")
-		// ISSUES : no compilation error : len(animations[i])
-	animation = -1
-	channel.node = -1
+// NodeGetAnimationCount ...
+func NodeGetAnimationCount(id AssetId, node i32) (out i32) {
+	out = 0
 	panicIfNot(AssetIsValid(id), "invalid asset")
 	var animations []Animation = g_assets[id.asset].animations
 	var count i32 = len(animations)
 	for i := 0; i < count; i++ {
 		var channelCount i32 = len(animations[i].channels)
 		for c := 0; c < channelCount; c++ {
-		var channels []AnimationChannel = animations[i].channels
-		if channels[c].node == node {
-				animation = i
-				channel = channels[c]
-				sampler = animations[i].samplers[channel.sampler]
-				return
+			var channels []AnimationChannel = animations[i].channels
+			if channels[c].node == node {
+				out++
+			}
+		}
+	}
+}
+
+// NodeGetAnimation ...
+func NodeGetAnimation(id AssetId, node i32, index i32) (animation i32, channel AnimationChannel, sampler AnimationSampler) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+		// ISSUES : no compilation error : len(animations[i])
+	animation = -1
+	channel.node = -1
+	var animationIndex i32 = 0
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var animations []Animation = g_assets[id.asset].animations
+	var count i32 = len(animations)
+	for i := 0; i < count; i++ {
+		var channelCount i32 = len(animations[i].channels)
+		for c := 0; c < channelCount; c++ {
+			var channels []AnimationChannel = animations[i].channels
+			if channels[c].node == node {
+				if animationIndex == index {
+					animation = i
+					channel = channels[c]
+					sampler = animations[i].samplers[channel.sampler]
+					return
+				} else {
+					animationIndex++
+				}
 			}
 		}
 	}
@@ -2759,13 +2417,12 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 
 	var file i32 = json.Open(path)
 
-	if json.More(file) == false {
+	if alwaysMore(file) == false {
 		out = AssetInvalid()
 		return
 	}
 
-	json.Next(file)
-	if getJsonDelim(file, JSON_DELIM_LEFT_BRACKET) == false {
+	if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
 		out = AssetInvalid()
 		return
 	}
@@ -2774,15 +2431,29 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 
 	var cont bool = true
 	for cont == true {
-		if json.More(file) == false && stack <= 0 {
+		if alwaysMore(file) == false && stack <= 0 {
 			cont = false
 		} else {
-			json.Next(file)
-			if getJsonDelim(file, JSON_DELIM_RIGHT_BRACKET) {
+			var tokenType i32
+			var tokenSuccess bool
+			tokenType, tokenSuccess = json.Next(file)
+			if tokenSuccess == false {
+				out = AssetInvalid()
+				return
+			}
+
+			var delimType i32
+			var delimSuccess bool
+			delimType, delimSuccess = json.Delim(file)
+			if delimSuccess && delimType == json.DELIM_CURLY_RIGHT {
 				stack--
 			} else {
 				var key str
-				if getJsonStr(file, &key) == false {
+				var keySuccess bool
+				key, keySuccess = json.Str(file)
+
+				if keySuccess == false {
+					json.debugToken(file, tokenType)
 					printf("failed to read string\n")
 					out = AssetInvalid()
 					return
@@ -2947,31 +2618,39 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 		var componentCount i32 = accessors[a].componentCount
 		var componentType i32 = accessors[a].componentType
 		if componentType == gl.FLOAT {
-			printf("reading f32 bin %d\n", count)
+			//printf("reading f32 bin '%s' %d : \n", accessors[a].name, count)
 			for i := 0; i < count; i++ {
+				//printf("[")
 				for c := 0; c < componentCount; c++ {
 					var value f32 = os.ReadF32(uri)
-					//printf("f32 %d/%d : %f\n", i * componentCount + c, count * componentCount, value)
+					//printf("%f, ", value)
 					dataF32 = append(dataF32, value)
 				}
+				//printf("]\n")
 			}
+			//printf("\n")
 		} else if componentType == gl.UNSIGNED_SHORT {
-			printf("reading ui16 bin %d\n", count)
+			//printf("reading ui16 bin '%s' %d : \n", accessors[a].name, count)
 			for i := 0; i < count; i++ {
+				//printf("[")
 				for c := 0; c < componentCount; c++ {
 					var value ui16 = os.ReadUI16(uri)
-					//printf("ui16 %d/%d : %d\n", i * componentCount + c, count * componentCount, value)
+					//printf("%d, ", value)
 					dataUI16 = append(dataUI16, value)
 				}
+				//printf("]\n")
 			}
+			//printf("\n")
 		} else if componentType == gl.UNSIGNED_INT {
-			printf("reading ui32 bin %d\n", count)
+			//printf("reading ui32 bin '%s' %d : \n", accessors[a].name, count)
 			for i := 0; i < count; i++ {
+				//printf("[")
 				for c := 0; c < componentCount; c++ {
 					var value ui32 = os.ReadUI32(uri)
-					//printf("ui32 %d/%d : %d\n", i * componentCount + c, count * componentCount, value)
+					//printf("%d, ", value)
 					dataUI32 = append(dataUI32, value)
 				}
+				//printf("]\n")
 			}
 		} else {
 			printf("unhandled buffer format %d\n", componentType)
@@ -2983,7 +2662,12 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 		accessors[a].dataUI16 = dataUI16
 		accessors[a].dataUI32 = dataUI32
 
+		os.Close(uri) // leaks if early out
 		//printf("length %d\n", length)
+	}
+
+	if json.Close(file) == false { // leaks if early out
+		printf("failed to close json\n")
 	}
 }
 

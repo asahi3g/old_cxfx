@@ -25,8 +25,7 @@ var USE_OCCLUSION_MAP i64 = 1L << 13L
 var USE_DEBUG_A       i64 = 1L << 14L
 var USE_PASS_0        i64 = 1L << 15L
 var USE_PASS_1        i64 = 1L << 16L
-var USE_WEIGHT        i64 = 1L << 17L
-var USE_JOINT         i64 = 1L << 18L
+var USE_SKIN          i64 = 1L << 17L
 
 // Globals ...
 var g_shaderPath str
@@ -120,8 +119,7 @@ func shaderInit(dataDir str) {
 	ShaderDefineAdd(USE_DEBUG_A, "#define USE_DEBUG_A\n")
 	ShaderDefineAdd(USE_PASS_0, "#define USE_PASS_0\n")
 	ShaderDefineAdd(USE_PASS_1, "#define USE_PASS_1\n")
-	ShaderDefineAdd(USE_WEIGHT, "#define USE_WEIGHT\n")
-	ShaderDefineAdd(USE_JOINT, "#define USE_JOINT\n")
+	ShaderDefineAdd(USE_SKIN, "#define USE_SKIN\n")
 }
 
 // ShaderKeyClear ...

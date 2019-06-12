@@ -46,9 +46,15 @@ type Model struct {
 	cameraPosition []f32
 	nodes[]i32
 	animations []Animation
+	animationIndices []i32
 	meshCacheKey []i32
 	meshCacheVal []MeshId
 	animation []f32 // TODO : remove
+	inverseBind []f32 // TODO : skeleton struct
+	skeletonRoot i32 // TODO : skeleton struct
+	joints []i32 // TODO : skeleton struct
+	jointMatrices []f32 // TODO : runtime struct
+	tmp2 []f32
 }
 
 // ModelIsValid ...
@@ -76,6 +82,9 @@ func ModelCreateFromFile(dataDir str, filename str) (out ModelId){
 	var tmp []f32 = mat.MatrixAlloc()
 	model.tmp = tmp
 
+	var tmp2 []f32 = mat.MatrixAlloc()
+	model.tmp2 = tmp2
+
 	var world []f32 = mat.MatrixAlloc()
 	model.world = world
 
@@ -88,6 +97,8 @@ func ModelCreateFromFile(dataDir str, filename str) (out ModelId){
 	var animation []f32 = mat.MatrixAlloc()
 	model.animation = animation
 
+	model.skeletonRoot = -1
+
 	gltf.AssetPrint(model.asset)
 	g_models = append(g_models, model)
 }
@@ -97,7 +108,7 @@ type channelInfo struct {
 	dataType i32
 	dataLen i32
 	dataF32 []f32
-	dataUI8 []byte
+	dataUI8 []ui8
 	dataUI16 []ui16
 	dataUI32 []ui32
 }
@@ -213,7 +224,7 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 	}
 
 	// vertices // TODO : generate buffers from go data ?
-	var vertices []byte // TODO : test perf with loop reordering + resize(vertices, vertexLen)
+	var vertices []ui8 // TODO : test perf with loop reordering + resize(vertices, vertexLen)
 	for v := 0; v < vertexCount; v++ {
 		for c := 0; c < attributeCount; c++ {
 			var dataType i32 = channels[c].dataType
@@ -242,7 +253,7 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 	}
 
 	// indices
-	var indices []byte
+	var indices []ui8
 	var indicesAccessor gltf.Accessor = gltf.AssetGetAccessor(id, primitive.indices)
 	var indicesType i32 = indicesAccessor.componentType
 	if indicesAccessor.componentCount != 1 ||
@@ -369,32 +380,280 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 	var asset gltf.AssetId = g_models[id.model].asset
 	var roots []i32 = gltf.AssetGetRootNodes(asset)
 	var rootCount i32 = len(roots)
-	var stack []i32 = resize(g_models[id.model].stack, rootCount)
+	var stack []i32 = g_models[id.model].stack
 	var nodes []i32 = g_models[id.model].nodes
 	var animations []Animation = g_models[id.model].animations
+	var animationIndices []i32 = g_models[id.model].animationIndices
 	var matrixStack []f32 = g_models[id.model].matrixStack//, rootCount * 16)
-	matrixStack = resize(matrixStack, 0)
+	var nodeIndex i32
 
+	var world []f32 = g_models[id.model].world
+	var tmp2 []f32 = g_models[id.model].tmp2
+
+	nodeIndex = 0
+	matrixStack = resize(matrixStack, 0)
+	matrixStack = mat.MatrixStackPush(matrixStack, world)
+	stack = resize(stack, rootCount)
 	for i := 0; i < rootCount; i++ {
 		stack[i] = roots[i]
 	}
 
-	var nodeIndex i32 = 0
-
-	var m i32
-	var identity []f32 = g_models[id.model].identity
-	var world []f32 = g_models[id.model].world
-	matrixStack = mat.MatrixStackPush(matrixStack, world)
 	for len(stack) > 0 {
 		var stackLen i32 = len(stack)
 
-		var stackPushed i32
+		var stackPushed i32 = 0
 		stackLen--
 		var node i32 = stack[stackLen]
 
 		stack = resize(stack, stackLen)
 		var animMatrix []f32 = g_models[id.model].animation
-		var anim bool
+		animMatrix = mat.MatrixIdentity(animMatrix)
+		if node < 0 {
+			matrixStack = mat.MatrixStackPop(matrixStack, 0-node)
+		} else {
+			var skeletonRoot i32 = g_models[id.model].skeletonRoot
+			if skeletonRoot == -1 {
+				var skin gltf.Skin = gltf.NodeGetSkin(asset, node)
+				if skin.inverseBindMatrices != -1 {
+					var accessor gltf.Accessor = gltf.AssetGetAccessor(asset, skin.inverseBindMatrices)
+					g_models[id.model].inverseBind = accessor.dataF32
+					g_models[id.model].jointMatrices = resize(g_models[id.model].jointMatrices, len(accessor.dataF32))
+				}
+				g_models[id.model].skeletonRoot = skin.skeleton
+				g_models[id.model].joints = skin.joints
+			}
+
+			var nodeMatrix []f32 = gltf.NodeGetMatrix(asset, node)
+			if len(nodeMatrix) <= 0 {
+				nodeMatrix = mat.MatrixAlloc()
+				nodeMatrix = mat.MatrixIdentity(nodeMatrix)
+			}
+
+			var animationCount i32 = gltf.NodeGetAnimationCount(asset, node)
+
+			if nodeIndex >= len(nodes) {
+				animationIndices = append(animationIndices, len(animations))
+				g_models[id.model].animationIndices = animationIndices
+				for a := 0; a < animationCount; a++ {
+					var animation Animation
+					animation.index = -1
+					animation.direction = 1.0
+
+					var animationIndex i32 = -1
+					var channel gltf.AnimationChannel
+					channel.node = -1
+
+					var sampler gltf.AnimationSampler
+					animationIndex, channel, sampler = gltf.NodeGetAnimation(asset, node, a)
+
+					animation.channel = channel
+					animation.sampler = sampler
+					animation.min, animation.max = gltf.AnimationGetLength(asset, animationIndex)
+					animations = append(animations, animation)
+				}
+				nodes = append(nodes, node)
+			}
+
+			tmp2 = mat.MatrixIdentity(tmp2)
+			for aaIndex := 0; aaIndex < animationCount; aaIndex++ {
+				var aIndex i32 = aaIndex//animationCount - aaIndex - 1
+				var anim bool
+
+				var animationIndex i32 = g_models[id.model].animationIndices[nodeIndex]
+				var animation Animation = animations[animationIndex + aIndex]
+
+				if animation.channel.node >= 0 {
+					animation.time = animation.time + animation.direction * 1.0 / 60.0 // TODO : use dt
+					if animation.time < animation.min {
+						animation.time = animation.min
+						animation.direction = 1.0
+					}
+					if animation.time > animation.max {
+						animation.time = animation.max
+						animation.direction = -1.0
+					}
+
+					var index i32 = -1
+					var inputAccessor gltf.Accessor = gltf.AssetGetAccessor(asset, animation.sampler.inputA)
+					var inputs []f32 = inputAccessor.dataF32
+					var inputCount i32 = len(inputs)
+					for t := 0; t < inputCount; t++ {
+						if animation.time <= inputs[t] {
+							index = t
+							t = inputCount // ISSUE : break
+						}
+					}
+
+					if index >= inputCount {
+						index = inputCount - 1
+					}
+					if index < 0 {
+						index = 0
+					}
+
+					var prev i32 = index - 1
+					if prev < 0 {
+						prev = 0
+					}
+
+					var delta f32 = animation.time - inputs[prev]
+					var step f32 = inputs[index] - inputs[prev]
+					var st f32 = 1.0;
+					if step > 0.0 {
+						st = delta / step
+					}
+				    var t f32 = st
+					if t < 0.0 {
+						t = 0.0
+					} else if t > 1.0 {
+						t = 1.0
+					}
+
+					//printf("time %f, min %f, max %f, prev %d, index %d, step %f\n", animation.time, animation.min, animation.max, prev, index, t)
+
+					var outputAccessor gltf.Accessor = gltf.AssetGetAccessor(asset, animation.sampler.outputA)
+					var outputs []f32 = outputAccessor.dataF32
+					var path i32 = animation.channel.path
+					if path == gltf.ANIMATION_PATH_TRANSLATION {
+						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
+						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
+						var x0 f32 = outputs[prev * 3 + 0]
+						var y0 f32 = outputs[prev * 3 + 1]
+						var z0 f32 = outputs[prev * 3 + 2]
+
+						var x1 f32 = outputs[index * 3 + 0]
+						var y1 f32 = outputs[index * 3 + 1]
+						var z1 f32 = outputs[index * 3 + 2]
+
+						var x f32 = x0 + (x1 - x0) * t
+						var y f32 = y0 + (y1 - y0) * t
+						var z f32 = z0 + (z1 - z0) * t
+
+						animMatrix = mat.MatrixCreateTranslation(animMatrix, x, y, z)
+						//printf("TRANSLATE %d, %f, %f, %f\n", node, x, y, z)
+						anim = true
+					} else if path == gltf.ANIMATION_PATH_ROTATION {
+						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC4, "invalid attribute type")
+						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
+						var x0 f32 = outputs[prev * 4 + 0]
+						var y0 f32 = outputs[prev * 4 + 1]
+						var z0 f32 = outputs[prev * 4 + 2]
+						var w0 f32 = outputs[prev * 4 + 3]
+
+						var x1 f32 = outputs[index * 4 + 0]
+						var y1 f32 = outputs[index * 4 + 1]
+						var z1 f32 = outputs[index * 4 + 2]
+						var w1 f32 = outputs[index * 4 + 3]
+
+						var x f32 = x0 + (x1 - x0) * t
+						var y f32 = y0 + (y1 - y0) * t
+						var z f32 = z0 + (z1 - z0) * t
+						var w f32 = w0 + (w1 - w0) * t
+
+						/*var q mat.v4 = mat.QuaternionSlerp(
+								mat.v4_normalize(mat.v4_(x0, y0, z0, w0)),
+								mat.v4_normalize(mat.v4_(x1, y1, z1, w1)), t)*/
+						var q mat.v4 = mat.v4_normalize(mat.v4_(x, y, z, w))
+
+						animMatrix = mat.MatrixCreateRotationFromQuaternion(animMatrix, q.x, q.y, q.z, q.w)
+						//printf("ROTATE %d, %f, %f, %f, %f\n", node, x, y, z, w)
+						anim = true
+					} else if path == gltf.ANIMATION_PATH_SCALE {
+						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
+						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
+						var x0 f32 = outputs[prev * 3 + 0]
+						var y0 f32 = outputs[prev * 3 + 1]
+						var z0 f32 = outputs[prev * 3 + 2]
+
+						var x1 f32 = outputs[index * 3 + 0]
+						var y1 f32 = outputs[index * 3 + 1]
+						var z1 f32 = outputs[index * 3 + 2]
+
+						var x f32 = x0 + (x1 - x0) * t
+						var y f32 = y0 + (y1 - y0) * t
+						var z f32 = z0 + (z1 - z0) * t
+
+						//printf("SCALE %d, %f, %f, %f\n", node, x, y, z)
+
+						animMatrix = mat.MatrixCreateScale(animMatrix, x, y, z)
+						anim = true
+					} else if path == gltf.ANIMATION_PATH_WEIGHTS {
+					} else {
+						panicIf(true, "invalid animation path")
+					}
+
+					animations[animationIndex + aIndex] = animation
+					g_models[id.model].animations = animations
+				}
+				if anim {
+					tmp2 = mat.MatrixMultiply(tmp2, animMatrix, tmp2)
+				}
+			}
+			nodeIndex = nodeIndex + 1
+
+			if anim {
+				matrixStack = mat.MatrixStackPush(matrixStack, tmp2)
+			} else {
+				matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
+			}
+			stackPushed++
+
+			var joints []i32 = g_models[id.model].joints
+			for j := 0; j < len(joints); j++ {
+				if joints[j] == node {
+					var last []f32 = mat.MatrixStackLast(matrixStack)
+
+					var inverseBind []f32 = g_models[id.model].inverseBind
+					var tmp []f32 = g_models[id.model].tmp
+					for mi := 0; mi < 16; mi++ {
+						tmp[mi] = inverseBind[j * 16 + mi]
+					}
+
+					tmp = mat.MatrixMultiply(tmp, tmp, last)
+
+					var jointMatrices []f32 = g_models[id.model].jointMatrices
+					for mi := 0; mi < 16; mi++ {
+						jointMatrices[j * 16 + mi] = tmp[mi]
+					}
+					j = len(joints)
+				}
+			}
+			var children []i32 = gltf.NodeGetChildren(asset, node)
+			var childCount i32 = len(children)
+			stack = append(stack, 0-stackPushed)
+			if childCount > 0 {
+				for i := 0; i < childCount; i++ {
+					stack = append(stack, children[i])
+				}
+			}
+		}
+	}
+
+	stack = resize(stack, 0)
+	g_models[id.model].stack = stack
+	matrixStack = resize(matrixStack, 0)
+	g_models[id.model].matrixStack = matrixStack
+
+	g_models[id.model].nodes = nodes
+
+	var m i32
+	nodeIndex = 0
+	matrixStack = resize(matrixStack, 0)
+	matrixStack = mat.MatrixStackPush(matrixStack, world)
+	stack = resize(stack, rootCount)
+	for i := 0; i < rootCount; i++ {
+		stack[i] = roots[i]
+	}
+
+	for len(stack) > 0 {
+		var stackLen i32 = len(stack)
+
+		var stackPushed i32 = 0
+		stackLen--
+		var node i32 = stack[stackLen]
+
+		stack = resize(stack, stackLen)
+		var animMatrix []f32 = g_models[id.model].animation
 		if node < 0 {
 			matrixStack = mat.MatrixStackPop(matrixStack, 0-node)
 		} else {
@@ -404,152 +663,146 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 				nodeMatrix = mat.MatrixIdentity(nodeMatrix)
 			}
 
-			var animation Animation
-			var animationIndex i32
-			var channel gltf.AnimationChannel
-			channel.node = -1
-			var sampler gltf.AnimationSampler
-			if nodeIndex >= len(nodes) {
-				animation.direction = 1.0
-				nodes = append(nodes, node)
-				animationIndex, channel, sampler = gltf.NodeGetAnimation(asset, node)
-				animation.channel = channel
-				animation.sampler = sampler
-				animation.min, animation.max = gltf.AnimationGetLength(asset, animationIndex)
-				animations = append(animations, animation)
-			} else {
-				animation = animations[nodeIndex]
-			}
+			var animationCount i32 = gltf.NodeGetAnimationCount(asset, node)
 
-			nodeIndex = nodeIndex + 1
+			for aaIndex := 0; aaIndex < animationCount; aaIndex++ {
+				var aIndex i32 = animationCount - aaIndex - 1
+				var anim bool
 
-			if animation.channel.node >= 0 {
-				animation.time = animation.time + animation.direction * 1.0 / 60.0 // TODO : use dt
-				if animation.time < animation.min {
-					animation.time = animation.min
-					animation.direction = 1.0
-				}
-				if animation.time > animation.max {
-					animation.time = animation.max
-					animation.direction = -1.0
-				}
+				var animationIndex i32 = g_models[id.model].animationIndices[nodeIndex]
+				var animation Animation = animations[animationIndex + aIndex]
 
-
-				var index i32 = -1
-				var inputAccessor gltf.Accessor = gltf.AssetGetAccessor(asset, animation.sampler.inputA)
-				var inputs []f32 = inputAccessor.dataF32
-				var inputCount i32 = len(inputs)
-				for t := 0; t < inputCount; t++ {
-					if animation.time <= inputs[t] {
-						index = t
-						t = inputCount // ISSUE : break
+				if animation.channel.node >= 0 {
+					animation.time = animation.time + animation.direction * 1.0 / 60.0 // TODO : use dt
+					if animation.time < animation.min {
+						animation.time = animation.min
+						animation.direction = 1.0
 					}
-				}
-
-				if index >= inputCount {
-					index = inputCount - 1
-				}
-				if index < 0 {
-					index = 0
-				}
-
-				var prev i32 = index - 1
-				if prev < 0 {
-					prev = 0
-				}
-
-				var delta f32 = animation.time - inputs[prev]
-				var step f32 = inputs[index] - inputs[prev]
-				var st f32 = 1.0;
-				   if step > 0.0 {
-					   st = delta / step
+					if animation.time > animation.max {
+						animation.time = animation.max
+						animation.direction = -1.0
 					}
-				   var t f32 = st
+
+					var index i32 = -1
+					var inputAccessor gltf.Accessor = gltf.AssetGetAccessor(asset, animation.sampler.inputA)
+					var inputs []f32 = inputAccessor.dataF32
+					var inputCount i32 = len(inputs)
+					for t := 0; t < inputCount; t++ {
+						if animation.time <= inputs[t] {
+							index = t
+							t = inputCount // ISSUE : break
+						}
+					}
+
+					if index >= inputCount {
+						index = inputCount - 1
+					}
+					if index < 0 {
+						index = 0
+					}
+
+					var prev i32 = index - 1
+					if prev < 0 {
+						prev = 0
+					}
+
+					var delta f32 = animation.time - inputs[prev]
+					var step f32 = inputs[index] - inputs[prev]
+					var st f32 = 1.0;
+					if step > 0.0 {
+						st = delta / step
+					}
+				    var t f32 = st
 					if t < 0.0 {
 						t = 0.0
 					} else if t > 1.0 {
 						t = 1.0
 					}
 
-				var outputAccessor gltf.Accessor = gltf.AssetGetAccessor(asset, animation.sampler.outputA)
-				var outputs []f32 = outputAccessor.dataF32
-				var path i32 = animation.channel.path
-				if path == gltf.ANIMATION_PATH_TRANSLATION {
-					panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
-					panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
-					var x0 f32 = outputs[prev * 3 + 0]
-					var y0 f32 = outputs[prev * 3 + 1]
-					var z0 f32 = outputs[prev * 3 + 2]
+				   //printf("time %f, min %f, max %f, prev %d, index %d, step %f\n", animation.time, animation.min, animation.max, prev, index, t)
 
-					var x1 f32 = outputs[index * 3 + 0]
-					var y1 f32 = outputs[index * 3 + 1]
-					var z1 f32 = outputs[index * 3 + 2]
+					var outputAccessor gltf.Accessor = gltf.AssetGetAccessor(asset, animation.sampler.outputA)
+					var outputs []f32 = outputAccessor.dataF32
+					var path i32 = animation.channel.path
+					if path == gltf.ANIMATION_PATH_TRANSLATION {
+						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
+						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
+						var x0 f32 = outputs[prev * 3 + 0]
+						var y0 f32 = outputs[prev * 3 + 1]
+						var z0 f32 = outputs[prev * 3 + 2]
 
-					var x f32 = x0 + (x1 - x0) * t
-					var y f32 = y0 + (y1 - y0) * t
-					var z f32 = z0 + (z1 - z0) * t
+						var x1 f32 = outputs[index * 3 + 0]
+						var y1 f32 = outputs[index * 3 + 1]
+						var z1 f32 = outputs[index * 3 + 2]
 
-					animMatrix = mat.MatrixCreateTranslation(animMatrix, x, y, z)
-					anim = true
-				} else if path == gltf.ANIMATION_PATH_ROTATION {
-					panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC4, "invalid attribute type")
-					panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
-					var x0 f32 = outputs[prev * 4 + 0]
-					var y0 f32 = outputs[prev * 4 + 1]
-					var z0 f32 = outputs[prev * 4 + 2]
-					var w0 f32 = outputs[prev * 4 + 3]
+						var x f32 = x0 + (x1 - x0) * t
+						var y f32 = y0 + (y1 - y0) * t
+						var z f32 = z0 + (z1 - z0) * t
 
-					var x1 f32 = outputs[index * 4 + 0]
-					var y1 f32 = outputs[index * 4 + 1]
-					var z1 f32 = outputs[index * 4 + 2]
-					var w1 f32 = outputs[index * 4 + 3]
+						animMatrix = mat.MatrixCreateTranslation(animMatrix, x, y, z)
+						//printf("TRANSLATE %d, %f, %f, %f\n", node, x, y, z)
+						anim = true
+					} else if path == gltf.ANIMATION_PATH_ROTATION {
+						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC4, "invalid attribute type")
+						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
+						var x0 f32 = outputs[prev * 4 + 0]
+						var y0 f32 = outputs[prev * 4 + 1]
+						var z0 f32 = outputs[prev * 4 + 2]
+						var w0 f32 = outputs[prev * 4 + 3]
 
-					var x f32 = x0 + (x1 - x0) * t
-					var y f32 = y0 + (y1 - y0) * t
-					var z f32 = z0 + (z1 - z0) * t
-					var w f32 = w0 + (w1 - w0) * t
+						var x1 f32 = outputs[index * 4 + 0]
+						var y1 f32 = outputs[index * 4 + 1]
+						var z1 f32 = outputs[index * 4 + 2]
+						var w1 f32 = outputs[index * 4 + 3]
 
-					/*var q mat.v4 = mat.QuaternionSlerp(
-							mat.v4_normalize(mat.v4_(x0, y0, z0, w0)),
-							mat.v4_normalize(mat.v4_(x1, y1, z1, w1)), t)*/
-					var q mat.v4 = mat.v4_normalize(mat.v4_(x, y, z, w))
+						var x f32 = x0 + (x1 - x0) * t
+						var y f32 = y0 + (y1 - y0) * t
+						var z f32 = z0 + (z1 - z0) * t
+						var w f32 = w0 + (w1 - w0) * t
 
-					animMatrix = mat.MatrixCreateRotationFromQuaternion(animMatrix, q.x, q.y, q.z, q.w)
-					anim = true
-				} else if path == gltf.ANIMATION_PATH_SCALE {
-					panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
-					panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
-					var x0 f32 = outputs[prev * 3 + 0]
-					var y0 f32 = outputs[prev * 3 + 1]
-					var z0 f32 = outputs[prev * 3 + 2]
+						/*var q mat.v4 = mat.QuaternionSlerp(
+								mat.v4_normalize(mat.v4_(x0, y0, z0, w0)),
+								mat.v4_normalize(mat.v4_(x1, y1, z1, w1)), t)*/
+						var q mat.v4 = mat.v4_normalize(mat.v4_(x, y, z, w))
 
-					var x1 f32 = outputs[index * 3 + 0]
-					var y1 f32 = outputs[index * 3 + 1]
-					var z1 f32 = outputs[index * 3 + 2]
+						animMatrix = mat.MatrixCreateRotationFromQuaternion(animMatrix, q.x, q.y, q.z, q.w)
+						//printf("ROTATE %d, %f, %f, %f, %f\n", node, x, y, z, w)
+						anim = true
+					} else if path == gltf.ANIMATION_PATH_SCALE {
+						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
+						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
+						var x0 f32 = outputs[prev * 3 + 0]
+						var y0 f32 = outputs[prev * 3 + 1]
+						var z0 f32 = outputs[prev * 3 + 2]
 
-					var x f32 = x0 + (x1 - x0) * t
-					var y f32 = y0 + (y1 - y0) * t
-					var z f32 = z0 + (z1 - z0) * t
+						var x1 f32 = outputs[index * 3 + 0]
+						var y1 f32 = outputs[index * 3 + 1]
+						var z1 f32 = outputs[index * 3 + 2]
 
-					animMatrix = mat.MatrixCreateScale(animMatrix, x, y, z)
-					anim = true
-				} else if path == gltf.ANIMATION_PATH_WEIGHTS {
-				} else {
-					panicIf(true, "invalid animation path")
+						var x f32 = x0 + (x1 - x0) * t
+						var y f32 = y0 + (y1 - y0) * t
+						var z f32 = z0 + (z1 - z0) * t
+
+						//printf("SCALE %d, %f, %f, %f\n", node, x, y, z)
+
+						animMatrix = mat.MatrixCreateScale(animMatrix, x, y, z)
+						anim = true
+					} else if path == gltf.ANIMATION_PATH_WEIGHTS {
+					} else {
+						panicIf(true, "invalid animation path")
+					}
+
+					animations[animationIndex + aIndex] = animation
 				}
-
-				animations[nodeIndex -  1] = animation
-				g_models[id.model].animations = animations
+				if anim {
+					matrixStack = mat.MatrixStackPush(matrixStack, animMatrix)
+					stackPushed++
+				}
 			}
+			nodeIndex = nodeIndex + 1
 
-			if anim {
-				matrixStack = mat.MatrixStackPush(matrixStack, animMatrix)
-				matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
-				stackPushed = 2
-			} else {
-				matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
-				stackPushed = 1
-			}
+			matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
+			stackPushed++
 
 			var mesh i32 = gltf.NodeGetMesh(asset, node)
 			var primitives []gltf.Primitive = gltf.MeshGetPrimitives(asset, mesh)
@@ -635,6 +888,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 						var useWeights bool = MeshUseWeight(render)
 						var useJoints bool = MeshUseJoint(render)
+						var useSkin bool = useWeights && useJoints
 
 						TemplateSetKey(g_tfxPbr, USE_COLOR_UNI, useColorUni)
 						TemplateSetKey(g_tfxPbr, USE_COLOR_VTX, useColorVtx)
@@ -652,8 +906,7 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 
 						TemplateSetKey(g_tfxPbr, USE_OCCLUSION_MAP, useOcclusionTexture)
 
-						TemplateSetKey(g_tfxPbr, USE_WEIGHT, useWeights)
-						TemplateSetKey(g_tfxPbr, USE_JOINT, useJoints)
+						TemplateSetKey(g_tfxPbr, USE_SKIN, useSkin)
 
 						TemplateSetKey(g_tfxPbr, USE_DEBUG_A, true)
 
@@ -672,9 +925,15 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 						var view []f32 = g_models[id.model].view
 						var projection []f32 = g_models[id.model].projection
 
+						var tmp []f32 = g_models[id.model].tmp
+						tmp = mat.MatrixInverse(tmp, last)
 						EffectAssignMatrix4(effect, UNIFORM_WORLD, last, false)
 						EffectAssignMatrix4(effect, UNIFORM_VIEW, view, false)
 						EffectAssignMatrix4(effect, UNIFORM_PROJECTION, projection, false)
+						EffectAssignMatrix4(effect, UNIFORM_WORLD_INVERSE, tmp, false)
+						if useSkin {
+							EffectAssignMatrix4(effect, UNIFORM_SKELETON, g_models[id.model].jointMatrices, false)
+						}
 
 						if EffectIsValidUniformLocation(effect, UNIFORM_COLOR) {
 							var color []f32 = g_models[id.model].color
@@ -730,7 +989,5 @@ func modelRender(id ModelId, alpha bool) { // TODO : refactor alpha/traversal
 	g_models[id.model].stack = stack
 	matrixStack = resize(matrixStack, 0)
 	g_models[id.model].matrixStack = matrixStack
-
-	g_models[id.model].animations = animations
 	g_models[id.model].nodes = nodes
 }

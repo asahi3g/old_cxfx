@@ -223,7 +223,6 @@ func Init(width i32, height i32, dataDir str) {
 	g_alphaVertexColoredLines = gfx.MeshCreate(gl.LINES, gl.UNSIGNED_SHORT, 2048 * 2, gfx.g_vertexLayout, 2048 * 2)
 	g_fullscreenQuad = gfx.MeshCreate(gl.TRIANGLES, gl.UNSIGNED_SHORT, 6 * 3, gfx.g_vertexLayout, 6 * 3)
 
-
 	// fonts
 	//  var skycoinRunes []ui32
 	//  skycoinRunes = append(skycoinRunes, 32)
@@ -364,7 +363,7 @@ func ProcessCursor(window str, x f64, y f64) {
 
 // ProcessButton ...
 func ProcessButton(window str, key i32, action i32, mods i32) {
-	printf("button : %s, %d, %d, %d\n", window, key, action, mods)
+	//printf("button : %s, %d, %d, %d\n", window, key, action, mods)
 
 	var event app.Event = app.InvalidEvent()
 	event.mouse.button = key
@@ -377,7 +376,7 @@ func ProcessButton(window str, key i32, action i32, mods i32) {
 
 // ProcessKeyboard ...
 func ProcessKeyboard(window str, key i32, scancode i32, action i32, mods i32) () {
-	printf("key pressed : %s, %d, scancode %d, action %d, mods %d\n", window, key, scancode, action, mods)
+	//printf("key pressed : %s, %d, scancode %d, action %d, mods %d\n", window, key, scancode, action, mods)
 
 	var event app.Event = app.InvalidEvent()
 	event.keyboard.key = key
@@ -440,7 +439,7 @@ func ProcessEvent(event *app.Event) () {
 					if (IsValidScreen(onExit) == true) {
 						ScreenShow(onExit)
 					} else {
-						printf("INVALID ON EXIT SCREEN %d, %d\n", onExit.screen, onExit.base)
+						//printf("INVALID ON EXIT SCREEN %d, %d\n", onExit.screen, onExit.base)
 					}
 				} else if (key == app.KEYCODE_ENTER && action == app.KEY_PRESS && mods == app.MOD_NONE) {
 					g_screens[screen].paused = true
@@ -488,6 +487,7 @@ func ProcessEvent(event *app.Event) () {
 	}
 }
 
+
 // ProcessResize ...
 func ProcessResize(window str, width i32, height i32) (){
 	//printf("ProcessResize %s, %d, %d\n", window, width, height)
@@ -504,16 +504,16 @@ func Update(deltaTime f64)() { // ##1 rewrite
 		ScreenUpdate(g_currentScreen, deltaTime)
 		if (ScreenStateChanged(g_currentScreen, STATE_OPENED, STATE_CLOSING)) {
 			g_nextScreen = g_screens[g_currentScreen.screen].on_next // ##issue_58 issue array index with struct
-			printf("NEXT_SCREEN %d\n", g_nextScreen.screen)
-			printf("CURRENT %d, NEXT %d\n", g_currentScreen.screen, g_nextScreen.screen)
+			//printf("NEXT_SCREEN %d\n", g_nextScreen.screen)
+			//printf("CURRENT %d, NEXT %d\n", g_currentScreen.screen, g_nextScreen.screen)
 			g_transitionTime = 0.0D
 			g_screens[g_currentScreen.screen].prevState= g_screens[g_currentScreen.screen].state
-			printf("screen : %d, STATE_CLOSING\n", g_currentScreen.screen)
+			//printf("screen : %d, STATE_CLOSING\n", g_currentScreen.screen)
 		} else if (ScreenStateChanged(g_currentScreen, STATE_CLOSING, STATE_CLOSED)) {
 			g_screens[g_currentScreen.screen].time = 0.0D
 			g_screens[g_currentScreen.screen].prevState = g_screens[g_currentScreen.screen].state
 			g_currentScreen = g_nextScreen
-			printf("screen : %d, STATE_CLOSED\n", g_currentScreen.screen)
+			//printf("screen : %d, STATE_CLOSED\n", g_currentScreen.screen)
 		}
 	}
 
@@ -523,30 +523,31 @@ func Update(deltaTime f64)() { // ##1 rewrite
 		}
 
 		if (g_transitionTime <= 0.0D) {
-			printf("TRANSITION STARTED %f\n", f64.f32(g_transitionTime + deltaTime))
+			//printf("TRANSITION STARTED %f\n", f64.f32(g_transitionTime + deltaTime))
 			g_transitionTime = g_transitionTime + deltaTime
 		} else if (g_transitionTime <= g_transitionDuration) {
 			g_transitionTime = g_transitionTime + deltaTime
 		} else {
-			printf("TRANSITION ENDED\n")
+			//printf("TRANSITION ENDED\n")
 			if (IsValidScreen(g_currentScreen)) {
-				printf("CHANGE CLOSED\n")
+				//printf("CHANGE CLOSED\n")
 				ScreenChangeState(g_currentScreen, STATE_CLOSED)
-				printf("prev screen : %d, %d, %s\n", g_currentScreen.screen, g_screens[g_currentScreen.screen].state, "STATE_CLOSED")
+				//printf("prev screen : %d, %d, %s\n", g_currentScreen.screen, g_screens[g_currentScreen.screen].state, "STATE_CLOSED")
 			}
 
 			g_currentScreen = g_nextScreen
-			printf("CURRENT_SCREEN %d\n", g_nextScreen.screen)
+			//printf("CURRENT_SCREEN %d\n", g_nextScreen.screen)
 			if (IsValidScreen(g_nextScreen)) {
 				var nextScreen ScreenId = g_screens[g_nextScreen.screen].on_next
-				printf("CHANGE OPENED\n")
+				//printf("CHANGE OPENED\n")
 				ScreenChangeState(g_nextScreen, STATE_OPENED)
-				printf("next screen : %d, %d, %s\n", g_nextScreen.screen, g_screens[g_nextScreen.screen].state, "STATE_OPENED")
+				//printf("next screen : %d, %d, %s\n", g_nextScreen.screen, g_screens[g_nextScreen.screen].state, "STATE_OPENED")
 				g_transitionTime = 0.0D
 			}
 		}
 	}
 }
+
 
 // Resize ...
 func Resize() () {

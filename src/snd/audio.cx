@@ -20,7 +20,7 @@ type Audio struct {
 	bitsPerSample i32
 	samples i32
 	duration i64
-	data []byte
+	data []ui8
 	source i32
 	buffer i32
 }
@@ -42,9 +42,9 @@ func AudioCreate(path str)(out AudioId) {
 		var buffers []i32 = al.GenBuffers(1) // ISSUE : can't use short declaration
 		panicIf(AlError(), "al.GenBuffers")
 		buffer = buffers[0]
-		g_freeBuffers = append(g_freeBuffers, buffer)
+	//	g_freeBuffers = append(g_freeBuffers, buffer)
 	}
-	panicIf(buffer <= 0, "")
+	panicIf(buffer <= 0, "invalid buffer name")
 
 	var audioFormat i32
 	var numChannels i32
@@ -54,7 +54,7 @@ func AudioCreate(path str)(out AudioId) {
 	var bitsPerSample i32
 	var samples i32
 	var duration i64
-	var data []byte
+	var data []ui8
 
 	audioFormat, numChannels, sampleRate, byteRate, blockAlign, bitsPerSample, samples, duration, data = al.LoadWav(path)
 
