@@ -123,8 +123,8 @@ void main()
 		i_v4Weight.z * u_m44Skeleton[int(i_v4Joint.z)] +
 		i_v4Weight.w * u_m44Skeleton[int(i_v4Joint.w)];
 	//mat4 m44World = m44Skin;
-	//mat4 m44World = u_m44World * m44Skin;
-	mat4 m44World = /*u_m44World * u_m44WorldInverse **/ m44Skin;
+	mat4 m44World = u_m44World * m44Skin;
+	//mat4 m44World = u_m44World * u_m44WorldInverse * m44Skin;
 #else
 #ifdef USE_TRANSFORM
 	mat4 m44World = u_m44World;
