@@ -23,7 +23,7 @@ var identity [] f32 = mat.MatrixAlloc()
 
 var camera gam.FpsCameraId
 
-var g_synths []Synth
+var g_synths [64]Synth
 var g_synthCount i32 = 64
 
 var worldSizeX f32 = 2000.0
@@ -168,13 +168,13 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 func main()() {
 	// init
 	gam.Init("Batch Tutorial", 800, 600, 60, "")
-	cubeMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, 36, 36)
-	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, 6 * groundWidth * groundHeight, 6 * groundWidth * groundHeight)
+
+	cubeMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 36, gfx.g_vertexLayout, 36)
+	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 6 * groundWidth * groundHeight, gfx.g_vertexLayout, 6 * groundWidth * groundHeight)
 	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
 	camera = gam.FpsCameraCreate()
 	identity = mat.MatrixIdentity(identity)
-	g_synths = resize(g_synths, g_synthCount)
 
 	// gameScreen
 	gameScreen = gui.ScreenCreate("gameScreen")

@@ -46,8 +46,7 @@ func ProgramCreate(attributes []Location, samplers []Location, uniforms []Locati
 	for i := 0; i < attributeCount; i++ {
 		var location i32 = attributes[i].location
 		if location >= 0 {
-			var name str = attributes[i].name
- 			ProgramBindAttribute(out, location, name)
+ 			ProgramBindAttribute(out, location, attributes[i].name)
 		}
 	}
 
@@ -100,7 +99,7 @@ func ProgramUse(program Program) {
 // ProgramBindAttribute ...
 func ProgramBindAttribute(program Program, location i32, name str) () {
 	gl.BindAttribLocation(program.name, location, name)
-	panicIf(GlError(), sprintf("gl.BindAttributeLocation(%d, %d, %s)", program.name, location, name))
+	panicIf(GlError(), "gl.BindAttributeLocation")
 }
 
 // ProgramBindUniform ...

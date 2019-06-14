@@ -61,7 +61,7 @@ func main()() {
 	// init
 	gam.Init("Text Tutorial", 800, 600, 60, "")
 	var nameLen i32 = len(app.Name())
-	mesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, nameLen * 6, nameLen * 4)
+	mesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, nameLen * 6, gfx.g_vertexLayout, nameLen * 4)
 	texture = gfx.TextureCreateFont(font, sprintf("%s/fonts/Skycoin-Regular.ttf", app.DataDir()),
 		64, 32, 127, gfx.TEXT_LEFT_TO_RIGHT, -1)
 

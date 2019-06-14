@@ -1,2 +1,30 @@
 package mat
 
+func QuaternionSlerp(v0 v4, v1 v4, t f32) (out v4) {
+	var dot f32 = v4_dot(v0, v1)
+	if (dot < 0.0) {
+		v1 = v4_neg(v1)
+		dot = -dot
+	}
+
+	if dot > 0.9995 {
+		out.x = v0.x + t * (v1.x - v0.x)
+		out.y = v0.y + t * (v1.y - v0.y)
+		out.z = v0.z + t * (v1.z - v0.z)
+		out.w = v0.w + t * (v1.w - v0.w)
+		out = v4_normalize(out)
+	} else {
+
+		var theta0 f32 = f32.acos(dot);
+		var theta f32 = theta0 * t;
+		var sinTheta f32 = f32.sin(theta);
+		var sinTheta0 f32 = f32.sin(theta0);
+		var s0 f32 = f32.cos(theta) - dot * sinTheta / sinTheta0;
+		var s1 f32 = sinTheta / sinTheta0;
+
+		out.x = v0.x * s0 + v1.x * s1
+		out.y = v0.y * s0 + v1.y * s1
+		out.z = v0.z * s0 + v1.z * s1
+		out.w = v0.w * s0 + v1.w * s1
+	}
+}

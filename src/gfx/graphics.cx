@@ -9,6 +9,7 @@ import "os"
 //
 // Constants ...
 var TRIANGLES i32 = gl.TRIANGLES
+var UNSIGNED_SHORT i32 = gl.UNSIGNED_SHORT
 var LINEAR i32 = gl.LINEAR
 var CLAMP_TO_EDGE i32 = gl.CLAMP_TO_EDGE
 var REPEAT i32 = gl.REPEAT
@@ -23,17 +24,27 @@ var SRC_ALPHA i32 = gl.SRC_ALPHA
 var ONE_MINUS_SRC_ALPHA i32 = gl.ONE_MINUS_SRC_ALPHA
 var ONE i32 = gl.ONE
 var ZERO i32 = gl.ZERO
+var CW i32 = gl.CW
+var CCW i32 = gl.CCW
+var BACK i32 = gl.BACK
+var NONE i32 = 0
 
 // Globals ...
 var DEBUG_0 []f32
 
-var g_sizeofFloat i32 = 4
-var g_sizeofInt32 i32 = 4
+var g_sizeofF32 i32 = 4
+var g_sizeofI32 i32 = 4
+var g_sizeofUI32 i32 = 4
+var g_sizeofUI16 i32 = 2
 
 var g_colorMaskRed bool = true
 var g_colorMaskGreen bool = true
 var g_colorMaskBlue bool = true
 var g_colorMaskAlpha bool = true
+
+var g_cull bool = false
+var g_frontFace i32 = gl.CCW
+var g_cullFace i32 = gl.BACK
 
 var g_blend bool = false
 var g_srcBlend i32 = 0
@@ -278,18 +289,50 @@ func bindFramebuffer(name i32) {
 	}
 }
 
+// EnableCulling ...
+func EnableCulling(frontFace i32, cullFace i32) () {
+	if g_cull == false {
+		g_cull = true
+		gl.Enable(gl.CULL_FACE)
+		panicIf(GlError(), "gl.Enable(gl.CULL_FACE)")
+	}
+
+	if g_frontFace != frontFace {
+		g_frontFace = frontFace
+		gl.FrontFace(g_frontFace)
+		panicIf(GlError(), "gl.FrontFace")
+	}
+
+	if g_cullFace != cullFace {
+		g_cullFace = cullFace
+		gl.CullFace(g_cullFace)
+		panicIf(GlError(), "gl.CullFace")
+	}
+}
+
+// DisableCulling ...
+func DisableCulling()() {
+	if g_cull == true {
+		g_cull = false
+		gl.Disable(gl.CULL_FACE)
+		panicIf(GlError(), "gl.Disable(gl.CULL_FACE")
+	}
+}
+
 // EnableBlending ...
 func EnableBlending(srcBlend i32, dstBlend i32) () {
 	if (g_blend == false) {
 		g_blend = true
 		gl.Enable(gl.BLEND)
 		panicIf(GlError(), "gl.Enable(gl.BLEND)")
-		if ((g_srcBlend != srcBlend) || (g_dstBlend != dstBlend)) {
-			g_srcBlend = srcBlend
-			g_dstBlend = dstBlend
-			gl.BlendFunc(g_srcBlend, g_dstBlend)
-			panicIf(GlError(), "gl.BlendFunc")
-		}
+	}
+
+
+	if ((g_srcBlend != srcBlend) || (g_dstBlend != dstBlend)) {
+		g_srcBlend = srcBlend
+		g_dstBlend = dstBlend
+		gl.BlendFunc(g_srcBlend, g_dstBlend)
+		panicIf(GlError(), "gl.BlendFunc")
 	}
 }
 
@@ -642,6 +685,8 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_NORMAL, "i_v3Normal")
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_TEXCOORD, "i_v2Texcoord")
 	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_TANGENT, "i_v4Tangent")
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_WEIGHT, "i_v4Weight")
+	TemplateBindAttribute(g_tfxPbr, ATTRIBUTE_JOINT, "i_v4Joint")
 	TemplateBindSampler(g_tfxPbr, SAMPLER_COLOR_0, "u_t2Color", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_NORMAL, "u_t2Normal", TEXTURE_2D)
 	TemplateBindSampler(g_tfxPbr, SAMPLER_METAL_ROUGH, "u_t2MetalRough", TEXTURE_2D)
@@ -654,10 +699,12 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindUniform(g_tfxPbr, UNIFORM_WORLD, "u_m44World")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_VIEW, "u_m44View")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_PROJECTION, "u_m44Projection")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_WORLD_INVERSE, "u_m44WorldInverse")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_CAMERA_POSITION, "u_v4CameraPosition")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_COLOR, "u_v4Color")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_METAL_ROUGH, "u_v4MetalRough")
 	TemplateBindUniform(g_tfxPbr, UNIFORM_EMISSIVE, "u_v4Emissive")
+	TemplateBindUniform(g_tfxPbr, UNIFORM_SKELETON, "u_m44Skeleton")
 }
 
 // Resize ...

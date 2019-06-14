@@ -25,6 +25,7 @@ var USE_OCCLUSION_MAP i64 = 1L << 13L
 var USE_DEBUG_A       i64 = 1L << 14L
 var USE_PASS_0        i64 = 1L << 15L
 var USE_PASS_1        i64 = 1L << 16L
+var USE_SKIN          i64 = 1L << 17L
 
 // Globals ...
 var g_shaderPath str
@@ -85,7 +86,7 @@ func ShaderDefineGetStr(flag i64) (out str) {
 		}
 	}
 
-	panicIf(true, "invalid flag")
+	panicIf(true, sprintf("invalid flag : %d", flag))
 }
 
 // ShaderDefineGetHeader ...
@@ -118,6 +119,7 @@ func shaderInit(dataDir str) {
 	ShaderDefineAdd(USE_DEBUG_A, "#define USE_DEBUG_A\n")
 	ShaderDefineAdd(USE_PASS_0, "#define USE_PASS_0\n")
 	ShaderDefineAdd(USE_PASS_1, "#define USE_PASS_1\n")
+	ShaderDefineAdd(USE_SKIN, "#define USE_SKIN\n")
 }
 
 // ShaderKeyClear ...

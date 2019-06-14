@@ -1,3 +1,4 @@
+// TODO : refactor in header
 #ifdef USE_PBR_UNI
 #define USE_PBR
 #elif defined(USE_PBR_MAP)
@@ -12,7 +13,6 @@
 #define USE_NORMAL
 #endif
 
-// Samplers ...
 #ifdef USE_COLOR_MAP
 #define USE_TEXCOORD
 #elif defined(USE_NORMAL_MAP)
@@ -93,6 +93,13 @@ in vec2 v_v2Texcoord;
 #endif
 
 in vec2 v_v2Screen;
+
+#ifdef USE_SKIN
+#ifdef DEBUG_SKIN
+in vec4 v_v4Joint;
+in vec4 v_v4Weight;
+#endif
+#endif
 
 // Outputs ...
 out vec4 o_v4Color;
@@ -335,6 +342,12 @@ void main()
 	color += gamma(texture2D(u_t2Emissive, v_v2Texcoord).rgb);
 #endif
 
+#ifdef USE_SKIN
+#ifdef DEBUG_SKIN
+	color *= 0.000001;
+	color += v_v4Weight.rgb;
+#endif
+#endif
 	o_v4Color = vec4(invgamma(color), v4Base.a);
 }
 

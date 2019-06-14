@@ -17,15 +17,16 @@ var modelPaths []str
 var models []gfx.ModelId
 var scales []f32
 var rotations []f32
+var speeds []f32
 
 var currentModel i32
 
-var skyMesh gfx.MeshId
-var groundMesh gfx.MeshId
-var texture gfx.TextureId
-var skyDiffuse gfx.TextureId
-var skySpecular gfx.TextureId
-var brdf gfx.TextureId
+var skyMesh gfx.MeshId = gfx.InvalidMesh()
+var groundMesh gfx.MeshId = gfx.InvalidMesh()
+var texture gfx.TextureId = gfx.InvalidTexture()
+var skyDiffuse gfx.TextureId = gfx.InvalidTexture()
+var skySpecular gfx.TextureId = gfx.InvalidTexture()
+var brdf gfx.TextureId = gfx.InvalidTexture()
 
 var scale []f32 = mat.MatrixAlloc()
 var rotate []f32 = mat.MatrixAlloc()
@@ -35,7 +36,7 @@ var identity [] f32 = mat.MatrixAlloc()
 
 var camera gam.FpsCameraId
 
-var g_synths []Synth
+var g_synths [64]Synth
 var g_synthCount i32 = 64
 
 var worldSizeX f32 = 2000.0
@@ -84,6 +85,14 @@ func gameOnEvent(controlIndex i32, controlAction i32) {
 			rotations[currentModel] = rotations[currentModel] + 1.0
 		} else if key == app.KEYCODE_DOWN {
 			rotations[currentModel] = rotations[currentModel] - 1.0
+		}
+	} else if mods == app.MOD_SHIFT && action == app.KEY_PRESS {
+		if key == app.KEYCODE_UP {
+			scales[currentModel] = scales[currentModel] + 0.05
+				printf("scales %f\n", scales[currentModel])
+		} else if key == app.KEYCODE_DOWN {
+			scales[currentModel] = scales[currentModel] - 0.05
+				printf("scales %f\n", scales[currentModel])
 		}
 	}
 
@@ -170,6 +179,9 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 			mat.v4_(1.0, 1.0, 1.0, 1.0))
 	}
 	gfx.EndBatches()
+
+	var model gfx.ModelId = models[currentModel]
+	gfx.ModelUpdate(model, dt * speeds[currentModel], true)
 }
 
 //-----------------------------------------------------------------------------
@@ -216,12 +228,13 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-func loadModel(path str, filename str, s f32, r f32) {
+func loadModel(path str, filename str, s f32, r f32, v f32) {
 	var model gfx.ModelId = gfx.ModelCreateFromFile(sprintf("%s/models/%s/", app.DataDir(), path), filename)
 	models = append(models, model)
 
 	scales = append(scales, s)
 	rotations = append(rotations, r)
+	speeds = append(speeds, v)
 }
 
 //-----------------------------------------------------------------------------
@@ -230,18 +243,34 @@ func main()() {
 	// init
 	gam.Init("Model Tutorial", 1024, 768, 60, "")
 
-	loadModel("glTF-Sample-Models/Box/glTF", "Box.gltf", 1.0, 1.0)
-	loadModel("glTF-Sample-Models/NormalTangentTest/glTF", "NormalTangentTest.gltf", 3.0, 1.0)
-	loadModel("glTF-Sample-Models/NormalTangentMirrorTest/glTF", "NormalTangentMirrorTest.gltf", 3.0, 1.0)
-	loadModel("glTF-Sample-Models/Duck/glTF", "Duck.gltf", 1.0, 1.0)
-	loadModel("glTF-Sample-Models/MetalRoughSpheres/glTF", "MetalRoughSpheres.gltf", 1.0, 0.0)
-	loadModel("Skyminer", "skyminer_2_sans_materials.gltf", 0.07, 1.0)
-	loadModel("Skyminer", "skyminer_2_avec_materials.gltf", 0.07, 1.0)
-	loadModel("glTF-Sample-Models/DamagedHelmet/glTF", "DamagedHelmet.gltf", 3.0, 1.0)
-	loadModel("glTF-Sample-Models/BoomBox/glTF", "BoomBox.gltf", 200.0, 1.0)
-	loadModel("glTF-Sample-Models/Sponza/glTF", "Sponza.gltf", 10.0, 0.0)
+	skyMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 36, gfx.g_vertexLayout, 24);
+	gfx.MeshSetCulling(skyMesh, gfx.CW, gfx.BACK)
 
-	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.g_vertexLayout, 6 * groundWidth * groundHeight, 6 * groundWidth * groundHeight)
+	//loadModel("Skyminer_Sky/", "top_skyminer.gltf", 1.0, 1.0, 1.0)
+	loadModel("glTF-Sample-Models/Box/glTF", "Box.gltf", 1.0, 1.0, 1.0)
+	loadModel("glTF-Sample-Models/BoxAnimated/glTF", "BoxAnimated.gltf", 1.0, 1.0, 1.0)
+	loadModel("glTF-Sample-Models/CesiumMilkTruck/glTF", "CesiumMilkTruck.gltf", 0.5, 1.0, 1.0)
+	//loadModel("glTF-Sample-Models/2CylinderEngine/glTF", "2CylinderEngine.gltf", 0.005, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/ReciprocatingSaw/glTF", "ReciprocatingSaw.gltf", 0.01, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/GearboxAssy/glTF", "GearboxAssy.gltf", 1.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/Buggy/glTF", "Buggy.gltf", 0.05, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/RiggedSimple/glTF", "RiggedSimple.gltf", 3.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/RiggedFigure/glTF", "RiggedFigure.gltf", 3.0, 0.0, 1.0)
+	loadModel("glTF-Sample-Models/CesiumMan/glTF", "CesiumMan.gltf", 3.0, 0.0, 2.0)
+	loadModel("glTF-Sample-Models/Monster/glTF", "Monster.gltf", 0.05, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/BrainStem/glTF", "BrainStem.gltf", 1.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/VC/glTF", "VC.gltf", 1.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/NormalTangentTest/glTF", "NormalTangentTest.gltf", 3.0, 1.0, 1.0)
+	//loadModel("glTF-Sample-Models/NormalTangentMirrorTest/glTF", "NormalTangentMirrorTest.gltf", 3.0, 1.0, 1.0)
+	//loadModel("glTF-Sample-Models/Duck/glTF", "Duck.gltf", 1.0, 1.0, 1.0)
+	//loadModel("glTF-Sample-Models/MetalRoughSpheres/glTF", "MetalRoughSpheres.gltf", 1.0, 0.0, 1.0)
+	//loadModel("Skyminer", "skyminer_2_sans_materials.gltf", 0.07, 1.0, 1.0)
+	//loadModel("Skyminer", "skyminer_2_avec_materials.gltf", 0.07, 1.0, 1.0)
+	loadModel("glTF-Sample-Models/DamagedHelmet/glTF", "DamagedHelmet.gltf", 3.0, 1.0, 1.0)
+	loadModel("glTF-Sample-Models/BoomBox/glTF", "BoomBox.gltf", 200.0, 1.0, 1.0)
+	//loadModel("glTF-Sample-Models/Sponza/glTF", "Sponza.gltf", 10.0, 0.0, 1.0)
+
+	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 6 * groundWidth * groundHeight, gfx.g_vertexLayout, 6 * groundWidth * groundHeight)
 	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
 	skySpecular = gfx.TextureCreateCube(sprintf("%s/textures/skybox/", app.DataDir()), ".jpg",
@@ -253,8 +282,6 @@ func main()() {
 
 	camera = gam.FpsCameraCreate()
 	identity = mat.MatrixIdentity(identity)
-	g_synths = resize(g_synths, g_synthCount)
-
 
 	// gameScreen
 	gameScreen = gui.ScreenCreate("gameScreen")

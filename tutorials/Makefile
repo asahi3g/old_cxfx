@@ -1,8 +1,9 @@
 ## TODO : can't order files alphabetically without breaking tuto 7->14
 
 0_colored_quad:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -53,8 +54,9 @@
 		0_colored_quad.cx ++data=../resources ++hints=resizable
 
 1_textured_quad:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -105,8 +107,9 @@
 		1_textured_quad.cx ++data=../resources
 
 2_text:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -157,8 +160,9 @@
 		2_text.cx ++data=../resources
 
 3_perspective:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -209,8 +213,9 @@
 		3_perspective.cx ++data=../resources
 
 4_camera:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -261,8 +266,9 @@
 		4_camera.cx ++data=../resources
 
 5_batch:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -313,8 +319,9 @@
 		5_batch.cx ++data=../resources
 
 6_model:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -365,8 +372,9 @@
 		6_model.cx ++data=../resources
 
 7_menu:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -417,8 +425,9 @@
 		7_menu.cx ++data=../resources
 
 8_sound:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -469,8 +478,9 @@
 		8_sound.cx ++data=../resources
 
 9_button:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\
@@ -521,8 +531,9 @@
 		9_button.cx ++data=../resources
 
 10_dialog:
-	cx --profile\
-		../src/arg/argv.cx\
+	cx --debug-profile\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
+		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
 		../src/mat/vector.cx\
 		../src/mat/quaternion.cx\

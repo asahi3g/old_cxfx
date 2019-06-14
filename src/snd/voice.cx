@@ -75,7 +75,7 @@ func VoicePlay(id VoiceId) {
 			sources = al.GenSources(1) // ISSUE : can't use short declaration
 			panicIf(AlError(), "al.GenSources")
 			source = sources[0]
-			g_freeSources = append(g_freeSources, source)
+			//g_freeSources = append(g_freeSources, source) // ISSUE : check before removing
 		}
 	}
 
@@ -107,6 +107,7 @@ func VoicePlay(id VoiceId) {
 		panicIf(true, "invalid state")
 	}
 	g_voices[id.voice].state = VOICE_PLAYING
+	g_voices[id.voice].source = source
 }
 
 // VoicePause ...
