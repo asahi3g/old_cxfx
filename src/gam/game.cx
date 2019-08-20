@@ -11,66 +11,67 @@ var g_game Game
 
 // Game ...
 type Game struct {
-	exit bool
-	prfSwap fps.ProfileId
-	prfFrame fps.ProfileId
-	prfUpdate fps.ProfileId
-	prfRender fps.ProfileId
+    exit bool
+    prfSwap fps.ProfileId
+    prfFrame fps.ProfileId
+    prfUpdate fps.ProfileId
+    prfRender fps.ProfileId
 }
 
 // Init ...
 func Init(name str, width i32, height i32, fps i32, dataDir str)() {
-	app.g_application.options.width = width
-	app.g_application.options.height = height
-	app.g_application.options.fps = fps
-	app.g_application.options.dataDir = dataDir
+    app.g_application.options.width = width
+    app.g_application.options.height = height
+    app.g_application.options.fps = fps
+    app.g_application.options.dataDir = dataDir
 
-	fps.Init(i32.f64(app.Fps()))
-	app.Init(name, "mainWindow", 2, 1)
-	gfx.Init(app.Width(), app.Height(), app.DataDir())
-	gui.Init(app.Width(), app.Height(), app.DataDir())
-	snd.Init(64, 64)
+    fps.Init(i32.ui32(app.Fps()))
+    app.Init(name, "mainWindow", 2, 1)
+    gfx.Init(app.Width(), app.Height(), app.DataDir())
+    gui.Init(app.Width(), app.Height(), app.DataDir())
+    snd.Init(64, 64)
 
-	g_game.prfSwap = fps.CreateProfile("swap")
-	g_game.prfFrame = fps.CreateProfile("frame")
-	g_game.prfUpdate = fps.CreateProfile("update")
-	g_game.prfRender = fps.CreateProfile("render")
+    g_game.prfSwap = fps.CreateProfile("swap")
+    g_game.prfFrame = fps.CreateProfile("frame")
+    g_game.prfUpdate = fps.CreateProfile("update")
+    g_game.prfRender = fps.CreateProfile("render")
 }
 
 // Run ...
-func Run()() {
-	for app.Running() {
-		fps.BeginUpdate(2.0D)
-		fps.StartProfile(g_game.prfSwap)
-		{
-			app.BeginFrame()
-			fps.StartProfile(g_game.prfFrame)
-			{
-				// Update ...
-				fps.StartProfile(g_game.prfUpdate)
-				if g_game.exit {
-					app.Exit()
-				}
-				snd.Update()
-				gui.Update(fps.DeltaTime())
-				gui.Resize()
-				fps.StopProfile(g_game.prfUpdate)
+func Run(fpsUpdate ui32)() {
+    for app.Running() {
+        fps.BeginUpdate(fpsUpdate)
+        fps.StartProfile(g_game.prfSwap)
+        {
+            app.BeginFrame()
+            fps.StartProfile(g_game.prfFrame)
+            {
+                // Update ...
+                fps.StartProfile(g_game.prfUpdate)
+                if g_game.exit {
+                    app.Exit()
+                }
+                snd.Update()
+                gui.Update(fps.DeltaSecond())
+                gui.Resize()
+                fps.StopProfile(g_game.prfUpdate)
 
-				// Render ...
-				fps.StartProfile(g_game.prfRender)
-				gui.Render()
-				fps.StopProfile(g_game.prfRender)
-			}
-			fps.StopProfile(g_game.prfFrame)
-			app.EndFrame()
-		}
-		fps.StopProfile(g_game.prfSwap)
-		fps.EndUpdate()
-	}
+                // Render ...
+                fps.StartProfile(g_game.prfRender)
+                gui.Render()
+                fps.StopProfile(g_game.prfRender)
+            }
+            fps.StopProfile(g_game.prfFrame)
+            app.EndFrame()
+        }
+        fps.StopProfile(g_game.prfSwap)
+        fps.EndUpdate()
+    }
 }
 
 // Destroy ...
 func Destroy() {
-	snd.Destroy()
-	gfx.Destroy()
+    app.Destroy()
+    snd.Destroy()
+    gfx.Destroy()
 }

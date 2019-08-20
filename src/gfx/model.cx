@@ -94,6 +94,9 @@ type Model struct {
 	asset gltf.AssetId
 	animated bool
 
+	min mat.v3
+	max mat.v3
+
 	meshes []MeshId
 
 	identity []f32
@@ -111,6 +114,7 @@ type Model struct {
 	cameraPosition []f32
 
 	nodes[]i32
+	determinants []f32
 	transforms []f32
 
 	primitives []Primitive
@@ -195,6 +199,18 @@ func ModelCreateFromFile(dataDir str, filename str) (out ModelId){
 	modelUpdate(out, 0.0, false)
 }
 
+// ModelGetMin ...
+func ModelGetMin(id ModelId) (out mat.v3) {
+	panicIfNot(ModelIsValid(id), "invalid model")
+	out = g_models[id.model].min
+}
+
+// ModelGetMax ...
+func ModelGetMax(id ModelId) (out mat.v3) {
+	panicIfNot(ModelIsValid(id), "invalid model")
+	out = g_models[id.model].max
+}
+
 type channelInfo struct {
 	count i32
 	dataType i32
@@ -217,6 +233,9 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		out = InvalidMesh()
 		return
 	}
+
+	var min mat.v3
+	var max mat.v3
 
 	var usePosition bool
 	var useNormal bool
@@ -278,6 +297,12 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		var binding i32 = -1
 		if attributeType == gltf.ATTRIBUTE_POSITION {
 			binding = ATTRIBUTE_POSITION
+			min.x = accessor.min[0]
+			min.y = accessor.min[1]
+			min.z = accessor.min[2]
+			max.x = accessor.max[0]
+			max.y = accessor.max[1]
+			max.z = accessor.max[2]
 		} else if attributeType == gltf.ATTRIBUTE_NORMAL {
 			binding = ATTRIBUTE_NORMAL
 			useNormal = true
@@ -391,6 +416,8 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		g_meshes[out.mesh].useTangent = useTangent
 		g_meshes[out.mesh].useWeight = useWeight
 		g_meshes[out.mesh].useJoint = useJoint
+		g_meshes[out.mesh].min = min
+		g_meshes[out.mesh].max = max
 		MeshEnd(out)
 	}
 }
@@ -489,6 +516,7 @@ func modelInstance(id ModelId) (success bool) {
 	var animationCounts []i32 = g_models[id.model].animationCounts
 
 	var nodes []i32 = g_models[id.model].nodes
+	var determinants []f32 = g_models[id.model].determinants
 	var meshCacheKey []i32 = g_models[id.model].meshCacheKey
 	var meshCacheVal []MeshId = g_models[id.model].meshCacheVal
 
@@ -508,6 +536,9 @@ func modelInstance(id ModelId) (success bool) {
 
 	var transforms []f32 = g_models[id.model].transforms
 	transforms = resize(transforms, 0)
+
+	var min mat.v3 = mat.v3_max_val()
+	var max mat.v3 = mat.v3_min_val()
 
 	stack = resize(stack, rootCount)
 	for i := 0; i < rootCount; i++ {
@@ -565,6 +596,12 @@ func modelInstance(id ModelId) (success bool) {
 			}
 
 			var nodeMatrix []f32 = gltf.NodeGetMatrix(asset, node)
+			var determinant f32 = mat.MatrixDeterminant(nodeMatrix)
+			determinants = append(determinants, determinant)
+			var cullFace i32 = gl.BACK
+			if determinant < 0.0 {
+				cullFace = gl.FRONT
+			}
 			if len(nodeMatrix) > 0 {
 				matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
 				stackPushed++
@@ -586,27 +623,37 @@ func modelInstance(id ModelId) (success bool) {
 				var gltfMaterial gltf.Material = gltf.AssetGetMaterial(asset, gltfPrimitive.material)
 				var metallicRoughness gltf.MetallicRoughness = gltfMaterial.pbrMetallicRoughness
 
+				var indicesIndex i32 = gltfPrimitive.indices
 				var meshCacheCount i32 = len(meshCacheKey)
-				for p := 0; p < meshCacheCount; p++ {
-					if meshCacheKey[p] == gltfPrimitive.indices {
-						render = g_models[id.model].meshCacheVal[p]
-						p = meshCacheCount
+				var pp i32
+				for pp = 0; pp < meshCacheCount; pp++ {
+					if meshCacheKey[pp] == indicesIndex {
+						render = meshCacheVal[pp]
+						pp = meshCacheCount
 					}
 				}
 
 				if IsValidMesh(render) == false {
 					render = meshInstance(asset, gltfPrimitive)
-					meshCacheKey = append(meshCacheKey, gltfPrimitive.indices)
+					MeshSetCulling(render, gl.CCW, cullFace)
+					meshCacheKey = append(meshCacheKey, indicesIndex)
 					meshCacheVal = append(meshCacheVal, render)
 				}
 
 				if IsValidMesh(render) == false {
-					printf("meshInstance failed\n")
 					success = false
 					return
 				}
 
 				meshes = append(meshes, render)
+				var meshMin mat.v3 = g_meshes[render.mesh].min
+				meshMin = mat.v3_transform_point(meshMin, last)
+
+				var meshMax mat.v3 = g_meshes[render.mesh].max
+				meshMax = mat.v3_transform_point(meshMax, last)
+
+				max = mat.v3_max(meshMax, max)
+				min = mat.v3_min(meshMin, min)
 
 				var primitive Primitive
 
@@ -658,6 +705,7 @@ func modelInstance(id ModelId) (success bool) {
 	stack = resize(stack, 0)
 	g_models[id.model].stack = stack
 	g_models[id.model].nodes = nodes
+	g_models[id.model].determinants = determinants
 	g_models[id.model].meshes = meshes
 	g_models[id.model].primitives = primitives
 	g_models[id.model].opaqueMeshes = opaqueMeshes
@@ -669,6 +717,8 @@ func modelInstance(id ModelId) (success bool) {
 	g_models[id.model].animationCounts = animationCounts
 	g_models[id.model].matrixStack = resize(matrixStack, 0)
 	g_models[id.model].transforms = transforms
+	g_models[id.model].max = max
+	g_models[id.model].min = min
 
 	success = true
 }
@@ -800,7 +850,6 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 						var z f32 = z0 + (z1 - z0) * t
 
 						animMatrix = mat.MatrixCreateTranslation(animMatrix, x, y, z)
-						//printf("TRANSLATE %d, %f, %f, %f\n", node, x, y, z)
 						anim = true
 					} else if path == gltf.ANIMATION_PATH_ROTATION {
 						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC4, "invalid attribute type")
@@ -826,7 +875,6 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 						var q mat.v4 = mat.v4_normalize(mat.v4_(x, y, z, w))
 
 						animMatrix = mat.MatrixCreateRotationFromQuaternion(animMatrix, q.x, q.y, q.z, q.w)
-						//printf("ROTATE %d, %f, %f, %f, %f\n", node, x, y, z, w)
 						anim = true
 					} else if path == gltf.ANIMATION_PATH_SCALE {
 						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
@@ -843,7 +891,6 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 						var y f32 = y0 + (y1 - y0) * t
 						var z f32 = z0 + (z1 - z0) * t
 
-						//printf("SCALE %d, %f, %f, %f\n", node, x, y, z)
 
 						animMatrix = mat.MatrixCreateScale(animMatrix, x, y, z)
 						anim = true
@@ -956,7 +1003,7 @@ func modelRender(id ModelId, alpha bool) {
 		EffectTryAssignTexture(effect, SAMPLER_NORMAL, primitive.normalTexture, g_linearWrap) // TODO : use gltf sampler
 		EffectTryAssignTexture(effect, SAMPLER_METAL_ROUGH, primitive.metalRoughTexture, g_linearWrap) // TODO : use gltf sampler
 		EffectTryAssignTexture(effect, SAMPLER_ENV_SPECULAR, environmentSpecular, g_linearWrap) // TODO : use gltf sampler
-		EffectTryAssignTexture(effect, SAMPLER_ENV_DIFFUSE, environmentDiffuse, g_linear0Wrap) // TODO : use gltf sampler
+		EffectTryAssignTexture(effect, SAMPLER_ENV_DIFFUSE, environmentDiffuse, g_linearWrap) // TODO : use gltf sampler
 		EffectTryAssignTexture(effect, SAMPLER_BRDF, brdf, g_linear0Wrap) // TODO : use gltf sampler
 		EffectTryAssignTexture(effect, SAMPLER_EMISSIVE, primitive.emissiveTexture, g_linearWrap) // TODO : use gltf sampler
 		EffectTryAssignTexture(effect, SAMPLER_OCCLUSION, primitive.occlusionTexture, g_linearWrap) // TODO : use gltf sampler

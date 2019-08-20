@@ -86,7 +86,7 @@ func ShaderDefineGetStr(flag i64) (out str) {
 		}
 	}
 
-	panicIf(true, sprintf("invalid flag : %d", flag))
+	panicIf(true, "invalid flag")
 }
 
 // ShaderDefineGetHeader ...

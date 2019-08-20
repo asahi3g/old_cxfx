@@ -876,7 +876,7 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 			var tz f32 = node.translation[2]
 
 			var m []f32 = node.matrix = mat.MatrixAlloc()
-			m = mat.MatrixCreate(m, sx, sy, sz, qx, qy, qz, qw, tx, ty, tz)
+			m = mat.MatrixCreate2(m, sx, sy, sz, qx, qy, qz, qw, tx, ty, tz)
 			node.matrix = m
 		}
 
@@ -2263,6 +2263,16 @@ func NodeGetMesh(id AssetId, node i32) (out i32) {
 	if node >= 0 && node < len(nodes) {
 		out = nodes[node].mesh
 	}
+}
+
+// NodeGetName ...
+func NodeGetName(id AssetId, node i32) (out str) {
+    out = ""
+    panicIfNot(AssetIsValid(id), "invalid asset")
+    var nodes []Node = g_assets[id.asset].nodes
+    if node >= 0 && node < len(nodes) {
+        out = nodes[node].name
+    }
 }
 
 // NodeGetSkin ...

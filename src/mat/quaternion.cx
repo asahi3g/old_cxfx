@@ -1,5 +1,6 @@
 package mat
 
+// QuaternionSlerp ...
 func QuaternionSlerp(v0 v4, v1 v4, t f32) (out v4) {
 	var dot f32 = v4_dot(v0, v1)
 	if (dot < 0.0) {
@@ -12,7 +13,6 @@ func QuaternionSlerp(v0 v4, v1 v4, t f32) (out v4) {
 		out.y = v0.y + t * (v1.y - v0.y)
 		out.z = v0.z + t * (v1.z - v0.z)
 		out.w = v0.w + t * (v1.w - v0.w)
-		out = v4_normalize(out)
 	} else {
 
 		var theta0 f32 = f32.acos(dot);
@@ -27,4 +27,90 @@ func QuaternionSlerp(v0 v4, v1 v4, t f32) (out v4) {
 		out.z = v0.z * s0 + v1.z * s1
 		out.w = v0.w * s0 + v1.w * s1
 	}
+	out = v4_normalize(out)
 }
+
+func QuaternionLerp(a v4, b v4, t f32) (out v4) {
+	var mt f32 = 1.0 - t
+	if v4_dot(a, b) >= 0.0 {
+		out.x = mt*a.x + t*b.x
+		out.y = mt*a.y + t*b.y
+		out.z = mt*a.z + t*b.z
+		out.w = mt*a.w + t*b.w
+	} else {
+		out.x = mt*a.x - t*b.x
+		out.y = mt*a.y - t*b.y
+		out.z = mt*a.z - t*b.z
+		out.w = mt*a.w - t*b.w
+	}
+	out = v4_normalize(out)
+}
+
+// QuaternionFromAxisAngle ...
+func QuaternionFromAxisAngle(x f32, y f32, z f32, a f32) (out v4) {
+	var a2 f32 = 0.5 * a
+	var sina f32 = f32.sin(a2)
+	out.x = x * sina
+	out.y = y * sina
+	out.z = z * sina
+	out.w = f32.cos(a2)
+}
+
+// QuaternionToAxis ...
+func QuaternionToAxis(x f32, y f32, z f32, w f32) (out v3) {
+	var w2 f32 = 1.0 - w * w
+	if w2 <= 0.0 {
+		out.x = 0.0
+		out.y = 0.0
+		out.z = 1.0
+	} else {
+		var rtw2 f32 = 1.0 / f32.sqrt(w2)
+		out.x = x * rtw2
+		out.y = y * rtw2
+		out.z = z * rtw2
+	}
+}
+
+// QuaternionFromYawPitchRoll ...
+func QuaternionFromYawPitchRoll(y f32, p f32, r f32) (out v4) {
+	var y2 f32 = y * 0.5
+	var siny f32 = f32.sin(y2)
+	var cosy f32 = f32.cos(y2)
+
+	var p2 f32 = p * 0.5
+	var sinp f32 = f32.sin(p2)
+	var cosp f32 = f32.cos(p2)
+
+	var r2 f32 = r * 0.5
+	var sinr f32 = f32.sin(r2)
+	var cosr f32 = f32.cos(r2)
+
+   	out.x = cosy * sinp * cosr + siny * cosp * sinr
+	out.y = siny * cosp * cosr + cosy * sinp * sinr
+	out.z = cosy * cosp * sinr + siny * sinp * cosr
+	out.w = cosy * cosp * cosr + siny * sinp * sinr
+}
+
+// QuaternionMultiply ...
+func QuaternionMultiply(a v4, b v4) (out v4) {
+	var ax f32 = a.x
+	var ay f32 = a.y
+	var az f32 = a.z
+	var aw f32 = a.w
+
+	var bx f32 = b.x
+	var by f32 = b.y
+	var bz f32 = b.z
+	var bw f32 = b.w
+
+	var c f32 = ay*bz - az*by;
+	var d f32 = az*bx - ax*bz;
+	var e f32 = ax*by - ay*bx;
+	var f f32 = ax*bx + ay*by + az*bz;
+
+	out.x = ax*bw + bx*aw + c;
+	out.y = ay*bw + by*aw + d;
+	out.z = az*bw + bz*aw + e;
+	out.w = aw*bw - f;
+}
+

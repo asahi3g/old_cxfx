@@ -228,6 +228,11 @@ func Resize(width i32, height i32) {
 	g_application.height = height
 }
 
+// Destroy ...
+func Destroy()() {
+	glfw.MakeContextCurrent(g_application.window)
+}
+
 // BeginFrame ...
 func BeginFrame() {
 	glfw.MakeContextCurrent(g_application.window)

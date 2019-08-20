@@ -34,10 +34,10 @@ var translate []f32 = mat.MatrixAlloc()
 var world [] f32 = mat.MatrixAlloc()
 var identity [] f32 = mat.MatrixAlloc()
 
-var camera gam.FpsCameraId
+var camera gam.CameraId
 
-var g_synths [64]Synth
-var g_synthCount i32 = 64
+
+var worldPosY f32 = -10.0
 
 var worldSizeX f32 = 2000.0
 var worldSizeZ f32 = 2000.0
@@ -45,6 +45,9 @@ var worldSizeZ f32 = 2000.0
 var worldCellX i32 = 64
 var worldCellZ i32 = 64
 
+var groundScale f32 = 20.0
+var groundRight f32 = worldSizeX / groundScale
+var groundBack f32 = worldSizeZ / groundScale
 var groundWidth i32 = 16
 var groundHeight i32 = 16
 
@@ -96,16 +99,15 @@ func gameOnEvent(controlIndex i32, controlAction i32) {
 		}
 	}
 
-	gam.FpsCameraProcess(camera, &gui.CurrentEvent)
+	gam.FreeCameraProcess(camera, &gui.CurrentEvent)
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 func gameOnUpdate(controlIndex i32, controlAction i32) {
-	gam.FpsCameraUpdate(camera, fps.DeltaTime(), 0.1, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y)
-	gam.FpsCameraApply(camera, &gfx.State)
+	gam.FreeCameraUpdate(camera, fps.DeltaSecond())
 
-	var dt f32 = f64.f32(fps.DeltaTime())
+	var dt f32 = f64.f32(fps.DeltaSecond())
 
 	var s f32 = scales[currentModel]
 	scale = mat.MatrixCreateScale(scale, s, s, s)
@@ -118,68 +120,6 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	world = mat.MatrixMultiply(world, rotate, scale)
 	world = mat.MatrixMultiply(world, translate, world)
 
-	var groundScale f32 = 20.0
-	gfx.MeshBegin(groundMesh)
-	gfx.MeshAppendPlane(groundMesh,
-		mat.v3_(-worldSizeX / (2.0 * groundScale), -10.0, -worldSizeZ / (2.0 * groundScale)),
-		mat.v3_(worldSizeX / groundScale, 0.0, 0.0),
-		mat.v3_(0.0, 0.0, worldSizeZ / groundScale),
-		groundWidth, groundHeight,
-		mat.v4_(0.0, 0.0, 10.0, 10.0),
-		mat.v4_(1.0, 1.0, 1.0, 1.0))
-	gfx.MeshEnd(groundMesh)
-
-	gfx.MeshBegin(skyMesh)
-	gfx.MeshAppendCube(skyMesh,
-		mat.v3_(0.0, 0.0, 0.0),
-		mat.v3_(5000.0, 5000.0, 5000.0),
-		mat.v4_(1.0, 1.0, 1.0, 1.0))
-	gfx.MeshEnd(skyMesh)
-
-	for i := 0; i < g_synthCount; i++ {
-		var ty f32 = g_synths[i].ty
-		var frame i32 = g_synths[i].frame
-		var frameCount i32 = 0
-		var animation AnimationId
-		if ty <= 0.0 {
-			ty = 500.0 + f32.rand() * 500.0
-			animation = gui.g_synthAnim
-			frameCount = gui.AnimationFrameCount(animation)
-			frame = 0//i32.rand(0, frameCount)
-			g_synths[i].animation = animation
-			g_synths[i].tx = i32.f32(i32.rand(0, worldCellX)) * worldSizeX / i32.f32(worldCellX) - worldSizeX / 2.0
-			g_synths[i].tz = i32.f32(i32.rand(0, worldCellZ)) * worldSizeZ / i32.f32(worldCellZ) - worldSizeZ / 2.0
-		} else {
-			animation = g_synths[i].animation
-			frameCount = gui.AnimationFrameCount(animation)
-			//frame++
-			if frame >= frameCount {
-				frame = 0
-			}
-			ty = ty - 20.0 * dt + f32.rand() * 10.0 * dt
-		}
-
-		var textureId gfx.TextureId = gui.AnimationGetFrame(animation, frame) // ISSUE : can't be named texture : silently clash with global variable
-		var batch gfx.BatchId = gfx.GetBatch(gfx.g_fxTexture3D, textureId, 0, gfx.g_linearClamp, false, g_synthCount * 12)
-		g_synths[i].batch = batch
-		g_synths[i].frame = frame
-		g_synths[i].ty = ty
-	}
-
-	gfx.BeginBatches()
-	for i := 0; i < g_synthCount; i++ {
-		var batch gfx.BatchId = g_synths[i].batch
-		var mesh gfx.MeshId = gfx.BatchGetMesh(batch)
-		var tx f32 = g_synths[i].tx
-		var ty f32 = g_synths[i].ty
-		var tz f32 = g_synths[i].tz
-		gfx.MeshAppendCube(mesh,
-			mat.v3_(tx, ty, tz),
-			mat.v3_(20.0, 20.0, 20.0),
-			mat.v4_(1.0, 1.0, 1.0, 1.0))
-	}
-	gfx.EndBatches()
-
 	var model gfx.ModelId = models[currentModel]
 	gfx.ModelUpdate(model, dt * speeds[currentModel], true)
 }
@@ -187,15 +127,15 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 func gameOnRender(controlIndex i32, controlAction i32) {
-	var view []f32 = gam.FpsCameraGetView(camera)
-	var projection []f32 = gam.FpsCameraGetProjection(camera)
-	var cameraPosition mat.v3 = gam.FpsCameraGetPosition(camera)
+	var view []f32 = gam.CameraGetView(camera)
+	var projection []f32 = gam.CameraGetProjection(camera)
+	var cameraPosition mat.v3 = gam.CameraGetPosition(camera)
 
 	gfx.DisableBlending()
 	gfx.DepthState(true, gfx.LESS, true)
 	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, mat.v4_(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
 
-	//skyMesh
+	//sky
 	gfx.EffectUse(gfx.g_fxSky)
 	gfx.EffectAssignTexture(gfx.g_fxSky, gfx.SAMPLER_ENV_DIFFUSE, skySpecular, gfx.g_linearWrap)
 	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_WORLD, identity, false)
@@ -203,7 +143,7 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_PROJECTION, projection, false)
 	gfx.MeshRender(skyMesh)
 
-	// groundMesh
+	// ground
 	gfx.EffectUse(gfx.g_fxTexture3D)
 	gfx.EffectAssignTexture(gfx.g_fxTexture3D, gfx.SAMPLER_COLOR_0, texture, gfx.g_linearWrap)
 	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, identity, false)
@@ -244,7 +184,13 @@ func main()() {
 	gam.Init("Menu Tutorial", 1024, 768, 60, "")
 
 	skyMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 36, gfx.g_vertexLayout, 24);
-	gfx.MeshSetCulling(skyMesh, gfx.CW, gfx.BACK)
+	gfx.MeshBegin(skyMesh)
+	gfx.MeshAppendBox(skyMesh, false, true,
+		mat.v3_(0.0, 0.0, 0.0),
+		mat.v3_(5000.0, 0.0, 0.0), mat.v3_(0.0, 5000.0, 0.0), mat.v3_(0.0, 0.0, 5000.0),
+		mat.v4_(1.0, 1.0, 1.0, 1.0))
+	gfx.MeshEnd(skyMesh)
+
 
 	//loadModel("Skyminer_Sky/", "top_skyminer.gltf", 1.0, 1.0, 1.0)
 	loadModel("glTF-Sample-Models/Box/glTF", "Box.gltf", 1.0, 1.0, 1.0)
@@ -271,16 +217,31 @@ func main()() {
 	//loadModel("glTF-Sample-Models/Sponza/glTF", "Sponza.gltf", 10.0, 0.0, 1.0)
 
 	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 6 * groundWidth * groundHeight, gfx.g_vertexLayout, 6 * groundWidth * groundHeight)
+	var groundScale f32 = 20.0
+	gfx.MeshBegin(groundMesh)
+	gfx.MeshAppendPlane(groundMesh, false, true,
+		mat.v3_(0.0, worldPosY, 0.0),
+		mat.v3_(groundRight, 0.0, 0.0),
+		mat.v3_(0.0, 1.0, 0.0),
+		mat.v3_(0.0, 0.0, groundBack),
+		groundWidth, groundHeight,
+		mat.v4_(0.0, 0.0, 10.0, 10.0),
+		mat.v4_(1.0, 1.0, 1.0, 1.0))
+	gfx.MeshEnd(groundMesh)
+
 	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
 	skySpecular = gfx.TextureCreateCube(sprintf("%s/textures/skybox/", app.DataDir()), ".jpg",
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
 	skyDiffuse= gfx.TextureCreateCube(sprintf("%s/textures/irradiance/", app.DataDir()), ".png",
-		gfx.FORMAT_R8_G8_B8_A8, 0, 0, 0, false)
+		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
 	brdf = gfx.TextureCreate(sprintf("%s/textures/brdfLUT.png", app.DataDir()),
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, 0, false)
 
-	camera = gam.FpsCameraCreate()
+	camera = gam.CameraCreate()
+	gam.CameraSetProjection(camera, 1.0, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y, true)
+	gam.CameraSetPosition(camera, mat.v3_(0.0, 0.0, 0.0), true)
+	gam.CameraSetYawPitch(camera, 0.0, 0.0, true)
 	identity = mat.MatrixIdentity(identity)
 
 
@@ -335,7 +296,7 @@ func main()() {
 
 	// run
 	gui.ScreenShow(bootScreen)
-	gam.Run()
+	gam.Run(2U)
 
 	// destroy
 	gfx.MeshUnlock(skyMesh)
