@@ -51,6 +51,12 @@ var groundBack f32 = worldSizeZ / groundScale
 var groundWidth i32 = 16
 var groundHeight i32 = 16
 
+var CAMERA_FREE i32 = 0
+var CAMERA_TPS i32 = 1
+var CAMERA_FPS i32 = 2
+var CAMERA_COUNT i32 = 3
+var currentCamera i32 = CAMERA_FREE
+
 // Synth ...
 type Synth struct {
 	rx f32
@@ -90,16 +96,34 @@ func gameOnEvent(controlIndex i32, controlAction i32) {
 			rotations[currentModel] = rotations[currentModel] - 1.0
 		}
 	} else if mods == app.MOD_SHIFT && action == app.KEY_PRESS {
+		if key == app.KEYCODE_LEFT {
+			currentCamera = currentCamera - 1
+			if currentCamera < 0 {
+				currentCamera = CAMERA_COUNT - 1
+			}
+		} else if key == app.KEYCODE_RIGHT {
+			currentCamera = currentCamera + 1
+			if currentCamera >= CAMERA_COUNT {
+				currentCamera = 0
+			}
+		} else if key == app.KEYCODE_UP {
+		} else if key == app.KEYCODE_DOWN {
+		}
+	}/* else if mods == app.MOD_SHIFT && action == app.KEY_PRESS {
 		if key == app.KEYCODE_UP {
 			scales[currentModel] = scales[currentModel] + 0.05
-				printf("scales %f\n", scales[currentModel])
 		} else if key == app.KEYCODE_DOWN {
 			scales[currentModel] = scales[currentModel] - 0.05
-				printf("scales %f\n", scales[currentModel])
 		}
-	}
+	}*/
 
-	gam.FreeCameraProcess(camera, &gui.CurrentEvent)
+	if currentCamera == CAMERA_FREE {
+		gam.FreeCameraProcess(camera, &gui.CurrentEvent)
+	} else if currentCamera == CAMERA_FPS {
+		gam.FpsCameraProcess(camera, &gui.CurrentEvent)
+	} else if currentCamera == CAMERA_TPS {
+		gam.TpsCameraProcess(camera, &gui.CurrentEvent)
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -107,7 +131,8 @@ func gameOnEvent(controlIndex i32, controlAction i32) {
 func gameOnUpdate(controlIndex i32, controlAction i32) {
 	gam.FreeCameraUpdate(camera, fps.DeltaSecond())
 
-	var dt f32 = f64.f32(fps.DeltaSecond())
+	var dts f64 = fps.DeltaSecond()
+	var dt f32 = f64.f32(dts)
 
 	var s f32 = scales[currentModel]
 	scale = mat.MatrixCreateScale(scale, s, s, s)
@@ -121,6 +146,13 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	world = mat.MatrixMultiply(world, translate, world)
 
 	var model gfx.ModelId = models[currentModel]
+	if currentCamera == CAMERA_FREE {
+		gam.FreeCameraUpdate(camera, dts)
+	} else if currentCamera == CAMERA_FPS {
+		gam.FpsCameraUpdate(camera, dts, mat.v3_(0.0, 0.0, 0.0))
+	} else if currentCamera == CAMERA_TPS {
+		gam.TpsCameraUpdate(camera, dts, mat.v3_(0.0, 0.0, 0.0), 30.0)
+	}
 	gfx.ModelUpdate(model, dt * speeds[currentModel], true)
 }
 
