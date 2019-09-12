@@ -155,7 +155,7 @@ vec3 getIBLContribution(pbr_s pbrInputs, vec3 n, vec3 reflection)
 	float lod = (pbrInputs.perceptualRoughness * mipCount);
 	// retrieve a scale and bias to F0. See [1], Figure 3
 	vec3 brdf = gamma(texture2D(u_t2BRDF, vec2(pbrInputs.NdotV, 1.0 - pbrInputs.perceptualRoughness)).rgb);
-	vec3 diffuseLight = gamma(textureCube(u_tcEnvironmentDiffuse, vec3(-n.x, n.y, -n.z)).rgb);
+	vec3 diffuseLight = gamma(textureCubeLod(u_tcEnvironmentDiffuse, vec3(-n.x, n.y, -n.z), lod).rgb);
 
 	vec3 specularLight = gamma(textureCubeLod(u_tcEnvironmentSpecular, reflection, lod).rgb);
 

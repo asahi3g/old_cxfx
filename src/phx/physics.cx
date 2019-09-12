@@ -1,0 +1,473 @@
+package phx
+
+import "fps"
+import "gfx"
+import "mat"
+
+// Constants ...
+var TYPE_BOX i32     = 1
+var TYPE_ELLIPSE i32 = 2
+var TYPE_PLANE i32   = 3
+var TYPE_CUSTOM i32  = 4
+
+var STATE_NONE        i32 = 0
+var STATE_ACTIVE      i32 = 1
+var STATE_TRANSLATE   i32 = 2
+var STATE_ROTATE      i32 = 4
+var STATE_DEBUG       i32 = 8
+var STATE_DEBUG_WIRE  i32 = 16
+var STATE_DEBUG_COLOR i32 = 32
+
+// Globals ...
+var g_objectCount i32
+var g_states []i32
+var g_types []i32
+var g_tags []i32
+var g_positions []v3
+var g_velocities []v3
+var g_displacements []v3
+var g_accelerations []v3
+var g_sizes []v3
+var g_rights []v3
+var g_tops []v3
+var g_backs []v3
+var g_normals []v3
+var g_radiuses []f32
+var g_sqRadiuses []f32
+var g_rotations []v4
+var g_angularVelocities []v4
+var g_angularAccelerations []v4
+var g_masses []f32
+
+var g_currentTime i64
+var g_deltaTime i64
+var g_lockStep i64
+var g_gforce f32
+
+var g_tmpMatrix0 []f32 = mat.MatrixAlloc()
+var g_tmpMatrix1 []f32 = mat.MatrixAlloc()
+var g_tmpMatrix2 []f32 = mat.MatrixAlloc()
+var g_tmpMatrix3 []f32 = mat.MatrixAlloc()
+
+var g_fixed []i32
+var g_mobiles []i32
+var g_rotates []i32
+var g_translates []i32
+
+var g_actives []i32
+var g_passives []i32
+
+var g_debugObjects []i32
+
+//var g_freeObjects []i32
+
+// Debug ...
+var g_debug bool = true
+var g_debugMesh gfx.MeshId
+var g_debugMeshWire gfx.MeshId
+
+// Init ...
+func Init(targetFPS ui32, gforce f32) {
+	g_lockStep = fps.SecondToNano(1.0D) / ui32.i64(targetFPS)
+	g_gforce = gforce
+
+	if g_debug {
+		g_debugMesh = gfx.MeshCreate(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 8192 * 3, gfx.g_vertexLayout, 8192 * 3)
+		gfx.MeshSetCulling(g_debugMesh, gfx.CW, gfx.BACK)
+
+		g_debugMeshWire = gfx.MeshCreate(gfx.LINES, gfx.UNSIGNED_SHORT, 8192 * 3, gfx.g_vertexLayout, 8192 * 3)
+	}
+}
+
+// Update ...
+func Update(deltaTime i64) {
+	g_deltaTime = g_deltaTime + deltaTime // ISSUE : g_deltaTime += deltaTime : physics.cx:36 'deltaTime' redeclared
+	var debugScale f32 = 0.01
+
+	var dt f32 = f64.f32(fps.NanoToMilli(g_lockStep)) * debugScale
+	var sqdt f32 = dt * dt
+
+	var accCoef f32 = 0.5 * sqdt
+	var velCoef f32 = dt
+	var gforce f32 = g_gforce * accCoef
+	var dforce f32 = 0.001
+
+	g_actives = resize(g_actives, 0)
+	g_passives = resize(g_passives, 0)
+	g_fixed = resize(g_fixed, 0)
+	g_mobiles = resize(g_mobiles, 0)
+	g_rotates = resize(g_rotates, 0)
+	g_translates = resize(g_translates, 0)
+
+	var count i32 = g_objectCount
+	for i := 0; i < count; i++ {
+		var state i32 = g_states[i]
+		if (state & STATE_ACTIVE) != 0 {
+			g_actives = append(g_actives, i)
+		} else {
+			g_passives = append(g_passives, i)
+		}
+
+		var rotate bool = (state & STATE_ROTATE) != 0
+		var translate bool = (state & STATE_TRANSLATE) != 0
+
+		if rotate && translate {
+			g_mobiles = append(g_mobiles, i)
+			g_translates = append(g_translates, i)
+			g_rotates = append(g_rotates, i)
+		} else if rotate {
+			g_mobiles = append(g_mobiles, i)
+			g_rotates = append(g_rotates, i)
+		} else if translate {
+			g_mobiles = append(g_mobiles, i)
+			g_translates = append(g_translates, i)
+		} else {
+			g_fixed = append(g_fixed, i)
+		}
+
+		var transform []f32 = GetObjectTransform(i, g_tmpMatrix0)
+		g_normals[i] = mat.v3_transform_vector(g_tops[i], transform)
+	}
+
+	var mobileCount i32 = len(g_mobiles)
+	var translateCount i32 = len(g_translates)
+	var rotateCount i32 = len(g_rotates)
+
+	for g_deltaTime > g_lockStep {
+		for k := 0; k < translateCount; k++ {
+			var i i32 = g_translates[k]
+			var vel v3 = g_velocities[i]
+			var acc v3 = g_accelerations[i]
+
+			var displacement v3
+			displacement.x = (vel.x * velCoef + acc.x * accCoef) * debugScale
+			displacement.y = (vel.y * velCoef + acc.y * accCoef) * debugScale
+			displacement.z = (vel.z * velCoef + acc.z * accCoef) * debugScale
+
+			g_displacements[i] = displacement
+		}
+
+		var activeCount i32 = len(g_actives)
+		var passiveCount i32 = len(g_passives)
+
+		for k := 0; k < passiveCount; k++ {
+			var i i32 = g_passives[k]
+			var passiveType i32 = g_types[i]
+			var passivePos mat.v3 = g_positions[i]
+			var passiveDisp mat.v3 = g_displacements[i]
+			var passiveDest mat.v3 = mat.v3_add(passivePos, passiveDisp)
+			var passiveRadius f32 = g_radiuses[i]
+			for kk := 0; kk < activeCount; kk++ {
+				var ii i32 = g_actives[kk]
+				var activeType i32 = g_types[ii]
+				var activePos mat.v3 = g_positions[ii]
+				var activeTop mat.v3 = g_normals[ii]
+				if passiveType == TYPE_ELLIPSE && activeType == TYPE_PLANE {
+					var distance mat.v3 = mat.v3_sub(passiveDest, activePos)
+					var length f32 = mat.v3_dot(distance, activeTop) / mat.v3_length(activeTop)
+					if length < (passiveRadius * 0.5) {
+						passiveDisp = mat.v3_add(passiveDisp, mat.v3_mulf(activeTop, passiveRadius * 0.5 - length))
+						passiveDisp = mat.v3_mulf(passiveDisp, 0.8)
+						g_displacements[i] = passiveDisp
+						//PrintObject(i)
+					}
+				}
+			}
+		}
+
+		for k := 0; k < translateCount; k++ {
+			var i i32 = g_translates[k]
+			var vel v3 = g_velocities[i]
+			var acc v3 = g_accelerations[i]
+			var pos v3 = g_positions[i]
+			var mass f32 = g_masses[i]
+			var disp v3 = g_displacements[i]
+
+			var newPos v3
+			newPos.x = pos.x + disp.x
+			newPos.y = pos.y + disp.y
+			newPos.z = pos.z + disp.z
+
+			vel.x = disp.x / (dt * debugScale)
+			vel.y = disp.y / (dt * debugScale)
+			vel.z = disp.z / (dt * debugScale)
+
+			var newAcc v3
+			newAcc.x = 0.0	  - 0.5 * dforce * vel.x / mass//* f32.abs(vel.x) / mass
+			newAcc.y = g_gforce - 0.5 * dforce * vel.y / mass// * f32.abs(vel.y) / mass
+			newAcc.z = 0.0	  - 0.5 * dforce * vel.z / mass//* f32.abs(vel.z) / mass
+
+			var newVel v3
+			newVel.x = vel.x + (acc.x + newAcc.x) * 0.5 * dt
+			newVel.y = vel.y + (acc.y + newAcc.y) * 0.5 * dt
+			newVel.z = vel.z + (acc.z + newAcc.z) * 0.5 * dt
+
+			g_positions[i] = newPos
+			g_velocities[i] = newVel
+			g_accelerations[i] = newAcc
+		}
+
+		for k := 0; k < rotateCount; k++ {
+			var i i32 = g_rotates[k]
+
+			var rotation mat.v4 = g_rotations[i]
+			rotation.w = rotation.w + dt
+			g_rotations[i] = rotation
+		}
+
+		g_deltaTime = g_deltaTime - g_lockStep // ISSUE : g_deltaTime -= g_lockStep : physics.cx:41 'g_lockStep' redeclared
+		g_currentTime = g_currentTime + g_lockStep // ISSUE : g_currentTime += g_lockStep : physics.cx:42 'g_lockStep' redeclared
+	}
+
+	var activeCount i32 = len(g_actives)
+}
+
+// Render ...
+func Render(world []f32, view []f32, projection []f32) {
+	if g_debug {
+		g_debugObjects = resize(g_debugObjects, 0)
+		var count i32 = g_objectCount
+		for i := 0; i < count; i++ {
+			var state i32 = g_states[i]
+			if (state & STATE_DEBUG) != 0 {
+				g_debugObjects = append(g_debugObjects, i)
+			}
+		}
+
+		var debugCount i32 = len(g_debugObjects)
+		if debugCount > 0 {
+			gfx.MeshBegin(g_debugMesh)
+			gfx.MeshBegin(g_debugMeshWire)
+
+			for k := 0; k < debugCount; k++ {
+				var i i32 = g_debugObjects[k]
+				var state i32 = g_states[i]
+
+				var debugWire bool = false
+				var debugMesh gfx.MeshId = g_debugMesh
+				if (state & STATE_DEBUG_WIRE) != 0 {
+					debugMesh = g_debugMeshWire
+					debugWire = true
+				}
+
+				var position mat.v3 = g_positions[i]
+				var axisAngle mat.v4 = g_rotations[i]
+				var quat mat.v4 = mat.QuaternionFromAxisAngle(axisAngle.x, axisAngle.y, axisAngle.z, axisAngle.w)
+				var size mat.v3 = g_sizes[i]
+				var bkpDebugColors bool = gfx.g_useDebugColors
+				gfx.g_useDebugColors = (state & STATE_DEBUG_COLOR) != 0
+
+				var objType i32 = g_types[i]
+				if objType == TYPE_BOX || objType == TYPE_PLANE {
+					var rotation []f32 = mat.MatrixCreateRotationFromQuaternion(g_tmpMatrix0, quat.x, quat.y, quat.z, quat.w)
+					var right mat.v3 = mat.v3_transform_vector(mat.v3_(size.x, 0.0, 0.0), rotation)
+					var top mat.v3 = mat.v3_transform_vector(mat.v3_(0.0, size.y, 0.0), rotation)
+					var back mat.v3 = mat.v3_transform_vector(mat.v3_(0.0, 0.0, size.z), rotation)
+					if objType == TYPE_BOX {
+						gfx.MeshAppendBox(debugMesh, debugWire, true, position, right, top, back, mat.v4_(1.0, 0.0, 0.0, 1.0))
+					} else {
+						gfx.MeshAppendPlane(debugMesh, debugWire, true, position, right, top, back, 4, 4, mat.v4_(0.0, 1.0, 0.0, 1.0), mat.v4_(0.0, 1.0, 1.0, 1.0))
+						gfx.MeshAppendPlane(debugMesh, debugWire, false, position, right, top, back, 4, 4, mat.v4_(0.0, 1.0, 0.0, 1.0), mat.v4_(1.0, 0.0, 1.0, 1.0))
+					}
+				} else if objType == TYPE_ELLIPSE {
+					var transform []f32 = mat.MatrixCreate2(g_tmpMatrix0, size.x, size.y, size.z, quat.x, quat.y, quat.z, quat.w, position.x, position.y, position.z)
+					gfx.MeshAppendEllipse(debugMesh, debugWire, true, transform, 8, 18, mat.v4_(0.0, 1.0, 0.0, 1.0), mat.v4_(0.0, 1.0, 0.0, 1.0))
+				}
+				gfx.g_useDebugColors = bkpDebugColors
+			}
+
+			gfx.MeshEnd(g_debugMeshWire)
+			gfx.MeshEnd(g_debugMesh)
+
+			gfx.DepthState(true, gfx.LESS, true)
+			gfx.EffectUse(gfx.g_fxVertexColor3D)
+			gfx.EffectAssignMatrix4(gfx.g_fxVertexColor3D, gfx.UNIFORM_WORLD, world, false)
+			gfx.EffectAssignMatrix4(gfx.g_fxVertexColor3D, gfx.UNIFORM_VIEW, view, false)
+			gfx.EffectAssignMatrix4(gfx.g_fxVertexColor3D, gfx.UNIFORM_PROJECTION, projection, false)
+			gfx.MeshRender(g_debugMeshWire)
+			gfx.MeshRender(g_debugMesh)
+		}
+	}
+}
+
+// IsValidObject ...
+func IsValidObject(id i32) (out bool) {
+	out = id >= 0 && id < g_objectCount && g_objectCount <= len(g_types)
+}
+
+// GetObjectCount ...
+func GetObjectCount()(out i32) {
+	out = g_objectCount
+}
+
+// GetObjectType ...
+func GetObjectType(id i32)(out i32) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	out = g_types[id]
+}
+
+// GetObjectTag ...
+func GetObjectTag(id i32) (out i32) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	out = g_tags[id]
+}
+
+// GetObjectPosition ...
+func GetObjectPosition(id i32) (out v3) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	out = g_positions[id]
+}
+
+// GetObjectAt ...
+func GetObjectAt(id i32) (out v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    var r mat.v4 = g_rotations[id]
+    var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
+    out = mat.QuaternionTransformVector(q, mat.v3_(0.0, 0.0, 1.0))
+}
+
+// GetObjectRight ...
+func GetObjectRight(id i32) (out v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    var r mat.v4 = g_rotations[id]
+    var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
+    out = mat.QuaternionTransformVector(q, mat.v3_(1.0, 0.0, 0.0))
+}
+
+// GetObjectRotation ...
+func GetObjectRotation(id i32) (out v4) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	out = g_rotations[id]
+}
+
+// SetObjectRotation ...
+func SetObjectRotation(id i32, rotation mat.v4) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	g_rotations[id] = rotation
+}
+
+// SetObjectAcceleration ...
+func SetObjectAcceleration(id i32, acceleration mat.v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    g_accelerations[id] = acceleration
+}
+
+// SetObjectVelocity ...
+func SetObjectVelocity(id i32, velocity mat.v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    g_velocities[id] = velocity
+}
+
+// GetObjectVelocity ...
+func GetObjectVelocity(id i32) (out mat.v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    out = g_velocities[id]
+}
+
+// GetObjectScale ...
+func GetObjectScale(id i32) (out v3) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	out = g_sizes[id]
+}
+
+// GetObjectTransform ...
+func GetObjectTransform(id i32, in []f32) (out []f32) { // TODO : in update
+	panicIfNot(IsValidObject(id), "invalid object")
+
+	var t v3 = g_positions[id]
+	var r v4 = g_rotations[id]
+	var q v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
+	var s v3 = g_sizes[id]
+
+	out = mat.MatrixCreate2(in, s.x, s.y, s.z, q.x, q.y, q.z, q.w, t.x, t.y, t.z)
+}
+
+// PrintObject ...
+func PrintObject(id i32) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	printf("Object %d: type %d, state %d, pos %f, %f, %f, vel %f, %f, %f, acc %f, %f, %f, size %f, %f, %f, rot %f, %f, %f, %f, mass %f\n",
+			id, g_types[id], g_states[id],
+			g_positions[id].x, g_positions[id].y, g_positions[id].z,
+			g_velocities[id].x, g_velocities[id].y, g_velocities[id].z,
+			g_accelerations[id].x, g_accelerations[id].y, g_accelerations[id].z,
+			g_sizes[id].x, g_sizes[id].y, g_sizes[id].z,
+			g_rotations[id].x, g_rotations[id].y, g_rotations[id].z, g_rotations[id].w,
+			g_masses[id])
+}
+
+// AddObject ...
+func AddObject(objectType i32, objectTag i32, state i32,  position v3, velocity v3, acceleration v3, right v3, top v3, back v3, mass f32, orientation mat.v4) (out i32) {
+	g_states = append(g_states, state)
+	g_types = append(g_types, objectType)
+	g_tags = append(g_tags, objectTag)
+	g_positions = append(g_positions, position)
+	g_velocities = append(g_velocities, velocity)
+	g_displacements = append(g_displacements, mat.v3_(0.0, 0.0, 0.0))
+	g_accelerations = append(g_accelerations, acceleration)
+
+	var size mat.v3 = mat.v3_(mat.v3_length(right), mat.v3_length(top), mat.v3_length(back))
+	g_sizes = append(g_sizes, size)
+
+	var sqRadius f32 = mat.v3_dot(size, size)
+	g_sqRadiuses = append(g_sqRadiuses, sqRadius)
+
+	var radius f32 = f32.sqrt(sqRadius)
+	g_radiuses = append(g_radiuses, radius)
+
+	g_rights = append(g_rights, mat.v3_x(right))
+	g_tops = append(g_tops, mat.v3_y(top))
+	g_normals = append(g_normals, mat.v3_y(top))
+	g_backs = append(g_backs, mat.v3_z(back))
+
+	g_rotations = append(g_rotations, orientation)
+	g_masses = append(g_masses, mass)
+
+	out = g_objectCount
+	g_objectCount = g_objectCount + 1
+	//PrintObject(out)
+}
+
+// RemoveObject ...
+func RemoveObject(id i32) {
+	panicIfNot(IsValidObject(id), "invalid object")
+	g_objectCount = g_objectCount - 1
+
+	g_states[id] = g_states[g_objectCount]
+	g_states = resize(g_states, g_objectCount)
+
+	g_types[id] = g_types[g_objectCount]
+	g_types = resize(g_types, g_objectCount)
+
+	g_tags[id] = g_tags[g_objectCount]
+	g_tags = resize(g_tags, g_objectCount)
+
+	g_positions[id] = g_positions[g_objectCount]
+	g_positions = resize(g_positions, g_objectCount)
+
+	g_velocities[id] = g_velocities[g_objectCount]
+	g_velocities = resize(g_velocities, g_objectCount)
+
+	g_displacements[id] = g_displacements[g_objectCount]
+	g_displacements = resize(g_displacements, g_objectCount)
+
+	g_accelerations[id] = g_accelerations[g_objectCount]
+	g_accelerations = resize(g_accelerations, g_objectCount)
+
+	g_sizes[id] = g_sizes[g_objectCount]
+	g_sizes = resize(g_sizes, g_objectCount)
+
+	g_radiuses[id] = g_radiuses[g_objectCount]
+	g_radiuses = resize(g_radiuses, g_objectCount)
+
+	g_sqRadiuses[id] = g_sqRadiuses[g_objectCount]
+	g_sqRadiuses = resize(g_sqRadiuses, g_objectCount)
+
+	g_rotations[id] = g_rotations[g_objectCount]
+	g_rotations = resize(g_rotations, g_objectCount)
+
+	g_masses[id] = g_masses[g_objectCount]
+	g_masses = resize(g_masses, g_objectCount)
+
+}
+
+

@@ -67,7 +67,7 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 
 	projection = mat.MatrixCreateProjection(projection, 0.1, 10000.0, 0.5, width, height)
 
-	ry = ry + f64.f32(fps.DeltaTime())
+	ry = ry + f64.f32(fps.DeltaSecond())
 
 	rotate = mat.MatrixCreateRotationY(rotate, ry)
 
@@ -76,9 +76,11 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	world = mat.MatrixMultiply(world, rotate, translate)
 
 	gfx.MeshBegin(mesh)
-	gfx.MeshAppendCube(mesh,
+	gfx.MeshAppendBox(mesh, false, false,
 		mat.v3_(0.0, 0.0, 0.0),
-		mat.v3_(10.0, 10.0, 10.0),
+		mat.v3_(10.0, 0.0, 0.0),
+		mat.v3_(0.0, 10.0, 0.0),
+		mat.v3_(0.0, 0.0, 10.0),
 		mat.v4_(1.0, 1.0, 1.0, 1.0))
 	gfx.MeshEnd(mesh)
 }
@@ -118,7 +120,7 @@ func main()() {
 
 	// run
 	gui.ScreenShow(gameScreen)
-	gam.Run()
+	gam.Run(2U)
 
 	// destroy
 	gfx.MeshUnlock(mesh)

@@ -26,6 +26,17 @@ var KEYCODE_LEFT_CTRL i32 = 341
 var KEYCODE_SHIFT     i32 = 340
 var KEYCODE_MENU      i32 = 343
 
+var KEYCODE_1 i32 = 49
+var KEYCODE_2 i32 = 50
+var KEYCODE_3 i32 = 51
+var KEYCODE_4 i32 = 52
+var KEYCODE_5 i32 = 53
+var KEYCODE_6 i32 = 54
+var KEYCODE_7 i32 = 55
+var KEYCODE_8 i32 = 56
+var KEYCODE_9 i32 = 57
+var KEYCODE_0 i32 = 48
+
 var KEYCODE_A i32 = 65
 var KEYCODE_D i32 = 68
 var KEYCODE_S i32 = 83

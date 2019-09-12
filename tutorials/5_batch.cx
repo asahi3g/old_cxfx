@@ -21,7 +21,7 @@ var translate []f32 = mat.MatrixAlloc()
 var world [] f32 = mat.MatrixAlloc()
 var identity [] f32 = mat.MatrixAlloc()
 
-var camera gam.FpsCameraId
+var camera gam.CameraId
 
 var g_synths [64]Synth
 var g_synthCount i32 = 64
@@ -60,16 +60,15 @@ func gameOnEvent(controlIndex i32, controlAction i32) {
 		}
 	}
 
-	gam.FpsCameraProcess(camera, &gui.CurrentEvent)
+	gam.FreeCameraProcess(camera, &gui.CurrentEvent)
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 func gameOnUpdate(controlIndex i32, controlAction i32) {
-	gam.FpsCameraUpdate(camera, fps.DeltaTime(), 0.1, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y)
-	gam.FpsCameraApply(camera, &gfx.State)
+	gam.FreeCameraUpdate(camera, fps.DeltaSecond())
 
-	var dt f32 = f64.f32(fps.DeltaTime())
+	var dt f32 = f64.f32(fps.DeltaSecond())
 
 	ry = ry + dt
 
@@ -80,16 +79,19 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	world = mat.MatrixMultiply(world, rotate, translate)
 
 	gfx.MeshBegin(cubeMesh)
-	gfx.MeshAppendCube(cubeMesh,
+	gfx.MeshAppendBox(cubeMesh, false, false,
 		mat.v3_(0.0, 0.0, 0.0),
-		mat.v3_(10.0, 10.0, 10.0),
+		mat.v3_(10.0, 0.0, 0.0),
+		mat.v3_(0.0, 10.0, 0.0),
+		mat.v3_(0.0, 0.0, 10.0),
 		mat.v4_(1.0, 1.0, 1.0, 1.0))
 	gfx.MeshEnd(cubeMesh)
 
 	gfx.MeshBegin(groundMesh)
-	gfx.MeshAppendPlane(groundMesh,
-		mat.v3_(-worldSizeX / 2.0, -10.0, -worldSizeZ / 2.0),
+	gfx.MeshAppendPlane(groundMesh, false, true,
+		mat.v3_(0.0, -10.0, 0.0),
 		mat.v3_(worldSizeX, 0.0, 0.0),
+		mat.v3_(0.0, 1.0, 0.0),
 		mat.v3_(0.0, 0.0, worldSizeZ),
 		groundWidth, groundHeight,
 		mat.v4_(0.0, 0.0, 10.0, 10.0),
@@ -133,9 +135,11 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 		var tx f32 = g_synths[i].tx
 		var ty f32 = g_synths[i].ty
 		var tz f32 = g_synths[i].tz
-		gfx.MeshAppendCube(mesh,
+		gfx.MeshAppendBox(mesh, false, false,
 			mat.v3_(tx, ty, tz),
-			mat.v3_(20.0, 20.0, 20.0),
+			mat.v3_(20.0, 0.0, 0.0),
+			mat.v3_(0.0, 20.0, 0.0),
+			mat.v3_(0.0, 0.0, 20.0),
 			mat.v4_(1.0, 1.0, 1.0, 1.0))
 	}
 	gfx.EndBatches()
@@ -148,8 +152,8 @@ func gameOnRender(controlIndex i32, controlAction i32) {
 	gfx.DepthState(true, gfx.LESS, true)
 	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, mat.v4_(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
 	gfx.EffectUse(gfx.g_fxTexture3D)
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_VIEW, gam.FpsCameraGetView(camera), false)
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_PROJECTION, gam.FpsCameraGetProjection(camera), false)
+	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_VIEW, gam.CameraGetView(camera), false)
+	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_PROJECTION, gam.CameraGetProjection(camera), false)
 	gfx.EffectAssignTexture(gfx.g_fxTexture3D, gfx.SAMPLER_COLOR_0, texture, gfx.g_linearWrap)
 
 	// cubeMesh
@@ -173,7 +177,11 @@ func main()() {
 	groundMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 6 * groundWidth * groundHeight, gfx.g_vertexLayout, 6 * groundWidth * groundHeight)
 	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
 		gfx.FORMAT_R8_G8_B8_A8, 0, 0, -1, false)
-	camera = gam.FpsCameraCreate()
+
+	camera = gam.CameraCreate()
+	gam.CameraSetProjection(camera, 1.0, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y, true)
+	gam.CameraSetPosition(camera, mat.v3_(0.0, 0.0, 0.0), true)
+	gam.CameraSetYawPitch(camera, 0.0, 0.0, true)
 	identity = mat.MatrixIdentity(identity)
 
 	// gameScreen
@@ -186,7 +194,7 @@ func main()() {
 
 	// run
 	gui.ScreenShow(gameScreen)
-	gam.Run()
+	gam.Run(2U)
 
 	// destroy
 	gfx.MeshUnlock(cubeMesh)

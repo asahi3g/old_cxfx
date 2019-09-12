@@ -5,6 +5,7 @@ package mat
 // Float32 ...
 var FLOAT_MAX f32 =  1000000000.0 // ##0 fixme
 var FLOAT_MIN f32 = -1000000000.0
+var PI f32 = 3.14159265358979323846264338327950288
 
 func min(a f32, b f32) (out f32) {
 	out = a

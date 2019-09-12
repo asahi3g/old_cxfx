@@ -8,6 +8,7 @@ import "os"
 // TODO : refactor transition shader
 //
 // Constants ...
+var LINES i32 = gl.LINES
 var TRIANGLES i32 = gl.TRIANGLES
 var UNSIGNED_SHORT i32 = gl.UNSIGNED_SHORT
 var LINEAR i32 = gl.LINEAR
@@ -81,6 +82,8 @@ var gfx_red mat.v4
 var gfx_green mat.v4
 var gfx_blue mat.v4
 var gfx_pink mat.v4
+var gfx_yellow mat.v4
+var gfx_sky mat.v4
 var gfx_white mat.v4
 var gfx_black mat.v4
 var gfx_zero mat.v4
@@ -104,6 +107,7 @@ var g_tfxPbr TemplateId
 var g_fxVertexColor2D EffectId = EffectInvalid()
 var g_fxTexture2D EffectId = EffectInvalid()
 var g_fxUniformColor3D EffectId = EffectInvalid()
+var g_fxVertexColor3D EffectId = EffectInvalid()
 var g_fxTexture3D EffectId = EffectInvalid()
 var g_fxFade_0 EffectId = EffectInvalid()
 var g_fxFade_1 EffectId = EffectInvalid()
@@ -116,6 +120,12 @@ var g_nearestClamp SamplerState = SamplerStateCreate(gl.NEAREST, gl.NEAREST, gl.
 
 
 var g_vertexLayout []VertexAttribute
+
+// Debug ...
+//var g_debugMesh MeshId
+var g_debugColorCount i32 = 8
+var g_debugColors [8]mat.v4
+var g_useDebugColors bool
 
 // VertexLayout ...
 func VertexLayout()(out []VertexAttribute) {
@@ -240,7 +250,7 @@ func LocationCreate(location i32, name str, Type i32) (out Location) {
 
 func assignTexture(target i32, slot i32, sampler i32, name i32) () {
 	gl.Uniform1i(sampler, slot)
-	panicIf(GlError(), sprintf("gl.Uniform1i(%d, %d)", sampler, slot))
+	panicIf(GlError(), "gl.Uniform1i")
 
 	gl.ActiveTexture(gl.TEXTURE0 + slot)
 	panicIf(GlError(), "gl.ActiveTexture")
@@ -571,9 +581,20 @@ func Init(width i32, height i32, dataDir str)() {
 	gfx_green = mat.v4_(0.0, 1.0, 0.0, 1.0)
 	gfx_blue  = mat.v4_(0.0, 0.0, 1.0, 1.0)
 	gfx_pink  = mat.v4_(1.0, 0.0, 1.0, 1.0)
+	gfx_yellow= mat.v4_(1.0, 1.0, 0.0, 1.0)
+	gfx_sky   = mat.v4_(0.0, 1.0, 1.0, 1.0)
 	gfx_white = mat.v4_(1.0, 1.0, 1.0, 1.0)
 	gfx_black = mat.v4_(0.0, 0.0, 0.0, 1.0)
 	gfx_zero  = mat.v4_(0.0, 0.0, 0.0, 0.0)
+
+	g_debugColors[0] = gfx_red
+	g_debugColors[1] = gfx_green
+	g_debugColors[2] = gfx_blue
+	g_debugColors[3] = gfx_pink
+	g_debugColors[4] = gfx_yellow
+	g_debugColors[5] = gfx_sky
+	g_debugColors[6] = gfx_white
+	g_debugColors[7] = gfx_black
 
 	g_clearColor = gfx_pink
 
@@ -629,6 +650,17 @@ func Init(width i32, height i32, dataDir str)() {
 	TemplateBindUniform(g_tfxDefault, UNIFORM_PROJECTION, "u_m44Projection")
 	TemplateBindUniform(g_tfxDefault, UNIFORM_COLOR, "u_v4Color")
 	g_fxUniformColor3D = TemplateInstance(g_tfxDefault)
+
+	TemplateReset(g_tfxDefault)
+	TemplateSetVertexKey(g_tfxDefault, USE_TRANSFORM, true)
+	TemplateSetKey(g_tfxDefault, USE_COLOR_VTX, true)
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_POSITION, "i_v3Position")
+	TemplateBindAttribute(g_tfxDefault, ATTRIBUTE_COLOR, "i_v4Color")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_DEBUG_0, "DEBUG_0")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_WORLD, "u_m44World")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_VIEW, "u_m44View")
+	TemplateBindUniform(g_tfxDefault, UNIFORM_PROJECTION, "u_m44Projection")
+	g_fxVertexColor3D = TemplateInstance(g_tfxDefault)
 
 	TemplateReset(g_tfxDefault)
 	TemplateSetVertexKey(g_tfxDefault, USE_TRANSFORM, true)
@@ -730,17 +762,9 @@ func Destroy()() {
 
 	//PopScissor()
 
-	gl.Destroy()
-
 	ProgramUse(NullProgram())
 
-	var i i32
-	for i = 0; i < len(g_programs); i = i + 1 {
-		//printf("gl.DeleteProgram(%d)\n", g_programs[i])
-		gl.DeleteProgram(g_programs[i]) // ##0 crash
-		panicIf(GlError(), "gl.DeleteProgram")
-	}
-
+   	var i i32
 	for i = 0; i < len(g_vbos); i = i + 1 {
 		//printf("gl.DeleteBuffers(%d)\n", g_vbos[i])
 		gl.DeleteBuffers(1, g_vbos[i])
@@ -756,6 +780,14 @@ func Destroy()() {
 
 	DestroyTargets()
 	DestroyTextures()
+
+	for i = 0; i < len(g_programs); i = i + 1 {
+		printf("gl.DeleteProgram(%d)\n", g_programs[i])
+		gl.DeleteProgram(g_programs[i]) // ##0 crash
+		panicIf(GlError(), "gl.DeleteProgram")
+	}
+
+	gl.Destroy()
 }
 
 

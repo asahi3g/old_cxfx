@@ -64,7 +64,7 @@ func main()() {
 
 	// run
 	gui.ScreenShow(gameScreen)
-	gam.Run()
+	gam.Run(2U)
 
 	// destroy
 	gfx.MeshUnlock(mesh)
