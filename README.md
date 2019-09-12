@@ -1,4 +1,4 @@
-<img width="100%" height="100%" src="resources/logos/logo_2">
+<img width="100%" height="100%" src="resources/logos/logo_2.png">
 
 ## Disclaimer : It’s all wip, api will change until it matures.
 
@@ -36,10 +36,6 @@ make 6_model
 
 ##### WIP :
 
-<img width="100%" height="100%" src="screenshots/cxfx_29.png">
-<img width="100%" height="100%" src="screenshots/cxfx_29.png">
-<img width="100%" height="100%" src="screenshots/cxfx_29.png">
-<img width="100%" height="100%" src="screenshots/cxfx_29.png">
 <img width="100%" height="100%" src="screenshots/cxfx_51.gif">
 <img width="100%" height="100%" src="screenshots/cxfx_50.gif">
 <img width="100%" height="100%" src="screenshots/cxfx_49.gif">
