@@ -26,7 +26,7 @@ type Primitive struct {
 
 	effect EffectId
 
-	useSkin bool
+	useSkin i32
 	baseTexture TextureId
 	metalRoughTexture TextureId
 	emissiveTexture TextureId
@@ -186,7 +186,7 @@ func ModelCreateFromFile(dataDir str, filename str) (out ModelId){
 
 	model.skeletonRoot = -1
 
-	gltf.AssetPrint(model.asset)
+	//gltf.AssetPrint(model.asset)
 
 	g_models = append(g_models, model)
 
@@ -223,7 +223,7 @@ type channelInfo struct {
 
 func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 	var mode i32
-	printf("instancing : mode %d, indices %d, material %d\n", primitive.mode, primitive.indices, primitive.material)
+	//printf("instancing : mode %d, indices %d, material %d\n", primitive.mode, primitive.indices, primitive.material)
 	if primitive.mode == gltf.PRIMITIVE_LINES {
 		mode = gl.LINES
 	} else if primitive.mode == gltf.PRIMITIVE_TRIANGLES {
@@ -403,7 +403,6 @@ func meshInstance(id gltf.AssetId, primitive gltf.Primitive) (out MeshId) {
 		return
 	}
 
-	printf("meshInstance %d, %d, %d\n", len(attributes), len(indices), len(vertices))
 	if len(attributes) > 0 && len(indices) > 0 && len(vertices) > 0 {
 		out = MeshCreate(mode, indicesType, len(indices) / indexByteCount, attributes, len(vertices) / byteStride) // TODO : use real index/vertex count instead of bytecount
 		MeshBegin(out) // TODO : remove MeshBegin/MeshEnd, data should be uploaded with BufferData in MeshInstance.
@@ -497,7 +496,7 @@ func ModelRender(id ModelId) {
 	modelRender(id, false)
 
 	EnableBlending(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
-	DepthState(true, LESS, false)
+	DepthState(true, LESS, true)
 	modelRender(id, true)
 }
 
@@ -615,6 +614,7 @@ func modelInstance(id ModelId) (success bool) {
 			var mesh i32 = gltf.NodeGetMesh(asset, node)
 			var gltfPrimitives []gltf.Primitive = gltf.MeshGetPrimitives(asset, mesh)
 			var gltfPrimitiveCount i32 = len(gltfPrimitives)
+
 			for p := 0; p < gltfPrimitiveCount; p++ {
 
 				var render MeshId = InvalidMesh()
@@ -667,7 +667,9 @@ func modelInstance(id ModelId) (success bool) {
 				primitive.occlusionTexture = loadTexture(asset, dataDir, gltfMaterial.occlusionTexture.index)
 				primitive.gltfMaterial = gltfMaterial
 				primitive.gltfPrimitive = gltfPrimitive
-				primitive.useSkin = MeshUseWeight(render) &&  MeshUseJoint(render)
+				if MeshUseWeight(render) &&  MeshUseJoint(render) {
+					primitive.useSkin = 1
+				}
 
 				var effect EffectId = effectInstance(&primitive)
 				if EffectIsValid(effect) == false {
@@ -723,6 +725,17 @@ func modelInstance(id ModelId) (success bool) {
 	success = true
 }
 
+func animationUpdate(id ModelId, deltaTime f32, loop bool) {
+}
+
+func debugNode(stackCount i32, asset gltf.AssetId, node i32) {
+	for kk := 0; kk < stackCount; kk++ {
+		printf("--")
+	}
+
+	printf("%s :\n", gltf.NodeGetName(asset, node))
+}
+
 func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 	panicIfNot(ModelIsValid(id), "invalid model")
 
@@ -752,6 +765,7 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 		stack[i] = roots[i]
 	}
 
+	var stackCount i32
 	var skin bool = g_models[id.model].skeletonRoot >= 0
 	for len(stack) > 0 {
 		var stackLen i32 = len(stack)
@@ -763,12 +777,22 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 		var animMatrix []f32 = g_models[id.model].animation
 		animMatrix = mat.MatrixIdentity(animMatrix)
 		if node < 0 {
+			stackCount = stackCount - 1
 			matrixStack = mat.MatrixStackPop(matrixStack, 0-node)
 		} else {
+			stackCount = stackCount + 1
 			var stackPushed i32 = 0
 			tmp2 = mat.MatrixIdentity(tmp2)
 			var animationIndex i32 = animationIndices[nodeIndex]
 			var animationCount i32 = animationCounts[nodeIndex]
+
+			var useTX i32
+			var useRX i32
+			var useSX i32
+			var animTranslation v3 = mat.v3_(0.0, 0.0, 0.0)
+			var animRotation v4 = mat.v4_(0.0, 0.0, 0.0, 1.0)
+			var animScale v3 = mat.v3_(1.0, 1.0, 1.0)
+
 			for a := 0; a < animationCount; a++ {
 				var anim bool
 
@@ -829,8 +853,6 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 						t = 1.0
 					}
 
-					//printf("time %f, min %f, max %f, prev %d, index %d, step %f\n", animation.time, animation.min, animation.max, prev, index, t)
-
 					var outputAccessor gltf.Accessor = gltf.AssetGetAccessor(asset, animation.sampler.outputA)
 					var outputs []f32 = outputAccessor.dataF32
 					var path i32 = animation.channel.path
@@ -849,8 +871,9 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 						var y f32 = y0 + (y1 - y0) * t
 						var z f32 = z0 + (z1 - z0) * t
 
-						animMatrix = mat.MatrixCreateTranslation(animMatrix, x, y, z)
 						anim = true
+						animTranslation = mat.v3_(x, y, z)
+						useTX = 1
 					} else if path == gltf.ANIMATION_PATH_ROTATION {
 						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC4, "invalid attribute type")
 						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
@@ -874,8 +897,9 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 								mat.v4_normalize(mat.v4_(x1, y1, z1, w1)), t)*/
 						var q mat.v4 = mat.v4_normalize(mat.v4_(x, y, z, w))
 
-						animMatrix = mat.MatrixCreateRotationFromQuaternion(animMatrix, q.x, q.y, q.z, q.w)
+						animRotation = q
 						anim = true
+						useRX = 1
 					} else if path == gltf.ANIMATION_PATH_SCALE {
 						panicIf(outputAccessor.attributeTypeEnum != gltf.TYPE_VEC3, "invalid attribute type")
 						panicIf(outputAccessor.componentType != gl.FLOAT, "unhandled component type")
@@ -891,8 +915,8 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 						var y f32 = y0 + (y1 - y0) * t
 						var z f32 = z0 + (z1 - z0) * t
 
-
-						animMatrix = mat.MatrixCreateScale(animMatrix, x, y, z)
+						animScale = mat.v3_(x, y, z)
+						useSX = 1
 						anim = true
 					} else if path == gltf.ANIMATION_PATH_WEIGHTS {
 					} else {
@@ -901,32 +925,43 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 
 					animations[animationIndex + a] = animation
 				}
-				if anim {
-					tmp2 = mat.MatrixMultiply(tmp2, animMatrix, tmp2)
-				}
 			}
 			nodeIndex++
 
-			var useNode bool = true
+			var nodeMatrix []f32 = gltf.NodeGetMatrix(asset, node)
+
 			if anim {
-				matrixStack = mat.MatrixStackPush(matrixStack, tmp2)
+				if useTX == 0 {
+					animTranslation = gltf.NodeGetTranslation(asset, node)
+				}
+				if useRX == 0 {
+					animRotation = gltf.NodeGetRotation(asset, node)
+				}
+				if useSX == 0 {
+					animScale = gltf.NodeGetScale(asset, node)
+				}
+				tmp2 = mat.MatrixCreate2(tmp2, animScale.x, animScale.y, animScale.z,
+						animRotation.x, animRotation.y, animRotation.z, animRotation.w,
+						animTranslation.x, animTranslation.y, animTranslation.z)
+   				matrixStack = mat.MatrixStackPush(matrixStack, tmp2)
 				stackPushed++
 			}
 
 			if anim == false || skin == false {
-				var nodeMatrix []f32 = gltf.NodeGetMatrix(asset, node)
 				if len(nodeMatrix) > 0 {
 					matrixStack = mat.MatrixStackPush(matrixStack, nodeMatrix)
 					stackPushed++
 				}
 			}
 
-			var last []f32 = mat.MatrixStackLast(matrixStack)
+			var useNode bool = true
+
+			//debugNode(stackCount, asset, node)
 
 			var joints []i32 = g_models[id.model].joints
+			var last []f32 = mat.MatrixStackLast(matrixStack)
 			for j := 0; j < len(joints); j++ {
 				if joints[j] == node {
-
 					var inverseBind []f32 = g_models[id.model].inverseBind
 					var tmp []f32 = g_models[id.model].tmp
 					for mi := 0; mi < 16; mi++ {
@@ -944,7 +979,6 @@ func modelUpdate(id ModelId, deltaTime f32, loop bool) {
 				}
 			}
 
-			//mat.MatrixPrint("LAST BOOO : ", last)
 			for mi := 0; mi < 16; mi++ {
 				transforms = append(transforms, last[mi])
 			}
@@ -1010,7 +1044,9 @@ func modelRender(id ModelId, alpha bool) {
 
 		var nodeIndex i32 = primitive.nodeIndex
 		if skin == true {
-			tmp = world
+			for ii := 0; ii < 16; ii++ {
+				tmp[ii] = world[ii]
+			}
 		}
 
 		if skin == false {
@@ -1027,7 +1063,7 @@ func modelRender(id ModelId, alpha bool) {
 
 		tmp = mat.MatrixInverse(tmp, tmp)
 		EffectAssignMatrix4(effect, UNIFORM_WORLD_INVERSE, tmp, false)
-		if primitive.useSkin {
+		if primitive.useSkin == 1 {
 	  		EffectAssignMatrix4(effect, UNIFORM_SKELETON, jointMatrices, false)
 		}
 

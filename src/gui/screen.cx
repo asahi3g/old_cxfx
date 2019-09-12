@@ -173,13 +173,12 @@ func ScreenProcessEvent(id ScreenId, event *app.Event) (out i32) {
 func ScreenChangeState(id ScreenId, state i32) () {
 	panicIfNot(IsValidScreen(id), "invalid id")
 	g_screens[id.screen].prevState = g_screens[id.screen].state
-	printf("CHANGE %d\n", state)
 	g_screens[id.screen].state = state
 	var prev i32 = g_screens[id.screen].prevState
 	var curr i32 = g_screens[id.screen].state
-	if (prev != curr) {
+	/*if (prev != curr) {
 		printf("%d screen state changed %d -> %d\n", id.screen, prev, curr)
-	}
+	}*/
 }
 
 // ScreenStateChanged ...
@@ -197,17 +196,14 @@ func ScreenHideModal(id ScreenId) {
 	panicIfNot(modalCount > 0, "invalid count")
 	if (modalCount > 0) {
 		var modalIndex i32 = modalCount - 1
-		printf("MODAL_INDEX %d, COUNT %d\n", modalIndex, modalCount)
 		var modalScreen ScreenId = g_modals[modalIndex]
 		panicIfNot(modalScreen.screen == id.screen, "invalid screen")
 		if (modalScreen.screen == id.screen) {
-			printf("ScreenHide\n")
 			ScreenHide(modalScreen)
 			g_modals = resize(g_modals, modalIndex)
 			g_hotScreen = InvalidScreen()
 		}
 	}
-	printf("AFTER HIDE_MODEL\n")
 }
 
 // ScreenModalIsVisible ...
@@ -221,7 +217,6 @@ func ScreenModalIsVisible(id ScreenId) (out bool) {
 			var lastIndex i32 = modalCount - 1
 			var left i32 = g_modals[lastIndex].screen
 			var right i32 = id.screen
-			//printf("left %d, right %d\n", left, right)
 			if (left == right) {
 				out = true
 			}
@@ -238,7 +233,7 @@ func ScreenHide(id ScreenId) () {
 func ScreenShow(id ScreenId) () {
 	panicIfNot(IsValidScreen(id), "invalid id")
 	g_hotScreen = id
-	ControlPrint("ScreenShow : ", id.base, false)
+	//ControlPrint("ScreenShow : ", id.base, false)
 	RebuildFocus(id)
 
 	var modal bool = g_screens[id.screen].modal
@@ -260,10 +255,8 @@ func ScreenUpdate(id ScreenId, deltaTime f64) () {
 	g_screens[id.screen].time = t
 	var state i32 = g_screens[id.screen].state
 	if ((t <= 0.0D) && (state == STATE_CLOSED)) {
-		printf("CHANGE SHOWING\n")
 		ScreenChangeState(id, STATE_SHOWING)
 	} else if ((t >= d) && (d > 0.0D) && (state == STATE_OPENED)) { // can't use g_screens[screen].state here
-		printf("CHANGE CLOSING %d\n", g_screens[id.screen].state)
 		ScreenChangeState(id, STATE_CLOSING)
 	}
 
@@ -273,7 +266,6 @@ func ScreenUpdate(id ScreenId, deltaTime f64) () {
 	if onUpdate.index >= 0 {
 		call_i32_i32(onUpdate, id.base.control, -1)
 	}
-	//	printf("time %f", f64.f32(t))
 }
 
 // ScreenResize ...
@@ -297,7 +289,6 @@ func ScreenRender(id ScreenId, clip mat.v4, stack i32) () {
 		gfx.BeginBatches()
 
 		clip = gfx.PushScissor(g_controls[id.base.control].name, gfx.gfx_viewportBounds)
-		//printf("SCREEN CLIP %f, %f, %f, %f\n", clip.x, clip.y, clip.z, clip.w)
 		ControlRender(id.base, clip, stack)
 		gfx.PopScissor()
 

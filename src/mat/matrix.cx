@@ -344,38 +344,38 @@ func MatrixCreateScale(in []f32, x f32, y f32, z f32) (out []f32) {
 }
 
 // MatrixDeterminant ...
-func MatrixDeterminant(a []f32) (out f32) {
-	var m00 f32 = a[0]
-	var m01 f32 = a[1]
-	var m02 f32 = a[2]
-	var m03 f32 = a[3]
+func MatrixDeterminant(m []f32) (out f32) {
+	var m00 f32 = m[0]
+	var m01 f32 = m[1]
+	var m02 f32 = m[2]
+	var m03 f32 = m[3]
 
-	var m10 f32 = a[4]
-	var m11 f32 = a[5]
-	var m12 f32 = a[6]
-	var m13 f32 = a[7]
+	var m10 f32 = m[4]
+	var m11 f32 = m[5]
+	var m12 f32 = m[6]
+	var m13 f32 = m[7]
 
-	var m20 f32 = a[8]
-	var m21 f32 = a[9]
-	var m22 f32 = a[10]
-	var m23 f32 = a[11]
+	var m20 f32 = m[8]
+	var m21 f32 = m[9]
+	var m22 f32 = m[10]
+	var m23 f32 = m[11]
 
-	var m30 f32 = a[12]
-	var m31 f32 = a[13]
-	var m32 f32 = a[14]
-	var m33 f32 = a[15]
+	var m30 f32 = m[12]
+	var m31 f32 = m[13]
+	var m32 f32 = m[14]
+	var m33 f32 = m[15]
 
-	var n0 f32 = (m22 * m33) - (m23 * m32);
-	var n1 f32 = (m21 * m33) - (m23 * m31);
-	var n2 f32 = (m21 * m32) - (m22 * m31);
-	var n3 f32 = (m20 * m33) - (m23 * m30);
-	var n4 f32 = (m20 * m32) - (m22 * m30);
-	var n5 f32 = (m20 * m31) - (m21 * m30);
+	var a f32 = (m22 * m33) - (m23 * m32);
+	var b f32 = (m21 * m33) - (m23 * m31);
+	var c f32 = (m21 * m32) - (m22 * m31);
+	var d f32 = (m20 * m33) - (m23 * m30);
+	var e f32 = (m20 * m32) - (m22 * m30);
+	var f f32 = (m20 * m31) - (m21 * m30);
 
-	out = m00 * (m11*n0 - m12*n1 + m13*n2) -
-		  m01 * (m10*n0 - m12*n3 + m13*n4) +
-		  m02 * (m10*n1 - m11*n3 + m13*n5) -
-		  m03 * (m10*n2 - m11*n4 + m12*n5)
+	out = m00 * (m11*a - m12*b + m13*c) -
+		  m01 * (m10*a - m12*d + m13*e) +
+		  m02 * (m10*b - m11*d + m13*f) -
+		  m03 * (m10*c - m11*e + m12*f)
 }
 
 

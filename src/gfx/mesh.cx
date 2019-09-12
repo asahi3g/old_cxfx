@@ -223,7 +223,7 @@ func meshCreate(primitive i32, indexType i32, indexCount i32, indices []ui8, att
 		var componentByteSize i32 = attribute.componentByteSize
 		attribute.byteOffset = vertexByteStride
 		attribute.componentOffset = vertexComponentStride
-		VertexAttributePrint(attribute)
+		//VertexAttributePrint(attribute)
 		vertexComponentStride = vertexComponentStride + componentCount
 		vertexByteStride = vertexByteStride + componentCount * componentByteSize
 		attributes[i] = attribute

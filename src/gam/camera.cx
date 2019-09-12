@@ -93,6 +93,13 @@ func CameraGetAt(id CameraId) (out mat.v3) {
     out = mat.v3_(view[2], view[6], view[10])
 }
 
+// CameraGetRight ...
+func CameraGetRight(id CameraId) (out mat.v3) {
+    panicIfNot(CameraIsValid(id), "")
+    var view []f32 = g_cameras[id.camera].view
+    out = mat.v3_(view[0], view[4], view[8])
+}
+
 // CameraGetProjection ...
 func CameraGetProjection(id CameraId) (out []f32) {
     panicIfNot(CameraIsValid(id), "")
@@ -586,7 +593,7 @@ func cameraUpdate(id CameraId, deltaTime f64) {
     var currentPosition mat.v3 = current.position
     var nextPosition mat.v3 = next.position
     if mat.v3_eq(currentPosition, nextPosition) == false {
-        translationSpeed = 4.0
+        translationSpeed = 6.0
     }
 
     /*var currentOrientation mat.v4 = current.orientation
@@ -601,13 +608,13 @@ func cameraUpdate(id CameraId, deltaTime f64) {
     var currentYaw f32 = current.yaw
     var nextYaw f32 = next.yaw
     if currentYaw != nextYaw {
-        yawSpeed = 4.0
+        yawSpeed = 6.0
     }
 
     var currentPitch f32 = current.pitch
     var nextPitch f32 = next.pitch
     if currentPitch != nextPitch {
-        pitchSpeed = 4.0
+        pitchSpeed = 6.0
     }
 
     positionTime = positionTime + dt * translationSpeed

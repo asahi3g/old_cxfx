@@ -167,7 +167,7 @@ func Update(deltaTime i64) {
 					var length f32 = mat.v3_dot(distance, activeTop) / mat.v3_length(activeTop)
 					if length < (passiveRadius * 0.5) {
 						passiveDisp = mat.v3_add(passiveDisp, mat.v3_mulf(activeTop, passiveRadius * 0.5 - length))
-						passiveDisp = mat.v3_mulf(passiveDisp, 0.5)
+						passiveDisp = mat.v3_mulf(passiveDisp, 0.8)
 						g_displacements[i] = passiveDisp
 						//PrintObject(i)
 					}
@@ -318,6 +318,22 @@ func GetObjectPosition(id i32) (out v3) {
 	out = g_positions[id]
 }
 
+// GetObjectAt ...
+func GetObjectAt(id i32) (out v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    var r mat.v4 = g_rotations[id]
+    var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
+    out = mat.QuaternionTransformVector(q, mat.v3_(0.0, 0.0, 1.0))
+}
+
+// GetObjectRight ...
+func GetObjectRight(id i32) (out v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    var r mat.v4 = g_rotations[id]
+    var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
+    out = mat.QuaternionTransformVector(q, mat.v3_(1.0, 0.0, 0.0))
+}
+
 // GetObjectRotation ...
 func GetObjectRotation(id i32) (out v4) {
 	panicIfNot(IsValidObject(id), "invalid object")
@@ -328,6 +344,24 @@ func GetObjectRotation(id i32) (out v4) {
 func SetObjectRotation(id i32, rotation mat.v4) {
 	panicIfNot(IsValidObject(id), "invalid object")
 	g_rotations[id] = rotation
+}
+
+// SetObjectAcceleration ...
+func SetObjectAcceleration(id i32, acceleration mat.v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    g_accelerations[id] = acceleration
+}
+
+// SetObjectVelocity ...
+func SetObjectVelocity(id i32, velocity mat.v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    g_velocities[id] = velocity
+}
+
+// GetObjectVelocity ...
+func GetObjectVelocity(id i32) (out mat.v3) {
+    panicIfNot(IsValidObject(id), "invalid object")
+    out = g_velocities[id]
 }
 
 // GetObjectScale ...

@@ -114,3 +114,23 @@ func QuaternionMultiply(a v4, b v4) (out v4) {
 	out.w = aw*bw - f;
 }
 
+// QuaternionTransformVector ...
+func QuaternionTransformVector(q v4, v v3) (out v3) {
+     var a f32 = q.x * 2.0
+     var b f32 = q.y * 2.0
+     var c f32 = q.z * 2.0
+     var d f32 = q.x * a
+     var e f32 = q.y * b
+     var f f32 = q.z * c
+     var g f32 = q.x * b
+     var h f32 = q.x * c
+     var i f32 = q.y * c
+     var j f32 = q.w * a
+     var k f32 = q.w * b
+     var l f32 = q.w * c
+     out.x = (1.0 - e - f) * v.x + (g - l) * v.y + (h + k) * v.z
+     out.y = (g + l) * v.x + (1.0 - d - f) * v.y + (i - j) * v.z
+     out.z = (h - k) * v.x + (i + j) * v.y + (1.0 - d - e) * v.z
+}
+
+
