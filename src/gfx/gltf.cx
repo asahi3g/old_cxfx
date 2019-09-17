@@ -2322,6 +2322,14 @@ func parseExtensionsUsed(file i32, id AssetId) (out AssetId) {
 	out = AssetInvalid()
 }
 
+// AssetGetNodeCount ...
+func AssetGetNodeCount(id AssetId) (out i32) {
+    panicIfNot(AssetIsValid(id), "invalid asset")
+
+    var nodes []Node = g_assets[id.asset].nodes
+    out = len(nodes)
+}
+
 // AssetGetRootNodes ...
 func AssetGetRootNodes(id AssetId) (out []i32) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
