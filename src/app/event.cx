@@ -38,8 +38,10 @@ var KEYCODE_9 i32 = 57
 var KEYCODE_0 i32 = 48
 
 var KEYCODE_A i32 = 65
+var KEYCODE_B i32 = 66
 var KEYCODE_D i32 = 68
 var KEYCODE_S i32 = 83
+var KEYCODE_V i32 = 86
 var KEYCODE_W i32 = 87
 
 var MOD_NONE  i32 = 0

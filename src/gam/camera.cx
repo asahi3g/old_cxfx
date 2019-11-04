@@ -50,10 +50,15 @@ type Camera struct {
     pitchTime f32
     //orientationTime f32
 
+    pitchQuaternion v4
+    yawQuaternion v4
 
     transform []f32
     view []f32
     projection []f32
+    viewProj []f32
+    invViewProj []f32
+    invProj []f32
 
     xdir f32
     zdir f32
@@ -80,10 +85,47 @@ func CameraGetPosition(id CameraId) (out mat.v3) {
     out = g_cameras[id.camera].current.position
 }
 
+// CameraGetPitchQuaternion ...
+func CameraGetPitchQuaternion(id CameraId) (out mat.v4) {
+    panicIfNot(CameraIsValid(id), "")
+    out = g_cameras[id.camera].pitchQuaternion
+}
+
+// CameraGetYawQuaternion ...
+func CameraGetYawQuaternion(id CameraId) (out mat.v4) {
+    panicIfNot(CameraIsValid(id), "")
+    out = g_cameras[id.camera].yawQuaternion
+}
+
+// CameraGetTransform. ...
+func CameraGetTransform(id CameraId) (out []f32) {
+    panicIfNot(CameraIsValid(id), "")
+    out = g_cameras[id.camera].transform
+}
+
 // CameraGetView ...
 func CameraGetView(id CameraId) (out []f32) {
     panicIfNot(CameraIsValid(id), "")
     out = g_cameras[id.camera].view
+}
+
+// CameraGetViewProj ...
+func CameraGetViewProj(id CameraId) (out []f32) {
+    panicIfNot(CameraIsValid(id), "")
+    out = g_cameras[id.camera].viewProj
+}
+
+// CameraGetInvProj ...
+func CameraGetInvProj(id CameraId) (out []f32) {
+    panicIfNot(CameraIsValid(id), "")
+    out = g_cameras[id.camera].invProj
+}
+
+
+// CameraGetInvViewProj ...
+func CameraGetInvViewProj(id CameraId) (out []f32) {
+    panicIfNot(CameraIsValid(id), "")
+    out = g_cameras[id.camera].invViewProj
 }
 
 // CameraGetAt ...
@@ -124,6 +166,18 @@ func CameraCreate() (out CameraId) {
     var projection []f32 = mat.MatrixAlloc() // ISSUE : invalid reference assignment camera
     projection = mat.MatrixIdentity(projection) // ISSUE : invalid reference assignment camera
     camera.projection = projection
+
+    var viewProj []f32 = mat.MatrixAlloc()
+    viewProj = mat.MatrixIdentity(viewProj)
+    camera.viewProj = viewProj
+
+    var invViewProj []f32 = mat.MatrixAlloc()
+    invViewProj = mat.MatrixIdentity(invViewProj)
+    camera.invViewProj = invViewProj
+
+    var invProj []f32 = mat.MatrixAlloc()
+    invProj = mat.MatrixIdentity(invProj)
+    camera.invProj = invProj
 
     g_cameras = append(g_cameras, camera)
 
@@ -673,6 +727,8 @@ func cameraUpdate(id CameraId, deltaTime f64) {
     var qpitch mat.v4 = mat.QuaternionFromYawPitchRoll(0.0, current.pitch, 0.0)
     var orientation mat.v4 = mat.QuaternionMultiply(qyaw, qpitch)
     orientation = mat.v4_normalize(orientation)
+    g_cameras[cameraIndex].yawQuaternion = qyaw
+    g_cameras[cameraIndex].pitchQuaternion = qpitch
     /*orientation = mat.QuaternionMultiply(qyaw, orientation)
     orientation = mat.QuaternionMultiply(orientation, qpitch)
     orientation = mat.v4_normalize(orientation)*/
@@ -683,6 +739,20 @@ func cameraUpdate(id CameraId, deltaTime f64) {
 
     var view []f32 = g_cameras[cameraIndex].view
     view = mat.MatrixInverse(view, transform) // TODO : compute view matrix without MatrixInvert
+
+    var invProj []f32 = g_cameras[cameraIndex].invProj
+    invProj = mat.MatrixInverse(invProj, projection)
+    g_cameras[cameraIndex].invProj = invProj
+
+    var viewProj []f32 = g_cameras[cameraIndex].viewProj
+    viewProj = mat.MatrixMultiply(viewProj, view, projection)
+    g_cameras[cameraIndex].viewProj = viewProj
+
+    var invViewProj []f32 = g_cameras[cameraIndex].invViewProj
+    invViewProj = mat.MatrixInverse(invViewProj, viewProj)
+    g_cameras[cameraIndex].invViewProj = invViewProj
+    
+    
     g_cameras[cameraIndex].view = view
 }
 

@@ -4,6 +4,7 @@ import "json"
 import "os"
 import "gl"
 import "mat"
+
 // Constants ...
 var HEADER_SIZE i32 = 12
 var CHUNK_HEADER_SIZE i32 = 8
@@ -12,6 +13,8 @@ var MAGIC ui32 = 1179937895U // 0x46546C67
 var MAGIC_JSON_CHUNK ui32 = 1313821514U // 0x4E4F534A
 var MAGIC_BIN_CHUNK ui32 = 5130562U // 0x004E4942
 
+var ASSET_GEOMETRY i32 = 1
+var ASSET_ANIMATION i32 = 2
 /*var FILE_INVALID i32 = 0
 var FILE_GLTF i32 = 1
 var FILE_GLB i32 = 2
@@ -176,19 +179,18 @@ type MetallicRoughness struct {
 	metallicRoughnessTexture TextureView
 }
 
-/*
 type SpecularGlossiness struct {
-	diffuse i32
-	specularGlossiness i32
 	diffuseFactor [4]f32
-	specularFactor [3]f32
+	diffuseTexture TextureView
 	glossinessFactor f32
+	specularFactor [3]f32
+	specularGlossinessTexture TextureView
 }
-*/
 
 type Material struct {
 	name str
 	pbrMetallicRoughness MetallicRoughness
+	pbrSpecularGlossiness SpecularGlossiness
 	normalTexture TextureView
 	occlusionTexture TextureView
 	emissiveTexture TextureView
@@ -284,6 +286,7 @@ type Node struct {
 	name str
 	//parent i32
 	//light i32
+	hasMatrix bool
 }
 
 // Scene
@@ -299,7 +302,6 @@ type AssetId struct {
 
 // Asset ...
 type Asset struct {
-	//extensionsRequired
 	accessors []Accessor
 	animations []Animation
 	buffers []Buffer
@@ -315,6 +317,7 @@ type Asset struct {
 	skins []Skin
 	textures []Texture
 	//extensionsUsed []str
+	//extensionsRequired []str
 
 	path str
 
@@ -922,6 +925,9 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 			var m []f32 = node.matrix = mat.MatrixAlloc()
 			m = mat.MatrixCreate2(m, sx, sy, sz, qx, qy, qz, qw, tx, ty, tz)
 			node.matrix = m
+			node.hasMatrix = false
+		} else {
+			node.hasMatrix = true
 		}
 
 		g_assets[id.asset].nodes = append(g_assets[id.asset].nodes, node)
@@ -1323,6 +1329,85 @@ func parseTexture(file i32, id AssetId) (out AssetId, texture TextureView) {
 	}
 }
 
+func parsePbrSpecularGlossiness(file i32, id AssetId) (out AssetId, specularGlossiness SpecularGlossiness) {
+	panicIfNot(AssetIsValid(id), "invalid asset")
+
+	out = id
+
+	specularGlossiness.diffuseFactor[0] = 1.0
+	specularGlossiness.diffuseFactor[1] = 1.0
+	specularGlossiness.diffuseFactor[2] = 1.0
+	specularGlossiness.diffuseFactor[3] = 1.0
+
+	specularGlossiness.glossinessFactor = 1.0
+	specularGlossiness.specularFactor[0] = 1.0
+	specularGlossiness.specularFactor[1] = 1.0
+	specularGlossiness.specularFactor[2] = 1.0
+
+	specularGlossiness.diffuseTexture = InvalidTextureView()
+	specularGlossiness.specularGlossinessTexture = InvalidTextureView()
+
+	if json.MatchDelim(file, json.DELIM_CURLY_LEFT) == false {
+		out = AssetInvalid()
+		return
+	}
+
+	for alwaysMore(file) {
+		var key str
+		if json.ReadStr(file, &key) == false {
+			out = AssetInvalid()
+			return
+		}
+
+		if key == "diffuseFactor" {
+			var diffuseFactor [4]f32
+			if json.ReadF32Vec4(file, &diffuseFactor) == false {
+				out = AssetInvalid()
+				return
+			}
+			specularGlossiness.diffuseFactor = diffuseFactor
+		} else if key == "glossinessFactor" {
+			var glossinessFactor f32
+			if json.ReadF32(file, &glossinessFactor) == false {
+				out = AssetInvalid()
+				return
+			}
+			specularGlossiness.glossinessFactor = glossinessFactor
+		} else if key == "specularFactor" {
+			var specularFactor [3]f32
+			if json.ReadF32Vec3(file, &specularFactor) == false {
+				out = AssetInvalid()
+				return
+			}
+			specularGlossiness.specularFactor = specularFactor
+		} else if key == "diffuseTexture" {
+			var texture TextureView
+			out, texture = parseTexture(file, id)
+			if AssetIsValid(out) == false {
+				return
+			}
+			specularGlossiness.diffuseTexture = texture
+		} else if key == "specularGlossinessTexture" {
+			var texture TextureView
+			out, texture = parseTexture(file, id)
+			if AssetIsValid(out) == false {
+				return
+			}
+			specularGlossiness.specularGlossinessTexture = texture
+		} else {
+			printf("invalid key %s\n", key)
+			out = AssetInvalid()
+			return
+		}
+	}
+
+	if json.MatchDelim(file, json.DELIM_CURLY_RIGHT) {
+		return
+	}
+
+	out = AssetInvalid()
+}
+
 //------------------------------------------------------------------------------
 func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRoughness MetallicRoughness) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
@@ -1546,6 +1631,14 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 							printf("failed to parse KHR_extension_unlit\n")
 							return
 						}
+					} else if extension == "KHR_materials_pbrSpecularGlossiness" {
+						var pbrSpecularGlossiness SpecularGlossiness
+						out, pbrSpecularGlossiness = parsePbrSpecularGlossiness(file, id)
+						if AssetIsValid(out) == false {
+							printf("failed to read pbr specular glossiness\n")
+							return
+						}
+						material.pbrSpecularGlossiness = pbrSpecularGlossiness
 					} else {
 						out = AssetInvalid()
 						printf("unhandled extensions %s\n", extension)
@@ -2295,7 +2388,7 @@ func parseSkins(file i32, id AssetId) (out AssetId) {
 }
 
 //------------------------------------------------------------------------------
-func parseExtensionsUsed(file i32, id AssetId) (out AssetId) {
+func parseExtensions(file i32, id AssetId) (out AssetId, extensions []str) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
 
 	out = id
@@ -2397,6 +2490,16 @@ func AssetGetAccessor(id AssetId, accessor i32) (out Accessor) { // TODO : handl
 func AssetGetAnimations(id AssetId) (out []Animation) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
 	out = g_assets[id.asset].animations
+}
+
+// NodeHasMatrix ...
+func NodeHasMatrix(id AssetId, node i32) (out bool) {
+	out = false
+	panicIfNot(AssetIsValid(id), "invalid asset")
+	var nodes []Node = g_assets[id.asset].nodes
+	if node >= 0 && node < len(nodes) {
+		out = nodes[node].hasMatrix
+	}
 }
 
 // NodeGetMesh ...
@@ -2550,7 +2653,7 @@ func MeshGetPrimitives(id AssetId, mesh i32) (out []Primitive) {
 }
 
 // AssetCreate ...
-func AssetCreate(dataDir str, filename str) (out AssetId) {
+func AssetCreate(dataDir str, filename str, options i32) (out AssetId) {
 	var path str = sprintf("%s%s", dataDir, filename)
 	out.asset = len(g_assets)
 
@@ -2665,8 +2768,14 @@ func AssetCreate(dataDir str, filename str) (out AssetId) {
 					//printf("<<<<<<<<<<<<< parse SKINS\n")
 				} else if key == "extensionsUsed" {
 					//printf(">>>>>>>>>>>>> parse EXTENSIONS_USED\n")
-					out = parseExtensionsUsed(file, out)
+					var extensions []str
+					out, extensions = parseExtensions(file, out)
 					//printf("<<<<<<<<<<<<< parse EXTENSIONS_USED\n")
+				} else if key == "extensionsRequired" {
+					//printf(">>>>>>>>>>>>> parse EXTENSIONS_REQUIRED\n")
+					var extensions []str
+					out, extensions = parseExtensions(file, out)
+					//printf("<<<<<<<<<<<<< parse EXTENSIONS_REQUIRED\n")
 				} else {
 					printf("gltf : parsing not implemented : %s\n", key)
 					out = AssetInvalid()

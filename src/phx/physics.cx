@@ -23,6 +23,7 @@ var g_objectCount i32
 var g_states []i32
 var g_types []i32
 var g_tags []i32
+var g_frictions []f32
 var g_positions []v3
 var g_velocities []v3
 var g_displacements []v3
@@ -38,6 +39,9 @@ var g_rotations []v4
 var g_angularVelocities []v4
 var g_angularAccelerations []v4
 var g_masses []f32
+var g_collided []i32
+var g_colLengths []f32
+var g_colors []mat.v4
 
 var g_currentTime i64
 var g_deltaTime i64
@@ -79,10 +83,11 @@ func Init(targetFPS ui32, gforce f32) {
 	}
 }
 
+var COLLIDED bool
 // Update ...
 func Update(deltaTime i64) {
 	g_deltaTime = g_deltaTime + deltaTime // ISSUE : g_deltaTime += deltaTime : physics.cx:36 'deltaTime' redeclared
-	var debugScale f32 = 0.01
+	var debugScale f32 = 0.1
 
 	var dt f32 = f64.f32(fps.NanoToMilli(g_lockStep)) * debugScale
 	var sqdt f32 = dt * dt
@@ -133,6 +138,7 @@ func Update(deltaTime i64) {
 	var translateCount i32 = len(g_translates)
 	var rotateCount i32 = len(g_rotates)
 
+	COLLIDED = false
 	for g_deltaTime > g_lockStep {
 		for k := 0; k < translateCount; k++ {
 			var i i32 = g_translates[k]
@@ -149,7 +155,6 @@ func Update(deltaTime i64) {
 
 		var activeCount i32 = len(g_actives)
 		var passiveCount i32 = len(g_passives)
-
 		for k := 0; k < passiveCount; k++ {
 			var i i32 = g_passives[k]
 			var passiveType i32 = g_types[i]
@@ -157,6 +162,7 @@ func Update(deltaTime i64) {
 			var passiveDisp mat.v3 = g_displacements[i]
 			var passiveDest mat.v3 = mat.v3_add(passivePos, passiveDisp)
 			var passiveRadius f32 = g_radiuses[i]
+			g_collided = resize(g_collided, 0)
 			for kk := 0; kk < activeCount; kk++ {
 				var ii i32 = g_actives[kk]
 				var activeType i32 = g_types[ii]
@@ -165,11 +171,39 @@ func Update(deltaTime i64) {
 				if passiveType == TYPE_ELLIPSE && activeType == TYPE_PLANE {
 					var distance mat.v3 = mat.v3_sub(passiveDest, activePos)
 					var length f32 = mat.v3_dot(distance, activeTop) / mat.v3_length(activeTop)
+					var collisionCount i32 = len(g_collided)
+					for cc := 0; cc < collisionCount; cc++ {
+						if length < g_colLengths[i] {
+							g_colLengths = insert(g_colLengths, cc, length)
+							g_collided = insert(g_collided, cc, ii)
+						}
+					}
+					if collisionCount == len(g_collided) {
+						g_colLengths = append(g_colLengths, length)
+						g_collided = append(g_collided, ii)
+					}
+				}
+			}
+
+			var collidedCount i32 = len(g_collided)
+			for kk := 0; kk < collidedCount; kk++ {
+				var ii i32 = g_collided[kk]
+				var activeType i32 = g_types[ii]
+				var activePos mat.v3 = g_positions[ii]
+				var activeTop mat.v3 = g_normals[ii]
+
+				passiveDisp = g_displacements[i]
+				passiveDest = mat.v3_add(passivePos, passiveDisp)
+
+				if passiveType == TYPE_ELLIPSE && activeType == TYPE_PLANE {
+					var distance mat.v3 = mat.v3_sub(passiveDest, activePos)
+					var length f32 = mat.v3_dot(distance, activeTop) / mat.v3_length(activeTop)
 					if length < (passiveRadius * 0.5) {
-						passiveDisp = mat.v3_add(passiveDisp, mat.v3_mulf(activeTop, passiveRadius * 0.5 - length))
-						passiveDisp = mat.v3_mulf(passiveDisp, 0.8)
+						var addDisp mat.v3 = mat.v3_mulf(activeTop, passiveRadius * 0.5 - length)
+						passiveDisp = mat.v3_add(passiveDisp, addDisp)
+						passiveDisp = mat.v3_mulf(passiveDisp, 0.5)
 						g_displacements[i] = passiveDisp
-						//PrintObject(i)
+						COLLIDED = true
 					}
 				}
 			}
@@ -194,17 +228,29 @@ func Update(deltaTime i64) {
 
 			var newAcc v3
 			newAcc.x = 0.0	  - 0.5 * dforce * vel.x / mass//* f32.abs(vel.x) / mass
-			newAcc.y = g_gforce - 0.5 * dforce * vel.y / mass// * f32.abs(vel.y) / mass
+			newAcc.y = gforce - 0.5 * dforce * vel.y / mass// * f32.abs(vel.y) / mass
 			newAcc.z = 0.0	  - 0.5 * dforce * vel.z / mass//* f32.abs(vel.z) / mass
+			newAcc.x = newAcc.x * 0.1
+			newAcc.y = newAcc.y * 0.1
+			newAcc.z = newAcc.z * 0.1
 
 			var newVel v3
 			newVel.x = vel.x + (acc.x + newAcc.x) * 0.5 * dt
 			newVel.y = vel.y + (acc.y + newAcc.y) * 0.5 * dt
 			newVel.z = vel.z + (acc.z + newAcc.z) * 0.5 * dt
+			newVel.x = newVel.x * 0.8
+			newVel.y = newVel.y * 0.8
+			newVel.z = newVel.z * 0.8
+
+			var friction f32 = g_frictions[i]
+			newVel = mat.v3_mulf(newVel, friction)
+			newAcc = mat.v3_mulf(newAcc, friction)
 
 			g_positions[i] = newPos
 			g_velocities[i] = newVel
 			g_accelerations[i] = newAcc
+
+			g_displacements[i] = disp
 		}
 
 		for k := 0; k < rotateCount; k++ {
@@ -258,13 +304,16 @@ func Render(world []f32, view []f32, projection []f32) {
 				gfx.g_useDebugColors = (state & STATE_DEBUG_COLOR) != 0
 
 				var objType i32 = g_types[i]
+				if objType == TYPE_BOX {
+					objType = TYPE_ELLIPSE
+				}
 				if objType == TYPE_BOX || objType == TYPE_PLANE {
 					var rotation []f32 = mat.MatrixCreateRotationFromQuaternion(g_tmpMatrix0, quat.x, quat.y, quat.z, quat.w)
 					var right mat.v3 = mat.v3_transform_vector(mat.v3_(size.x, 0.0, 0.0), rotation)
 					var top mat.v3 = mat.v3_transform_vector(mat.v3_(0.0, size.y, 0.0), rotation)
 					var back mat.v3 = mat.v3_transform_vector(mat.v3_(0.0, 0.0, size.z), rotation)
 					if objType == TYPE_BOX {
-						gfx.MeshAppendBox(debugMesh, debugWire, true, position, right, top, back, mat.v4_(1.0, 0.0, 0.0, 1.0))
+						gfx.MeshAppendBox(debugMesh, debugWire, true, position, right, top, back, g_colors[i]/*mat.v4_(1.0, 0.0, 0.0, 1.0)*/)
 					} else {
 						gfx.MeshAppendPlane(debugMesh, debugWire, true, position, right, top, back, 4, 4, mat.v4_(0.0, 1.0, 0.0, 1.0), mat.v4_(0.0, 1.0, 1.0, 1.0))
 						gfx.MeshAppendPlane(debugMesh, debugWire, false, position, right, top, back, 4, 4, mat.v4_(0.0, 1.0, 0.0, 1.0), mat.v4_(1.0, 0.0, 1.0, 1.0))
@@ -320,18 +369,18 @@ func GetObjectPosition(id i32) (out v3) {
 
 // GetObjectAt ...
 func GetObjectAt(id i32) (out v3) {
-    panicIfNot(IsValidObject(id), "invalid object")
-    var r mat.v4 = g_rotations[id]
-    var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
-    out = mat.QuaternionTransformVector(q, mat.v3_(0.0, 0.0, 1.0))
+	panicIfNot(IsValidObject(id), "invalid object")
+	var r mat.v4 = g_rotations[id]
+	var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
+	out = mat.QuaternionTransformVector(q, mat.v3_(0.0, 0.0, 1.0))
 }
 
 // GetObjectRight ...
 func GetObjectRight(id i32) (out v3) {
-    panicIfNot(IsValidObject(id), "invalid object")
-    var r mat.v4 = g_rotations[id]
-    var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
-    out = mat.QuaternionTransformVector(q, mat.v3_(1.0, 0.0, 0.0))
+	panicIfNot(IsValidObject(id), "invalid object")
+	var r mat.v4 = g_rotations[id]
+	var q mat.v4 = mat.QuaternionFromAxisAngle(r.x, r.y, r.z, r.w)
+	out = mat.QuaternionTransformVector(q, mat.v3_(1.0, 0.0, 0.0))
 }
 
 // GetObjectRotation ...
@@ -348,20 +397,20 @@ func SetObjectRotation(id i32, rotation mat.v4) {
 
 // SetObjectAcceleration ...
 func SetObjectAcceleration(id i32, acceleration mat.v3) {
-    panicIfNot(IsValidObject(id), "invalid object")
-    g_accelerations[id] = acceleration
+	panicIfNot(IsValidObject(id), "invalid object")
+	g_accelerations[id] = acceleration
 }
 
 // SetObjectVelocity ...
 func SetObjectVelocity(id i32, velocity mat.v3) {
-    panicIfNot(IsValidObject(id), "invalid object")
-    g_velocities[id] = velocity
+	panicIfNot(IsValidObject(id), "invalid object")
+	g_velocities[id] = velocity
 }
 
 // GetObjectVelocity ...
 func GetObjectVelocity(id i32) (out mat.v3) {
-    panicIfNot(IsValidObject(id), "invalid object")
-    out = g_velocities[id]
+	panicIfNot(IsValidObject(id), "invalid object")
+	out = g_velocities[id]
 }
 
 // GetObjectScale ...
@@ -396,14 +445,16 @@ func PrintObject(id i32) {
 }
 
 // AddObject ...
-func AddObject(objectType i32, objectTag i32, state i32,  position v3, velocity v3, acceleration v3, right v3, top v3, back v3, mass f32, orientation mat.v4) (out i32) {
+func AddObject(objectType i32, objectTag i32, state i32,  position v3, velocity v3, acceleration v3, right v3, top v3, back v3, mass f32, friction f32, orientation mat.v4, color mat.v4) (out i32) {
 	g_states = append(g_states, state)
 	g_types = append(g_types, objectType)
 	g_tags = append(g_tags, objectTag)
+	g_frictions = append(g_frictions, friction)
 	g_positions = append(g_positions, position)
 	g_velocities = append(g_velocities, velocity)
 	g_displacements = append(g_displacements, mat.v3_(0.0, 0.0, 0.0))
 	g_accelerations = append(g_accelerations, acceleration)
+	g_colors = append(g_colors, color)
 
 	var size mat.v3 = mat.v3_(mat.v3_length(right), mat.v3_length(top), mat.v3_length(back))
 	g_sizes = append(g_sizes, size)
@@ -424,13 +475,16 @@ func AddObject(objectType i32, objectTag i32, state i32,  position v3, velocity 
 
 	out = g_objectCount
 	g_objectCount = g_objectCount + 1
-	//PrintObject(out)
+	PrintObject(out)
 }
 
 // RemoveObject ...
 func RemoveObject(id i32) {
 	panicIfNot(IsValidObject(id), "invalid object")
 	g_objectCount = g_objectCount - 1
+
+	g_colors[id] = g_colors[g_objectCount]
+	g_colors = resize(g_colors, g_objectCount)
 
 	g_states[id] = g_states[g_objectCount]
 	g_states = resize(g_states, g_objectCount)
@@ -440,6 +494,9 @@ func RemoveObject(id i32) {
 
 	g_tags[id] = g_tags[g_objectCount]
 	g_tags = resize(g_tags, g_objectCount)
+
+	g_frictions[id] = g_frictions[g_objectCount]
+	g_frictions = resize(g_frictions, g_objectCount)
 
 	g_positions[id] = g_positions[g_objectCount]
 	g_positions = resize(g_positions, g_objectCount)
