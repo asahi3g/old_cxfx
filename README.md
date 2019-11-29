@@ -36,6 +36,8 @@ make 6_model
 
 ##### WIP :
 
+<img style="max-width:100%" src="games/skylight/screenshots/skylight_71.png">
+<img style="max-width:100%" src="games/skylight/screenshots/skylight_64.png">
 <img style="max-width:100%" src="screenshots/cxfx_44.png">
 <img style="max-width:100%" src="screenshots/cxfx_42.png">
 <img style="max-width:100%" src="screenshots/cxfx_41.png">
