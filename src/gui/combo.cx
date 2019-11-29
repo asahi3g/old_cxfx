@@ -78,7 +78,7 @@ func ComboCreate(name str) (out ComboId) {
 	var window WindowId = WindowCreate(sprintf("combo_window_%s", name))
 	ControlAddChild(screen.base, window.base)
 	ControlSetSkin(window.base, g_windowSkin)
-	ControlSetSize(window.base, mat.v2_(100.0, 100.0))
+	ControlSetSize(window.base, v2.makef(100.0))
 	ControlSetAutosize(window.base, AUTOSIZE_Y)
 	//ControlSetAlign(window.base, ALIGN_CENTER)
 	var windowHeader ControlId = g_windows[window.window].header
@@ -100,7 +100,7 @@ func ComboCreate(name str) (out ComboId) {
 	combo.expand = expand
 	ControlAddChild(out.base, expand.base)
 	ControlSetAutosize(expand.base, AUTOSIZE_X)
-	//ControlSetSize(expand.base, mat.v2_(32.0, 32.0))
+	//ControlSetSize(expand.base, v2.make(32.0))
 	ControlSetDock(expand.base, DOCK_RIGHT)
 	LabelSetAlign(expand, ALIGN_CENTER)
 	LabelSetFont(expand, g_awesomeBoldFont)
@@ -111,7 +111,7 @@ func ComboCreate(name str) (out ComboId) {
 	var picture LabelId = LabelCreate(sprintf("combo_picture_%s", name))
 	combo.picture = picture
 	ControlSetAutosize(picture.base, AUTOSIZE_X)
-	//ControlSetSize(picture.base, mat.v2_(32.0, 32.0))
+	//ControlSetSize(picture.base, v2.make(32.0))
 	ControlSetDock(picture.base, DOCK_LEFT)
 	LabelSetAlign(picture, ALIGN_CENTER)
 	LabelSetFont(picture, g_awesomeBoldFont)
@@ -128,7 +128,7 @@ func ComboCreate(name str) (out ComboId) {
 	ControlSetDock(splitter.base, DOCK_RIGHT)
 	ControlSetAutosize(splitter.base, AUTOSIZE_X)
 	ControlSetSpacing(splitter.base, g_spacing_x)
-	ControlSetPadding(splitter.base, mat.v4_(5.0, 0.0, 0.0, 0.0))
+	ControlSetPadding(splitter.base, v4.make(5.0, 0.0, 0.0, 0.0))
 	SplitterSetDirection(splitter, SPLIT_LEFT)
 	SplitterSetControls(splitter, picture.base, label.base)
 

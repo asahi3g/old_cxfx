@@ -80,7 +80,7 @@ func KeyboardCreate(name str) (out KeyboardId) {
 		keyboard.keys = append(keyboard.keys, label)
 	}
 
-	ControlSetPadding(out.base, mat.v4_(5.0, 5.0, 5.0, 5.0))
+	ControlSetPadding(out.base, v4.makef(5.0))
 	g_keyboards = append(g_keyboards, keyboard)
 
 	panicIfNot(IsValidKeyboard(out), "invalid id")
@@ -178,12 +178,12 @@ func KeyboardResize(id KeyboardId) () {
 			var l i32 = (lineCount - 1 - j) * rowCount + i
 			var label LabelId = g_keyboards[id.keyboard].keys[l]
 
-			ControlSetPosition(label.base, mat.v2_(kx, ky))
-			ControlSetSize(label.base, mat.v2_(kw, kh))
+			ControlSetPosition(label.base, v2.make(kx, ky))
+			ControlSetSize(label.base, v2.make(kw, kh))
 			LabelSetText(label, mapping[l])
-			//gfx.MeshAppendOrthoQuad(g_opaqueVertexColoredTriangles, mat.v4_(kx, ky, kw, kh), mat.v4_(0.0, 0.0, 1.0, 1.0), gui.g_blue)
+			//gfx.MeshAppendOrthoQuad(g_opaqueVertexColoredTriangles, v4.make(kx, ky, kw, kh), v4.BLUE, gui.g_blue)
 			//gfx.append_text(g_alphaTexturedTriangles, g_skycoinFontTexture, "skycoin", kx, ky, gui.g_lightBlue, "A", false, false)
-			//gfx.append_rect(g_opaqueVertexColoredLines, mat.v4_(kx, ky, kw, kh), gui.g_blue, gui.g_blue, gui.g_blue, gui.g_blue)
+			//gfx.append_rect(g_opaqueVertexColoredLines, v4.make(kx, ky, kw, kh), gui.g_blue, gui.g_blue, gui.g_blue, gui.g_blue)
 			//count = count + 1
 		}
 	}

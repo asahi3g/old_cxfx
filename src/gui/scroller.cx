@@ -53,7 +53,7 @@ func ScrollerCreate(name str) (out ScrollerId) {
 
 	var vlift LifterId = LifterCreate("vlift")
 	ControlAddChild(out.base, vlift.base)
-	ControlSetSize(vlift.base, mat.v2_(lifterSize, 0.0))
+	ControlSetSize(vlift.base, v2.make(lifterSize, 0.0))
 	ControlSetDock(vlift.base, DOCK_RIGHT)
 	ControlSetFocusIndex(vlift.base, 1)
 	//ControlSetSkin(vlift.base, g_debugBlueSkin)
@@ -70,7 +70,7 @@ func ScrollerCreate(name str) (out ScrollerId) {
 
 	var hlift LifterId = LifterCreate("hlift")
 	ControlAddChild(panel, hlift.base)
-	ControlSetSize(hlift.base, mat.v2_(0.0, lifterSize))
+	ControlSetSize(hlift.base, v2.make(0.0, lifterSize))
 	ControlSetDock(hlift.base, DOCK_BOTTOM)
 	ControlSetFocusIndex(hlift.base, 1)
 	//ControlSetSkin(hlift.base, g_greenSkin)
@@ -147,11 +147,11 @@ func ScrollerResize(id ScrollerId) () {
 	var hlift LifterId = g_scrollers[id.scroller].hlift
 	var vlift LifterId = g_scrollers[id.scroller].vlift
 
-	var percent mat.v2 = mat.v2_zero
-	var offset mat.v2 = mat.v2_(LifterGetOffset(hlift), LifterGetOffset(vlift))
+	var percent mat.v2 = v2.ZERO
+	var offset mat.v2 = v2.make(LifterGetOffset(hlift), LifterGetOffset(vlift))
 	//printf("OFFSET %f, %f\n", offset.x, offset.y)
 
-	var maxOffset mat.v2 = mat.v2_(LifterGetMaxOffset(hlift), LifterGetMaxOffset(vlift))
+	var maxOffset mat.v2 = v2.make(LifterGetMaxOffset(hlift), LifterGetMaxOffset(vlift))
 	//printf("MAXOFFSET %f, %f\n", maxOffset.x, maxOffset.y)
 
 	if (curSize.y > 0.0) {
@@ -213,7 +213,7 @@ func ScrollerResize(id ScrollerId) () {
 
 		  printf("position.x %f, position.y : heightOffset + percent.y * maxSize.y / 100.0 %f\n", 0.0 - percent.x * maxSize.x / 100.0, heightOffset + percent.y * maxSize.y / 100.0)
 		  }*/
-		g_controls[containee.control].position = mat.v2_(0.0 + percent.x * widthOffset / 100.0, heightOffset - percent.y * heightOffset / 100.0)
+		g_controls[containee.control].position = v2.make(0.0 + percent.x * widthOffset / 100.0, heightOffset - percent.y * heightOffset / 100.0)
 		var after mat.v2 = g_controls[containee.control].position
 
 		/*if (id.base.control == 38) {

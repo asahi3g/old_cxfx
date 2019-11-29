@@ -48,14 +48,14 @@ func BinderCreate(name str) (out BinderId) {
 	ControlAddChild(out.base, header)
 	ControlSetDock(header, DOCK_TOP)
 	//ControlSetSkin(header, g_debugRedSkin)
-	//ControlSetSize(header, mat.v2_(0.0, 0.08))
+	//ControlSetSize(header, v2.make(0.0, 0.08))
 	ControlSetAutosize(header, AUTOSIZE_Y)
 	binder.header = header
 	binder.selected = -1
 	var container ControlId = ControlCreate("binder.container")
 	ControlAddChild(out.base, container)
 	ControlSetSkin(container, g_blackSkin)
-	ControlSetPadding(container, mat.v4_(3.0, 3.0, 3.0, 0.0))
+	ControlSetPadding(container, v4.make(3.0, 3.0, 3.0, 0.0))
 	ControlSetDock(container, DOCK_FILL)
 	binder.container = container
 
@@ -100,7 +100,7 @@ func BinderAddPage(id BinderId, name str, color mat.v4, size i32, control Contro
 	ControlSetDock(page.base, DOCK_LEFT)
 	ControlSetAutosize(page.base, AUTOSIZE)
 	ControlSetSkin(page.base, g_binderPageSkin)
-	ControlSetPadding(page.base, mat.v4_(3.0, 0.0, 3.0, 0.0))
+	ControlSetPadding(page.base, v4.make(3.0, 0.0, 3.0, 0.0))
 	ControlSetFocusable(page.base, 1)
 	LabelSetFont(page, g_boldFont)
 	LabelSetText(page, name)

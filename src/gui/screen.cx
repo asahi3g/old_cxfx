@@ -33,6 +33,7 @@ type Screen struct {
 	onEvent func_i32_i32_id
 	onUpdate func_i32_i32_id
 	onRender func_i32_i32_id
+	renderEx bool
 }
 
 // NewScreenId ...
@@ -76,6 +77,7 @@ func ScreenCreate(name str) (out ScreenId) {
 	screen.onEvent = invalid_func_i32_i32()
 	screen.onUpdate = invalid_func_i32_i32()
 	screen.onRender = invalid_func_i32_i32()
+	screen.renderEx = false
 
 	g_screens = append(g_screens, screen)
 	panicIfNot(IsValidScreen(out), "invalid id")
@@ -91,6 +93,12 @@ func ScreenSetModal(id ScreenId, modal bool) {
 func ScreenSetFloating(id ScreenId, floating bool) () {
 	panicIfNot(IsValidScreen(id), "invalid id")
 	g_screens[id.screen].floating = floating
+}
+
+// ScreenSetRenderEx ...
+func ScreenSetRenderEx(id ScreenId, renderEx bool) () {
+	panicIfNot(IsValidScreen(id), "invalid id")
+	g_screens[id.screen].renderEx = renderEx
 }
 
 // ScreenSetOnExit ...
@@ -347,9 +355,9 @@ func ScreenRender(id ScreenId, clip mat.v4, stack i32) () {
 	  if (focusCount > 0 && currentFocus >= 0 && currentFocus < focusCount) {
 	  var focusedId ControlId = g_focused[screenPair].focusList[currentFocus]
 	  gfx.MeshBegin(g_opaqueVertexColoredTriangles)
-	  var renderBounds mat.v4 = mat.v4_v2v2(g_controls[focusedId.control].renderPosition, g_controls[focusedId.control].size)
+	  var renderBounds mat.v4 = v4.make_v22(g_controls[focusedId.control].renderPosition, g_controls[focusedId.control].size)
 	  gfx.MeshAppendOrthoQuad(g_opaqueVertexColoredTriangles, renderBounds,
-	  mat.v4_(0.0, 0.0, 1.0, 1.0), mat.v4_(1.0, 1.0, 1.0, 1.0), gfx.gfx_viewportBounds, 1.0)
+	  v4.RED, v4.WHITE, gfx.gfx_viewportBounds, 1.0)
 	  gfx.MeshEnd(g_opaqueVertexColoredTriangles)
 	  gfx.EffectUse(gfx.g_fxVertexColor2D)
 	  gfx.MeshRender(g_opaqueVertexColoredTriangles)

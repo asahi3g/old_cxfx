@@ -5,9 +5,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -18,6 +22,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -58,9 +63,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -71,6 +80,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -111,9 +121,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -124,6 +138,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -164,9 +179,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -177,6 +196,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -217,9 +237,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -230,6 +254,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -270,9 +295,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -283,6 +312,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -323,9 +353,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -336,6 +370,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -376,9 +411,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -389,6 +428,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -429,9 +469,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -442,6 +486,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -482,9 +527,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -495,6 +544,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\
@@ -535,9 +585,13 @@
 		$(GOPATH)/src/github.com/skycoin/cx/lib/args.cx\
 		$(GOPATH)/src/github.com/skycoin/cx/lib/json.cx\
 		../src/mat/math.cx\
-		../src/mat/vector.cx\
-		../src/mat/quaternion.cx\
-		../src/mat/matrix.cx\
+		../src/mat/v1d.cx\
+		../src/mat/v1f.cx\
+		../src/mat/v2f.cx\
+		../src/mat/v3f.cx\
+		../src/mat/v4f.cx\
+		../src/mat/q4f.cx\
+		../src/mat/m44f.cx\
 		../src/app/application.cx\
 		../src/app/event.cx\
 		../src/fps/profiler.cx\
@@ -548,6 +602,7 @@
 		../src/gfx/effect.cx\
 		../src/gfx/shader.cx\
 		../src/gfx/program.cx\
+		../src/gfx/particle.cx\
 		../src/gfx/mesh.cx\
 		../src/gfx/gltf.cx\
 		../src/gfx/model.cx\

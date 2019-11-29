@@ -45,10 +45,10 @@ func ListAddColumn(id ListId, name str, color mat.v4, size i32, skin SkinId) {
 	var columnCount i32 = g_lists[listIndex].columnCount
 	var column LabelId = LabelCreate(sprintf("column_%d", columnCount))
 	ControlSetDock(column.base, DOCK_LEFT)
-	//ControlSetSize(column.base, mat.v2_(0.0, 26.0))
+	//ControlSetSize(column.base, v2.make(0.0, 26.0))
 	ControlSetFocusable(column.base, 1)
 	ControlSetAutosize(column.base, AUTOSIZE_Y)
-	ControlSetPadding(column.base, mat.v4_(3.0, 0.0, 3.0, 0.0))
+	ControlSetPadding(column.base, v4.make(3.0, 0.0, 3.0, 0.0))
 	if (IsValidSkin(skin)) {
 		ControlSetSkin(column.base, skin)
 	}
@@ -82,7 +82,7 @@ func ListAddLine(id ListId, skin SkinId) (out ControlId) {
 
 	var lines ControlId = g_lists[id.list].lines
 	ControlSetDock(line, DOCK_TOP)
-	ControlSetSize(line, mat.v2_(0.0, 0.0))
+	ControlSetSize(line, v2.ZERO)
 	ControlSetAutosize(line, AUTOSIZE_Y)
 	ControlAddChild(lines, line)
 	if (IsValidSkin(skin)) {
@@ -107,7 +107,7 @@ func ListLineAddLabel(id ControlId, text str, align i32, color mat.v4, size i32,
 	if (IsValidSkin(skin)) {
 		ControlSetSkin(label.base, skin)
 	}
-	ControlSetPadding(label.base, mat.v4_(3.0, 0.0, 3.0, 0.0))
+	ControlSetPadding(label.base, v4.make(3.0, 0.0, 3.0, 0.0))
 	ControlSetFocusable(label.base, 1)
 	ControlSetAutosize(label.base, AUTOSIZE_Y)
 	LabelSetFont(label, g_regularFont)
@@ -129,8 +129,8 @@ func ListLineAddPicture(id ControlId, align i32, animation AnimationId) {
 	ControlAddChild(id, label.base)
 	ControlSetDock(label.base, DOCK_LEFT)
 	//ControlSetSkin(label.base, g_grayFocusedSkin)
-	ControlSetPadding(label.base, mat.v4_(3.0, 0.0, 3.0, 0.0))
-	ControlSetSize(label.base, mat.v2_(32.0, 32.0))
+	ControlSetPadding(label.base, v4.make(3.0, 0.0, 3.0, 0.0))
+	ControlSetSize(label.base, v2.makef(32.0))
 	ControlSetFocusable(label.base, 1)
 	ControlSetAutoscale(label.base, AUTOSCALE)
 	//ControlSetAlign(label, align)
@@ -244,12 +244,12 @@ func ListCreate(name str) (out ListId) {
 	list.id = out
 
 	var controlIndex i32 = out.base.control
-	//ControlSetPadding(out.base, mat.v4_(0.01, 0.01, 0.01, 0.01))
+	//ControlSetPadding(out.base, v4.makef(0.01))
 
 	var header ControlId = ControlCreate("header")
 	ControlAddChild(out.base, header)
 	ControlSetDock(header, DOCK_TOP)
-	//ControlSetSize(header, mat.v2_(0.0, 28.0))
+	//ControlSetSize(header, v2.make(0.0, 28.0))
 	ControlSetAutosize(header, AUTOSIZE_Y)
 	ControlSetSkin(header, g_blackSkin)
 	list.header = header
@@ -430,7 +430,7 @@ func ListResize(id ListId) () {
 		var height f32
 		width, height = ControlMeasure(column)
 		//printf("COLUMN_MEASURE %f, %f\n", width, height)
-		maxWidth = mat.max(maxWidth, width)
+		maxWidth = v1.max(maxWidth, width)
 		var k i32 = 0
 		for k = 0; k < lineCount; k = k + 1 {
 			var line ControlId = g_controls[linesIndex].children[k]
@@ -445,14 +445,14 @@ func ListResize(id ListId) () {
 
 			width, height = ControlMeasure(item)
 			//printf("ITEM_MEASURE %f, %f\n", width, height)
-			maxWidth = mat.max(maxWidth, width)
+			maxWidth = v1.max(maxWidth, width)
 			//printf("WIDTH %f, MAX_WIDTH %f\n", width, maxWidth)
 		}
 		//printf("MAX_WIDTH %f\n", maxWidth)
 		g_controls[columnIndex].size.x = maxWidth
 		if ((i + 1) == columnCount) {
 			ControlSetDock(column, DOCK_FILL)
-			g_controls[columnIndex].size.x = mat.max(maxWidth, scrollerWidth - lineWidth)
+			g_controls[columnIndex].size.x = v1.max(maxWidth, scrollerWidth - lineWidth)
 		}
 
 		//ControlPrint("column : ", column, false)
@@ -474,7 +474,7 @@ func ListResize(id ListId) () {
 			g_controls[lineIndex].selected = 0
 			if ((i + 1) == columnCount) {
 				ControlSetDock(item, DOCK_FILL)
-				g_controls[itemIndex].size.x = mat.max(maxWidth, containerWidth - lineWidth)
+				g_controls[itemIndex].size.x = v1.max(maxWidth, containerWidth - lineWidth)
 			}
 
 			/*var focusedItem i32 = g_controls[itemIndex].focused
@@ -529,7 +529,7 @@ func ListResize(id ListId) () {
 		//g_controls[selectedItemId.control].selected = 1
 	}*/
 
-	g_controls[linesIndex].size.x = mat.max(lineWidth, containerWidth)
+	g_controls[linesIndex].size.x = v1.max(lineWidth, containerWidth)
 
 	{
 		ControlResize(id.base)

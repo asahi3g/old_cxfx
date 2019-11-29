@@ -5,8 +5,11 @@ import "fps"
 import "gam"
 import "gfx"
 import "gui"
+import "m44"
 import "mat"
 import "snd"
+import "v3"
+import "v4"
 
 // TODO : can't navigate with keyboard at startup
 // TODO : dialog disapear if exit button is pushed with keyboard
@@ -33,11 +36,8 @@ var skyDiffuse gfx.TextureId = gfx.InvalidTexture()
 var skySpecular gfx.TextureId = gfx.InvalidTexture()
 var brdf gfx.TextureId = gfx.InvalidTexture()
 
-var scale []f32 = mat.MatrixAlloc()
-var rotate []f32 = mat.MatrixAlloc()
-var translate []f32 = mat.MatrixAlloc()
-var world [] f32 = mat.MatrixAlloc()
-var identity [] f32 = mat.MatrixAlloc()
+
+var world mat.m44
 
 var camera gam.CameraId
 
@@ -58,8 +58,8 @@ var groundHeight i32 = 16
 
 var voiceId snd.VoiceId
 
-var CAMERA_FREE i32 = 0
-var CAMERA_TPS i32 = 1
+var CAMERA_TPS i32 = 0
+var CAMERA_FREE i32 = 1
 var CAMERA_FPS i32 = 2
 var CAMERA_COUNT i32 = 3
 var currentCamera i32 = CAMERA_TPS
@@ -142,24 +142,18 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	var dt f32 = f64.f32(dts)
 
 	var s f32 = scales[currentModel]
-	scale = mat.MatrixCreateScale(scale, s, s, s)
 
 	ry = ry + dt * rotations[currentModel]
-	rotate = mat.MatrixCreateRotationY(rotate, ry)
-
-	translate = mat.MatrixCreateTranslation(translate, 0.0, 0.0, 0.0)
-
-	world = mat.MatrixMultiply(world, rotate, scale)
-	world = mat.MatrixMultiply(world, translate, world)
+	world = m44.makef_SAT(s, s, s, 0.0, 1.0, 0.0, ry, 0.0, 0.0, 0.0)
 
 	var model gfx.ModelId = models[currentModel]
 	var anim gfx.AnimationId = gfx.ModelGetAnimation(model, 0)
 	if currentCamera == CAMERA_FREE {
 		gam.FreeCameraUpdate(camera, dts)
 	} else if currentCamera == CAMERA_FPS {
-		gam.FpsCameraUpdate(camera, dts, mat.v3_(0.0, 0.0, 0.0))
+		gam.FpsCameraUpdate(camera, dts, v3.ZERO)
 	} else if currentCamera == CAMERA_TPS {
-		gam.TpsCameraUpdate(camera, dts, mat.v3_(0.0, 0.0, 0.0), 30.0)
+		gam.TpsCameraUpdate(camera, dts, v3.ZERO, 30.0)
 	}
 	var step f32 = dt * speeds[currentModel]
 	if gfx.AnimationIsValid(anim) {
@@ -171,28 +165,28 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 func gameOnRender(controlIndex i32, controlAction i32) {
-	var view []f32 = gam.CameraGetView(camera)
-	var projection []f32 = gam.CameraGetProjection(camera)
+	var view mat.m44 = gam.CameraGetView(camera)
+	var projection mat.m44 = gam.CameraGetProjection(camera)
 	var cameraPosition mat.v3 = gam.CameraGetPosition(camera)
 
 	gfx.DisableBlending()
 	gfx.DepthState(true, gfx.LESS, true)
-	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, mat.v4_(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
+	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, v4.make(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
 
 	//sky
 	gfx.EffectUse(gfx.g_fxSky)
 	gfx.EffectAssignTexture(gfx.g_fxSky, gfx.SAMPLER_ENV_DIFFUSE, skySpecular, gfx.g_linearWrap)
-	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_WORLD, identity, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_VIEW, view, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxSky, gfx.UNIFORM_PROJECTION, projection, false)
+	gfx.EffectAssignM44(gfx.g_fxSky, gfx.UNIFORM_WORLD, m44.IDENTITY, false)
+	gfx.EffectAssignM44(gfx.g_fxSky, gfx.UNIFORM_VIEW, view, false)
+	gfx.EffectAssignM44(gfx.g_fxSky, gfx.UNIFORM_PROJECTION, projection, false)
 	gfx.MeshRender(skyMesh)
 
 	// ground
 	gfx.EffectUse(gfx.g_fxTexture3D)
 	gfx.EffectAssignTexture(gfx.g_fxTexture3D, gfx.SAMPLER_COLOR_0, texture, gfx.g_linearWrap)
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, identity, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_VIEW, view, false)
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_PROJECTION, projection, false)
+	gfx.EffectAssignM44(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, m44.IDENTITY, false)
+	gfx.EffectAssignM44(gfx.g_fxTexture3D, gfx.UNIFORM_VIEW, view, false)
+	gfx.EffectAssignM44(gfx.g_fxTexture3D, gfx.UNIFORM_PROJECTION, projection, false)
 	gfx.MeshRender(groundMesh)
 
 	// batches
@@ -292,26 +286,26 @@ func main()() {
 	skyMesh = gfx.MeshLock(gfx.TRIANGLES, gfx.UNSIGNED_SHORT, 36, gfx.g_vertexLayout, 24);
 	gfx.MeshBegin(skyMesh)
 	gfx.MeshAppendBox(skyMesh, false, true,
-		mat.v3_(0.0, 0.0, 0.0),
-		mat.v3_(5000.0, 0.0, 0.0), mat.v3_(0.0, 5000.0, 0.0), mat.v3_(0.0, 0.0, 5000.0),
-		mat.v4_(1.0, 1.0, 1.0, 1.0))
+		v3.ZERO,
+		v3.make(5000.0, 0.0, 0.0), v3.make(0.0, 5000.0, 0.0), v3.make(0.0, 0.0, 5000.0),
+		v4.ONE)
 	gfx.MeshEnd(skyMesh)
 
 	//loadModel("glTF-Sample-Models/Box/glTF", "Box.gltf", 1.0, 1.0, 1.0)
 	loadModel("glTF-Sample-Models/BoxAnimated/glTF", "BoxAnimated.gltf", 1.0, 1.0, 1.0)
 	//loadModel("glTF-Sample-Models/NormalTangentTest/glTF", "NormalTangentTest.gltf", 3.0, 1.0, 1.0)
 	//loadModel("glTF-Sample-Models/NormalTangentMirrorTest/glTF", "NormalTangentMirrorTest.gltf", 3.0, 1.0, 1.0)
-	//loadModel("glTF-Sample-Models/MetalRoughSpheres/glTF", "MetalRoughSpheres.gltf", 1.0, 0.0, 1.0)
-	loadModel("glTF-Sample-Models/CesiumMilkTruck/glTF", "CesiumMilkTruck.gltf", 0.5, 1.0, 1.0)
+	loadModel("glTF-Sample-Models/MetalRoughSpheres/glTF", "MetalRoughSpheres.gltf", 1.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/CesiumMilkTruck/glTF", "CesiumMilkTruck.gltf", 0.5, 1.0, 1.0)
 	//loadModel("glTF-Sample-Models/2CylinderEngine/glTF", "2CylinderEngine.gltf", 0.005, 0.0, 1.0)
 	//loadModel("glTF-Sample-Models/ReciprocatingSaw/glTF", "ReciprocatingSaw.gltf", 0.01, 0.0, 1.0)
 	//loadModel("glTF-Sample-Models/GearboxAssy/glTF", "GearboxAssy.gltf", 1.0, 0.0, 1.0)
 	//loadModel("glTF-Sample-Models/Buggy/glTF", "Buggy.gltf", 0.05, 0.0, 1.0)
-	loadModel("glTF-Sample-Models/RiggedSimple/glTF", "RiggedSimple.gltf", 3.0, 0.0, 1.0)
-	loadModel("glTF-Sample-Models/RiggedFigure/glTF", "RiggedFigure.gltf", 3.0, 0.0, 1.0)
-	loadModel("glTF-Sample-Models/CesiumMan/glTF", "CesiumMan.gltf", 3.0, 0.0, 2.0)
-	loadModel("glTF-Sample-Models/Monster/glTF", "Monster.gltf", 0.05, 0.0, 1.0)
-	loadModel("glTF-Sample-Models/BrainStem/glTF", "BrainStem.gltf", 1.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/RiggedSimple/glTF", "RiggedSimple.gltf", 3.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/RiggedFigure/glTF", "RiggedFigure.gltf", 3.0, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/CesiumMan/glTF", "CesiumMan.gltf", 3.0, 0.0, 2.0)
+	//loadModel("glTF-Sample-Models/Monster/glTF", "Monster.gltf", 0.05, 0.0, 1.0)
+	//loadModel("glTF-Sample-Models/BrainStem/glTF", "BrainStem.gltf", 1.0, 0.0, 1.0)
 	//loadModel("glTF-Sample-Models/Duck/glTF", "Duck.gltf", 1.0, 1.0, 1.0)
 	loadModel("glTF-Sample-Models/DamagedHelmet/glTF", "DamagedHelmet.gltf", 3.0, 1.0, 1.0)
 	loadModel("glTF-Sample-Models/BoomBox/glTF", "BoomBox.gltf", 200.0, 1.0, 1.0)
@@ -323,13 +317,13 @@ func main()() {
 	var groundScale f32 = 20.0
 	gfx.MeshBegin(groundMesh)
 	gfx.MeshAppendPlane(groundMesh, false, true,
-		mat.v3_(0.0, worldPosY, 0.0),
-		mat.v3_(groundRight, 0.0, 0.0),
-		mat.v3_(0.0, 1.0, 0.0),
-		mat.v3_(0.0, 0.0, groundBack),
+		v3.make(0.0, worldPosY, 0.0),
+		v3.make(groundRight, 0.0, 0.0),
+		v3.GREEN,
+		v3.make(0.0, 0.0, groundBack),
 		groundWidth, groundHeight,
-		mat.v4_(0.0, 0.0, 10.0, 10.0),
-		mat.v4_(1.0, 1.0, 1.0, 1.0))
+		v4.make(0.0, 0.0, 10.0, 10.0),
+		v4.ONE)
 	gfx.MeshEnd(groundMesh)
 
 	texture = gfx.TextureCreate(sprintf("%s/textures/Skycoin-Cloud-BW-Vertical-on_black@2x.png", app.DataDir()),
@@ -343,9 +337,9 @@ func main()() {
 
 	camera = gam.CameraCreate()
 	gam.CameraSetProjection(camera, 1.0, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y, true)
-	gam.CameraSetPosition(camera, mat.v3_(0.0, 0.0, 0.0), true)
+	gam.CameraSetPosition(camera, v3.ZERO, true)
 	gam.CameraSetYawPitch(camera, 0.0, 0.0, true)
-	identity = mat.MatrixIdentity(identity)
+
 	var audioId snd.AudioId = snd.AudioCreate(sprintf("%s/audios/skycoin_baby.wav", app.DataDir()))
 	voiceId = snd.VoiceCreate(audioId)
 
@@ -382,7 +376,7 @@ func main()() {
 	var mainScreen gui.ScreenId = gui.ScreenCreate("mainScreen")
 	gui.ControlSetSkin(mainScreen.base, gui.g_blackSkin)
 	gui.ControlSetDock(mainScreen.base, gui.DOCK_FILL)
-	gui.ControlSetPadding(mainScreen.base, mat.v4_(200.0, 150.0, 200.0, 150.0))
+	gui.ControlSetPadding(mainScreen.base, v4.make(200.0, 150.0, 200.0, 150.0))
 	gui.ScreenSetDuration(mainScreen, -1.0D)
 	gui.ScreenSetOnExit(mainScreen, exitScreen)
 	{
@@ -391,7 +385,7 @@ func main()() {
 		gui.ControlSetSkin(playButton.base, gui.g_blueSkin)
 		gui.ControlSetDock(playButton.base, gui.DOCK_TOP)
 		gui.ControlSetFocusable(playButton.base, 1)
-		gui.ControlSetPadding(playButton.base, mat.v4_(5.0, 5.0, 5.0, 5.0))
+		gui.ControlSetPadding(playButton.base, v4.makef(5.0))
 		gui.ControlSetAutosize(playButton.base, gui.AUTOSIZE_Y)
 		gui.LabelSetFont(playButton, gui.g_boldFont)
 		gui.LabelSetText(playButton, "Play")
@@ -405,7 +399,7 @@ func main()() {
 		gui.ControlSetSkin(exitButton.base, gui.g_blueSkin)
 		gui.ControlSetDock(exitButton.base, gui.DOCK_TOP)
 		gui.ControlSetFocusable(exitButton.base, 1)
-		gui.ControlSetPadding(exitButton.base, mat.v4_(5.0, 5.0, 5.0, 5.0))
+		gui.ControlSetPadding(exitButton.base, v4.makef(5.0))
 		gui.ControlSetAutosize(exitButton.base, gui.AUTOSIZE_Y)
 		gui.LabelSetFont(exitButton, gui.g_boldFont)
 		gui.LabelSetText(exitButton, "Exit")
@@ -433,7 +427,7 @@ func main()() {
 	{
 		var label gui.LabelId= gui.LabelCreate("titleLabel")
 		gui.ControlAddChild(titleScreen.base, label.base)
-		gui.ControlSetBounds(label.base, mat.v4_(0.0, 0.0, gfx.gfx_width, gfx.gfx_height))
+		gui.ControlSetBounds(label.base, v4.make(0.0, 0.0, gfx.gfx_width, gfx.gfx_height))
 		gui.ControlSetAlign(label.base, gui.ALIGN_CENTER)
 		gui.LabelSetFont(label, gui.g_boldFont)
 		gui.LabelSetText(label, app.Name())
@@ -452,7 +446,7 @@ func main()() {
 	{
 		var picture PictureId = gui.PictureCreate("skycoinPicture")
 		gui.ControlAddChild(skycoinScreen.base, picture.base)
-		gui.ControlSetBounds(picture.base, mat.v4_(0.0, 0.0, gfx.gfx_width / 2.0, gfx.gfx_height / 2.0))
+		gui.ControlSetBounds(picture.base, v4.make(0.0, 0.0, gfx.gfx_width / 2.0, gfx.gfx_height / 2.0))
 		gui.ControlSetAlign(picture.base, gui.ALIGN_CENTER)
 		gui.ControlSetAutoscale(picture.base, gui.AUTOSCALE)
 		gui.PictureSetAlign(picture, gui.ALIGN_CENTER)
@@ -473,6 +467,6 @@ func main()() {
 	// destroy
 	gfx.MeshUnlock(skyMesh)
 	gfx.MeshUnlock(groundMesh)
-	gam.Destroy()
+	//gam.Destroy()//ISSUE : can't call gam.Destroy()()
 }
 

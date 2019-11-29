@@ -5,6 +5,7 @@ import "gam"
 import "gfx"
 import "gui"
 import "mat"
+import "v4"
 
 // Globals ...
 var mesh gfx.MeshId
@@ -33,10 +34,10 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 
 	gfx.MeshBegin(mesh)
 	gfx.MeshAppendOrthoQuad(mesh,
-			mat.v4_(x, y, w, h),
-			mat.v4_(0.0, 0.0, 1.0, 1.0),
-			mat.v4_(1.0, 1.0, 1.0, 1.0),
-			mat.v4_(0.0, 0.0, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y),
+			v4.make(x, y, w, h),
+			v4.BLUE,
+			v4.ONE,
+			v4.make(0.0, 0.0, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y),
 			0.0)
 	gfx.MeshEnd(mesh)
 }

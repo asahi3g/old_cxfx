@@ -108,28 +108,28 @@ func SplitterResize(id SplitterId) () {
 		var width f32 = (splitterSize.x - padding.x - padding.z - spacing.x) / 2.0
 		var height f32 = (splitterSize.y - padding.y - padding.w)
 
-		var masterPosition mat.v2 = mat.v2_(padding.x, padding.y)
-		var masterSize mat.v2 = mat.v2_(width, height)
+		var masterPosition mat.v2 = v2.make(padding.x, padding.y)
+		var masterSize mat.v2 = v2.make(width, height)
 		g_controls[masterIndex].renderPosition = masterPosition
 		g_controls[masterIndex].size = masterSize
 
 		var slaveX f32 = padding.x + spacing.x + width
-		var slavePosition mat.v2 = mat.v2_(slaveX, padding.y)
-		var slaveSize mat.v2 = mat.v2_(width, height)
+		var slavePosition mat.v2 = v2.make(slaveX, padding.y)
+		var slaveSize mat.v2 = v2.make(width, height)
 		g_controls[slaveIndex].renderPosition = slavePosition
 		g_controls[slaveIndex].size = slaveSize
 	} else if (direction == SPLIT_VERT) {
 		var width f32 = (splitterSize.x - padding.x - padding.z)
 		var height f32 = (splitterSize.y - padding.y - padding.w - spacing.y) / 2.0
 
-		var masterPosition mat.v2 = mat.v2_(padding.x, padding.y)
-		var masterSize mat.v2 = mat.v2_(width, height)
+		var masterPosition mat.v2 = v2.make(padding.x, padding.y)
+		var masterSize mat.v2 = v2.make(width, height)
 		g_controls[masterIndex].renderPosition = masterPosition
 		g_controls[masterIndex].size = masterSize
 
 		var slaveY f32 = padding.y + spacing.y + height
-		var slavePosition mat.v2 = mat.v2_(padding.x, slaveY)
-		var slaveSize mat.v2 = mat.v2_(width, height)
+		var slavePosition mat.v2 = v2.make(padding.x, slaveY)
+		var slaveSize mat.v2 = v2.make(width, height)
 		g_controls[slaveIndex].renderPosition = slavePosition
 		g_controls[slaveIndex].size = slaveSize
 	} else if (direction == SPLIT_BOTTOM) {
@@ -137,14 +137,14 @@ func SplitterResize(id SplitterId) () {
 		var width f32 = (splitterSize.x - padding.x - padding.z)
 		var height f32 = (splitterSize.y - padding.y - padding.w - spacing.y - oldMasterSize.y)
 
-		var masterPosition mat.v2 = mat.v2_(padding.x, padding.y)
-		var masterSize mat.v2 = mat.v2_(width, oldMasterSize.y)
+		var masterPosition mat.v2 = v2.make(padding.x, padding.y)
+		var masterSize mat.v2 = v2.make(width, oldMasterSize.y)
 		g_controls[masterIndex].renderPosition = masterPosition
 		g_controls[masterIndex].size = masterSize
 
 		var slaveY f32 = padding.y + oldMasterSize.y + spacing.y
-		var slavePosition mat.v2 = mat.v2_(padding.x, slaveY)
-		var slaveSize mat.v2 = mat.v2_(width, height)
+		var slavePosition mat.v2 = v2.make(padding.x, slaveY)
+		var slaveSize mat.v2 = v2.make(width, height)
 		g_controls[slaveIndex].renderPosition = slavePosition
 		g_controls[slaveIndex].size = slaveSize
 	} else if (direction == SPLIT_LEFT) {
@@ -153,16 +153,16 @@ func SplitterResize(id SplitterId) () {
 		var height f32 = (splitterSize.y - padding.y - padding.w)
 
 		//ControlPrint("SplitterResize : ", master, false)
-		var masterPosition mat.v2 = mat.v2_(padding.x, padding.y)
-		var masterSize mat.v2 = mat.v2_(oldMasterSize.x, height)
+		var masterPosition mat.v2 = v2.make(padding.x, padding.y)
+		var masterSize mat.v2 = v2.make(oldMasterSize.x, height)
 		g_controls[masterIndex].renderPosition = masterPosition
 		g_controls[masterIndex].size = masterSize
 
 		var slaveX f32 = padding.x + oldMasterSize.x + spacing.x
 		//printf("MASTER_POSITION %f\n", masterPosition.x)
 		//printf("SLAVE POSITION %f\n", slaveX)
-		var slavePosition mat.v2 = mat.v2_(slaveX + 10.0, padding.y)
-		var slaveSize mat.v2 = mat.v2_(width, height)
+		var slavePosition mat.v2 = v2.make(slaveX + 10.0, padding.y)
+		var slaveSize mat.v2 = v2.make(width, height)
 		g_controls[slaveIndex].renderPosition = slavePosition
 		g_controls[slaveIndex].size = slaveSize
 	} else {

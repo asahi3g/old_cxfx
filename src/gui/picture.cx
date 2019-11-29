@@ -44,7 +44,7 @@ func PictureCreate(name str) (out PictureId) {
 	picture.animation = invalid_animation()
 	picture.batch = gfx.InvalidBatch()
 	picture.pictureAlign = ALIGN_NONE
-	picture.picturePosition = mat.v2_zero
+	picture.picturePosition = v2.ZERO
 	picture.alpha = false
 
 	g_pictures = append(g_pictures, picture)
@@ -102,7 +102,7 @@ func PictureResize(id PictureId) () {
 	var i32Width i32 = g_animations[animation.index].width
 	var i32Height i32 = g_animations[animation.index].height
 
-	var pixelBounds mat.v2 = mat.v2_(i32.f32(i32Width), i32.f32(i32Height))
+	var pixelBounds mat.v2 = v2.make(i32.f32(i32Width), i32.f32(i32Height))
 
 	controlResize(id.base, pixelBounds, pixelBounds)
 	var controlIndex i32 = id.base.control
@@ -113,7 +113,7 @@ func PictureResize(id PictureId) () {
 	var padding mat.v4 = g_controls[controlIndex].padding
 	//printf("PICTURE_SCALE %f, %f, width %f, height %f, scale.x * width %f, scale.y * height %f\n", scale.x, scale.y, width, height, scale.x * width, scale.y * height)
 
-	var newSize mat.v2 = mat.v2_mul(scale, pixelBounds)
+	var newSize mat.v2 = v2.mul(scale, pixelBounds)
 	//printf("NEW SIZE %f, %f - %f, %f -> %f, %f\n", pixelBounds.x, pixelBounds.y, newSize.x, newSize.y, size.x, size.y)
 	position.x, position.y = ControlAlign(id.base, g_pictures[id.picture].pictureAlign, 0.0, 0.0, newSize.x, newSize.y, position.x, position.y, size.x, size.y, padding)
 	//printf("PICTURE_POSITION %f, %f\n", position.x, position.y)
@@ -133,7 +133,7 @@ func PictureRender(id PictureId, clip mat.v4, stack i32) () {
 
 	var controlIndex i32 = id.base.control
 
-	var color mat.v4 = gfx.gfx_white
+	var color mat.v4 = v4.ONE
 	var skin SkinId = g_controls[controlIndex].skin
 	panicIfNot(IsValidSkin(skin) || skin.skin == -1, "invalid id")
 	if IsValidSkin(skin) {
@@ -183,12 +183,12 @@ func PictureRender(id PictureId, clip mat.v4, stack i32) () {
 		var batch gfx.BatchId = g_pictures[id.picture].batch
 		panicIfNot(gfx.IsValidBatch(batch), "invalid batch")
 
-		var renderBounds mat.v4 = mat.v4_v2v2(renderPosition, mat.v2_(width, height))
+		var renderBounds mat.v4 = v4.make_v22(renderPosition, v2.make(width, height))
 		//ControlPrint("PictureRender : renderBounds ", id.base, false)
 		//printf("renderBounds %f, %f, %f, %f\n", renderBounds.x, renderBounds.y, renderBounds.z, renderBounds.w)
 		var renderClips mat.v4 = gfx.PushScissor(g_controls[controlIndex].name, renderBounds)
 		var meshId gfx.MeshId = gfx.BatchGetMesh(batch)
-		gfx.MeshAppendOrthoQuad(meshId, renderBounds, mat.v4_(0.0, 0.0, 1.0, 1.0), color, renderClips, ComputeDepth(stack))
+		gfx.MeshAppendOrthoQuad(meshId, renderBounds, v4.BLUE, color, renderClips, ComputeDepth(stack))
 		gfx.PopScissor()
 	}
 }

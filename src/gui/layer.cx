@@ -2,6 +2,7 @@ package gui
 
 import "gfx"
 import "mat"
+import "v4"
 
 // Globals
 var g_layers []Layer
@@ -100,7 +101,7 @@ func RenderSurface(opaque gfx.MeshId, alpha gfx.MeshId, bounds mat.v4, color mat
 		if (color.w < 1.0) {
 			mesh = alpha
 		}
-		gfx.MeshAppendOrthoQuad(mesh, bounds, mat.v4_(0.0, 0.0, 1.0, 1.0), color, clip, depth)
+		gfx.MeshAppendOrthoQuad(mesh, bounds, v4.make(0.0, 0.0, 1.0, 1.0), color, clip, depth)
 	}
 }
 
@@ -116,7 +117,7 @@ func RenderBorder(opaque gfx.MeshId, alpha gfx.MeshId, bounds mat.v4, left mat.v
 		if (left.w < 1.0) {
 			mesh = alpha
 		}
-		gfx.MeshAppendOrthoLine(mesh, mat.v4_(x0, y0, x0, y1), left, clip, depth)
+		gfx.MeshAppendOrthoLine(mesh, v4.make(x0, y0, x0, y1), left, clip, depth)
 	}
 
 	if (bottom.w > 0.0) {
@@ -124,7 +125,7 @@ func RenderBorder(opaque gfx.MeshId, alpha gfx.MeshId, bounds mat.v4, left mat.v
 		if (bottom.w < 1.0) {
 			mesh = alpha
 		}
-		gfx.MeshAppendOrthoLine(mesh, mat.v4_(x0, y0, x1, y0), bottom, clip, depth)
+		gfx.MeshAppendOrthoLine(mesh, v4.make(x0, y0, x1, y0), bottom, clip, depth)
 	}
 
 	if (right.w > 0.0) {
@@ -132,7 +133,7 @@ func RenderBorder(opaque gfx.MeshId, alpha gfx.MeshId, bounds mat.v4, left mat.v
 		if (right.w < 1.0) {
 			mesh = alpha
 		}
-		gfx.MeshAppendOrthoLine(mesh, mat.v4_(x1, y0, x1, y1), right, clip, depth)
+		gfx.MeshAppendOrthoLine(mesh, v4.make(x1, y0, x1, y1), right, clip, depth)
 	}
 
 	if (top.w > 0.0) {
@@ -140,7 +141,7 @@ func RenderBorder(opaque gfx.MeshId, alpha gfx.MeshId, bounds mat.v4, left mat.v
 		if (top.w < 1.0) {
 			mesh = alpha
 		}
-		gfx.MeshAppendOrthoLine(mesh, mat.v4_(x0, y1, x1, y1), top, clip, depth)
+		gfx.MeshAppendOrthoLine(mesh, v4.make(x0, y1, x1, y1), top, clip, depth)
 	}
 }
 

@@ -26,6 +26,10 @@ var USE_DEBUG_A       i64 = 1L << 14L
 var USE_PASS_0        i64 = 1L << 15L
 var USE_PASS_1        i64 = 1L << 16L
 var USE_SKIN          i64 = 1L << 17L
+var USE_PARTICLE      i64 = 1L << 18L
+var USE_MERGE         i64 = 1L << 19L
+var USE_EDGE          i64 = 1L << 20L
+var USE_STENCIL       i64 = 1L << 21L
 
 // Globals ...
 var g_shaderPath str
@@ -120,6 +124,10 @@ func shaderInit(dataDir str) {
 	ShaderDefineAdd(USE_PASS_0, "#define USE_PASS_0\n")
 	ShaderDefineAdd(USE_PASS_1, "#define USE_PASS_1\n")
 	ShaderDefineAdd(USE_SKIN, "#define USE_SKIN\n")
+	ShaderDefineAdd(USE_PARTICLE, "#define USE_PARTICLE\n")
+	ShaderDefineAdd(USE_MERGE, "#define USE_MERGE\n")
+	ShaderDefineAdd(USE_STENCIL, "#define USE_STENCIL\n")
+	ShaderDefineAdd(USE_EDGE, "#define USE_EDGE\n")
 }
 
 // ShaderKeyClear ...

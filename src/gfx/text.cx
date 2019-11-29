@@ -119,8 +119,8 @@ func MeshAppendText(id MeshId, texture TextureId, name str, position mat.v2, sca
 				}
 			}
 
-			//MeshAppendOrthoQuad(g_debugMesh, mat.v4_(quadX, quadY, quadAdvance, quadHeight), mat.v4_(qu0, qv0, qu1, qv1), red, clip, depth)
-			MeshAppendOrthoQuad(id, mat.v4_(quadX, quadY, quadAdvance, quadHeight), mat.v4_(qu0, qv0, qu1, qv1),  color, clip, depth)
+			//MeshAppendOrthoQuad(g_debugMesh, v4.make(quadX, quadY, quadAdvance, quadHeight), v4.make(qu0, qv0, qu1, qv1), red, clip, depth)
+			MeshAppendOrthoQuad(id, v4.make(quadX, quadY, quadAdvance, quadHeight), v4.make(qu0, qv0, qu1, qv1),  color, clip, depth)
 			index = index + size
 			quadX = quadX + quadAdvance
 			dummyIndex = dummyIndex + 1
@@ -192,8 +192,8 @@ func MeshAppendGlyph(id MeshId, texture TextureId, name str, position mat.v2, sc
 		}
 	}
 
-	//MeshAppendOrthoQuad(g_debugMesh, mat.v4_(quadX, quadY, quadAdvance, quadHeight), mat.v4_(qu0, qv0, qu1, qv1), red, clip, depth)
-	MeshAppendOrthoQuad(id, mat.v4_(quadX, quadY, quadAdvance, quadHeight), mat.v4_(qu0, qv0, qu1, qv1),  color, clip, depth)
+	//MeshAppendOrthoQuad(g_debugMesh, v4.make(quadX, quadY, quadAdvance, quadHeight), v4.make(qu0, qv0, qu1, qv1), red, clip, depth)
+	MeshAppendOrthoQuad(id, v4.make(quadX, quadY, quadAdvance, quadHeight), v4.make(qu0, qv0, qu1, qv1),  color, clip, depth)
 	quadX = quadX + quadAdvance
 	dummyIndex = dummyIndex + 1
 }

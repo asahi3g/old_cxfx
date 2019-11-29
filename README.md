@@ -36,64 +36,32 @@ make 6_model
 
 ##### WIP :
 
-<img width="100%" height="100%" src="screenshots/cxfx_51.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_50.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_49.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_48.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_47.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_46.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_45.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_44.png">
-<img width="100%" height="100%" src="screenshots/cxfx_43.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_42.png">
-<img width="100%" height="100%" src="screenshots/cxfx_41.png">
-<img width="100%" height="100%" src="screenshots/cxfx_40.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_39.png">
-<img width="100%" height="100%" src="screenshots/cxfx_38.png">
-<img width="100%" height="100%" src="screenshots/cxfx_37.png">
-<img width="100%" height="100%" src="screenshots/cxfx_36.png">
-<img width="100%" height="100%" src="screenshots/cxfx_35.png">
-<img width="100%" height="100%" src="screenshots/cxfx_34.png">
-<img width="100%" height="100%" src="screenshots/cxfx_33.png">
-<img width="100%" height="100%" src="screenshots/cxfx_32.png">
-<img width="100%" height="100%" src="screenshots/cxfx_31.png">
-<img width="100%" height="100%" src="screenshots/cxfx_30.png">
-<img width="100%" height="100%" src="screenshots/cxfx_29.png">
-<img width="100%" height="100%" src="screenshots/cxfx_28.png">
-<img width="100%" height="100%" src="screenshots/cxfx_27.png">
-<img width="100%" height="100%" src="screenshots/cxfx_26.png">
-<img width="100%" height="100%" src="screenshots/cxfx_25.png">
-<img width="100%" height="100%" src="screenshots/cxfx_24.png">
-<img width="100%" height="100%" src="screenshots/cxfx_23.png">
-<img width="100%" height="100%" src="screenshots/cxfx_22.png">
-<img width="100%" height="100%" src="screenshots/cxfx_21.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_20.png">
-<img width="100%" height="100%" src="screenshots/cxfx_19.png">
-<img width="100%" height="100%" src="screenshots/cxfx_18.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_17.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_16.png">
-<img width="100%" height="100%" src="screenshots/cxfx_15.png">
-<img width="100%" height="100%" src="screenshots/cxfx_14.png">
-<img width="100%" height="100%" src="screenshots/cxfx_13.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_12.png">
-<img width="100%" height="100%" src="screenshots/cxfx_11.png">
-<img width="100%" height="100%" src="screenshots/cxfx_10.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_9.png">
-<img width="100%" height="100%" src="screenshots/cxfx_8.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_7.png">
-<img width="100%" height="100%" src="screenshots/cxfx_6.gif">
-<img width="100%" height="100%" src="screenshots/cxfx_5.png">
-<img width="100%" height="100%" src="screenshots/cxfx_4.png">
-<img width="100%" height="100%" src="screenshots/cxfx_3.png">
-<img width="100%" height="100%" src="screenshots/cxfx_2.png">
-<img width="100%" height="100%" src="screenshots/cxfx_1.png">
-<img width="100%" height="100%" src="screenshots/cxfx_0.png">
+<img style="max-width:100%" src="screenshots/cxfx_44.png">
+<img style="max-width:100%" src="screenshots/cxfx_42.png">
+<img style="max-width:100%" src="screenshots/cxfx_41.png">
+<img style="max-width:100%" src="screenshots/cxfx_39.png">
+<img style="max-width:100%" src="screenshots/cxfx_38.png">
+<img style="max-width:100%" src="screenshots/cxfx_37.png">
+<img style="max-width:100%" src="screenshots/cxfx_36.png">
+<img style="max-width:100%" src="screenshots/cxfx_35.png">
+<img style="max-width:100%" src="screenshots/cxfx_34.png">
+<img style="max-width:100%" src="screenshots/cxfx_33.png">
+<img style="max-width:100%" src="screenshots/cxfx_32.png">
+<img style="max-width:100%" src="screenshots/cxfx_31.png">
+<img style="max-width:100%" src="screenshots/cxfx_27.png">
+<img style="max-width:100%" src="screenshots/cxfx_15.png">
+<img style="max-width:100%" src="screenshots/cxfx_9.png">
+<img style="max-width:100%" src="screenshots/cxfx_5.png">
+<img style="max-width:100%" src="screenshots/cxfx_4.png">
+<img style="max-width:100%" src="screenshots/cxfx_2.png">
+<img style="max-width:100%" src="screenshots/cxfx_1.png">
+<img style="max-width:100%" src="screenshots/cxfx_0.png">
 
 - [ ] math:
-  - [ ] matrix
+  - [x] matrix
     - [x] basic matrix operations
-  - [ ] vector
-  - [ ] quaternion
+  - [x] vector
+  - [x] quaternion
   - [ ] spline
 - [ ] graphics:
   - [ ] textures:
@@ -124,10 +92,11 @@ make 6_model
     - [x] normal map
     - [x] emmissive map
     - [x] occlusion map
-    - [ ] output scene depth in a texture
-    - [ ] multiple render targets
-    - [ ] order independent transparency
+    - [x] output scene depth in a texture
+    - [x] multiple render targets
+    - [x] order independent transparency
     - [ ] particles
+      - [ ] moving emitters
     - [ ] anti aliasing
     - [ ] atmospheric scattering
   - [ ] terrain
@@ -144,7 +113,7 @@ make 6_model
     - [ ] ray/ellipsoid
     - [ ] ray/OBB
     - [ ] ray/AABB
-  - [ ] gravity
+  - [x] gravity
   - [ ] torque
 - [ ] cameras:
   - [x] free camera
@@ -179,7 +148,7 @@ make 6_model
     - [ ] android
 - [ ] skycoin:
   - [ ] cxo
-  - [ ] blockchain
+  - [ ] cxchain
 
 
 #### How to contribute :

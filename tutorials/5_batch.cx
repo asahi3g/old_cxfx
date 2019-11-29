@@ -5,21 +5,20 @@ import "fps"
 import "gam"
 import "gfx"
 import "gui"
+import "m44"
 import "mat"
+import "v3"
+import "v4"
 
 // Globals ...
 var gameScreen gui.ScreenId
-
-var ry f32 = 0.0
 
 var groundMesh gfx.MeshId
 var cubeMesh gfx.MeshId
 var texture gfx.TextureId
 
-var rotate []f32 = mat.MatrixAlloc()
-var translate []f32 = mat.MatrixAlloc()
-var world [] f32 = mat.MatrixAlloc()
-var identity [] f32 = mat.MatrixAlloc()
+var ry f32 = 0.0
+var world m44
 
 var camera gam.CameraId
 
@@ -71,31 +70,26 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 	var dt f32 = f64.f32(fps.DeltaSecond())
 
 	ry = ry + dt
-
-	rotate = mat.MatrixCreateRotationY(rotate, ry)
-
-	translate = mat.MatrixCreateTranslation(translate, 0.0, 0.0, 0.0)
-
-	world = mat.MatrixMultiply(world, rotate, translate)
+	world = m44.make_rotate_y(ry)
 
 	gfx.MeshBegin(cubeMesh)
 	gfx.MeshAppendBox(cubeMesh, false, false,
-		mat.v3_(0.0, 0.0, 0.0),
-		mat.v3_(10.0, 0.0, 0.0),
-		mat.v3_(0.0, 10.0, 0.0),
-		mat.v3_(0.0, 0.0, 10.0),
-		mat.v4_(1.0, 1.0, 1.0, 1.0))
+		v3.ZERO,
+		v3.make(10.0, 0.0, 0.0),
+		v3.make(0.0, 10.0, 0.0),
+		v3.make(0.0, 0.0, 10.0),
+		v4.ONE)
 	gfx.MeshEnd(cubeMesh)
 
 	gfx.MeshBegin(groundMesh)
 	gfx.MeshAppendPlane(groundMesh, false, true,
-		mat.v3_(0.0, -10.0, 0.0),
-		mat.v3_(worldSizeX, 0.0, 0.0),
-		mat.v3_(0.0, 1.0, 0.0),
-		mat.v3_(0.0, 0.0, worldSizeZ),
+		v3.make(0.0, -10.0, 0.0),
+		v3.make(worldSizeX, 0.0, 0.0),
+		v3.GREEN,
+		v3.make(0.0, 0.0, worldSizeZ),
 		groundWidth, groundHeight,
-		mat.v4_(0.0, 0.0, 10.0, 10.0),
-		mat.v4_(1.0, 1.0, 1.0, 1.0))
+		v4.make(0.0, 0.0, 10.0, 10.0),
+		v4.ONE)
 	gfx.MeshEnd(groundMesh)
 
 	for i := 0; i < g_synthCount; i++ {
@@ -136,11 +130,11 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 		var ty f32 = g_synths[i].ty
 		var tz f32 = g_synths[i].tz
 		gfx.MeshAppendBox(mesh, false, false,
-			mat.v3_(tx, ty, tz),
-			mat.v3_(20.0, 0.0, 0.0),
-			mat.v3_(0.0, 20.0, 0.0),
-			mat.v3_(0.0, 0.0, 20.0),
-			mat.v4_(1.0, 1.0, 1.0, 1.0))
+			v3.make(tx, ty, tz),
+			v3.make(20.0, 0.0, 0.0),
+			v3.make(0.0, 20.0, 0.0),
+			v3.make(0.0, 0.0, 20.0),
+			v4.ONE)
 	}
 	gfx.EndBatches()
 }
@@ -150,18 +144,18 @@ func gameOnUpdate(controlIndex i32, controlAction i32) {
 func gameOnRender(controlIndex i32, controlAction i32) {
 	gfx.DisableBlending()
 	gfx.DepthState(true, gfx.LESS, true)
-	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, mat.v4_(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
+	gfx.Clear(gfx.COLOR_BUFFER_BIT | gfx.DEPTH_BUFFER_BIT, v4.make(0.3, 0.5, 0.6, 1.0), 1.0D, 0)
 	gfx.EffectUse(gfx.g_fxTexture3D)
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_VIEW, gam.CameraGetView(camera), false)
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_PROJECTION, gam.CameraGetProjection(camera), false)
+	gfx.EffectAssignM44(gfx.g_fxTexture3D, gfx.UNIFORM_VIEW, gam.CameraGetView(camera), false)
+	gfx.EffectAssignM44(gfx.g_fxTexture3D, gfx.UNIFORM_PROJECTION, gam.CameraGetProjection(camera), false)
 	gfx.EffectAssignTexture(gfx.g_fxTexture3D, gfx.SAMPLER_COLOR_0, texture, gfx.g_linearWrap)
 
 	// cubeMesh
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, world, false)
+	gfx.EffectAssignM44(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, world, false)
 	gfx.MeshRender(cubeMesh)
 
 	// groundMesh
-	gfx.EffectAssignMatrix4(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, identity, false)
+	gfx.EffectAssignM44(gfx.g_fxTexture3D, gfx.UNIFORM_WORLD, m44.IDENTITY, false)
 	gfx.MeshRender(groundMesh)
 
 	gfx.RenderBatches(false)
@@ -180,9 +174,8 @@ func main()() {
 
 	camera = gam.CameraCreate()
 	gam.CameraSetProjection(camera, 1.0, 10000.0, 0.5, gfx.gfx_viewportSize.x, gfx.gfx_viewportSize.y, true)
-	gam.CameraSetPosition(camera, mat.v3_(0.0, 0.0, 0.0), true)
+	gam.CameraSetPosition(camera, v3.ZERO, true)
 	gam.CameraSetYawPitch(camera, 0.0, 0.0, true)
-	identity = mat.MatrixIdentity(identity)
 
 	// gameScreen
 	gameScreen = gui.ScreenCreate("gameScreen")

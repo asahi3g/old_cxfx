@@ -1,6 +1,7 @@
 package fps
 
-import "mat"
+import "time"
+import "v1d"
 
 // TODO : rename *Profile in Profile*
 
@@ -91,8 +92,8 @@ func ClearProfile(this ProfileId, full bool) { // ##1 perf pointer deref vs inde
 	if (full == true) {
 		g_profiles[this.index].sum = 0.0D
 		g_profiles[this.index].count = 0.0D
-		g_profiles[this.index].max = mat.F64_MIN
-		g_profiles[this.index].min = mat.F64_MAX
+		g_profiles[this.index].max = v1d.MIN
+		g_profiles[this.index].min = v1d.MAX
 	}
 	var stack i32 = g_profiles[this.index].stack
 	panicIf(stack !=  0, "invalid stack")
@@ -169,8 +170,8 @@ func StopProfile(this ProfileId) {
 	g_profiles[this.index].delta = previous + delta
 	g_profiles[this.index].sum = sum + delta
 	g_profiles[this.index].count = count + 1.0D
-	g_profiles[this.index].max = mat.max_f64(max, delta)
-	g_profiles[this.index].min = mat.min_f64(min, delta)
+	g_profiles[this.index].max = v1d.max(max, delta)
+	g_profiles[this.index].min = v1d.min(min, delta)
 	panicIf(stack <= 0, "invalid stack")
 	g_profiles[this.index].stack = stack - 1
 	panicIf(g_profileStack <= 0, "invalid stack")

@@ -4,6 +4,10 @@ import "json"
 import "os"
 import "gl"
 import "mat"
+import "v1"
+import "v3"
+import "v4"
+import "m44"
 
 // Constants ...
 var HEADER_SIZE i32 = 12
@@ -125,6 +129,7 @@ type Accessor struct {
 	dataF32 []f32
 	dataUI16 []ui16
 	dataUI32 []ui32
+	loaded bool
 }
 
 type Attribute struct {
@@ -172,7 +177,7 @@ type TextureView struct {
 }
 
 type MetallicRoughness struct {
-	baseColorFactor [4]f32
+	baseColorFactor mat.v4
 	baseColorTexture TextureView
 	metallicFactor f32
 	roughnessFactor f32
@@ -180,10 +185,10 @@ type MetallicRoughness struct {
 }
 
 type SpecularGlossiness struct {
-	diffuseFactor [4]f32
+	diffuseFactor mat.v4
 	diffuseTexture TextureView
 	glossinessFactor f32
-	specularFactor [3]f32
+	specularFactor mat.v3
 	specularGlossinessTexture TextureView
 }
 
@@ -194,7 +199,7 @@ type Material struct {
 	normalTexture TextureView
 	occlusionTexture TextureView
 	emissiveTexture TextureView
-	emissiveFactor [4]f32
+	emissiveFactor mat.v4
 	alphaMode i32
 	//alphaCutoff f32
 	doubleSided i32 //bool
@@ -274,19 +279,22 @@ type Animation struct {
 
 
 type Node struct {
-	camera i32
 	children []i32
-	skin i32
-	matrix []f32
-	mesh i32
-	rotation []f32
-	scale []f32
-	translation []f32
-	//weights []f32
 	name str
+	camera i32
+	skin i32
+	mesh i32
+	matrix mat.m44
+	rotation mat.v4
+	scale mat.v3
+	translation mat.v3
+	//weights []f32
 	//parent i32
 	//light i32
 	hasMatrix bool
+	hasScale bool
+	hasRotation bool
+	hasTranslation bool
 }
 
 // Scene
@@ -351,6 +359,289 @@ func alwaysMore(file i32) (out bool) {
 	out = more && success
 }
 
+func readM44F(file i32, res *mat.m44) (success bool) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
+		return
+	}
+
+	var more bool
+	var value f32
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v00 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v01 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v02 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v03 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v10 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v11 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v12 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v13 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v20 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v21 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v22 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v23 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v30 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v31 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v32 = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).v33 = value
+	success = json.MatchDelim(file, json.DELIM_SQUARE_RIGHT)
+}
+
+func readV4F(file i32, res *mat.v4) (success bool) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
+		return
+	}
+
+	var more bool
+	var value f32
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).x = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).y = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).z = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).w = value
+	success = json.MatchDelim(file, json.DELIM_SQUARE_RIGHT)
+}
+
+func readV3F(file i32, res *mat.v3) (success bool) {
+	if json.MatchDelim(file, json.DELIM_SQUARE_LEFT) == false {
+		return
+	}
+
+	var more bool
+	var value f32
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).x = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).y = value
+
+	more, success = json.More(file)
+	if more == false || success == false {
+		success = false
+		return
+	}
+	if json.ReadF32(file, &value) == false {
+		success = false
+		return
+	}
+	(*res).z = value
+	success = json.MatchDelim(file, json.DELIM_SQUARE_RIGHT)
+}
+
 //------------------------------------------------------------------------------
 func printI32Array(message str, array []i32) {
 	var count i32 = len(array)
@@ -372,7 +663,7 @@ func printF32Array(message str, array []f32) {
 }
 
 // AssetPrint ...
-func AssetPrint(id AssetId) { // TODO : format as json
+/*func AssetPrint(id AssetId) { // TODO : format as json
 	panicIfNot(AssetIsValid(id), "invalid asset")
 	printf("asset : %s\n", g_assets[id.asset].path)
 	printf("---- copyright : %s\n", g_assets[id.asset].copyright)
@@ -501,7 +792,7 @@ func AssetPrint(id AssetId) { // TODO : format as json
 	}
 	printf("]\n")
 }
-
+*/
 //------------------------------------------------------------------------------
 func parseAsset(file i32, id AssetId) (out AssetId) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
@@ -815,6 +1106,10 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 
 		var node Node
 		node.mesh = -1
+		node.matrix = m44.IDENTITY
+		node.scale = v3.ONE
+		node.rotation = v4.ALPHA
+		node.translation = v3.ZERO
 
 		for alwaysMore(file) {
 			var key str
@@ -843,22 +1138,26 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 					return
 				}
 			} else if key == "matrix" {
-				if json.ReadF32Slice(file, &node.matrix) == false {
+				node.hasMatrix = true
+				if readM44F(file, &node.matrix) == false {
 					out = AssetInvalid()
 					return
 				}
 			} else if key == "rotation" {
-				if json.ReadF32Slice(file, &node.rotation) == false {
+				node.hasRotation = true
+				if readV4F(file, &node.rotation) == false {
 					out = AssetInvalid()
 					return
 				}
 			} else if key == "translation" {
-				if json.ReadF32Slice(file, &node.translation) == false {
+				node.hasTranslation = true
+				if readV3F(file, &node.translation) == false {
 					out = AssetInvalid()
 					return
 				}
 			} else if key == "scale" {
-				if json.ReadF32Slice(file, &node.scale) == false {
+				node.hasScale = true
+				if readV3F(file, &node.scale) == false {
 					out = AssetInvalid()
 					return
 				}
@@ -883,51 +1182,20 @@ func parseNodes(file i32, id AssetId) (out AssetId) {
 			}
 		}
 
-		if len(node.matrix) != 16 {
-			if len(node.scale) != 3 {
-				var scale []f32
-				scale = append(scale, 1.0)
-				scale = append(scale, 1.0)
-				scale = append(scale, 1.0)
-				node.scale = scale
+		if node.hasMatrix == false{
+			if node.hasScale == false {
+				node.scale = v3.ONE
 			}
 
-			if len(node.rotation) != 4 {
-				var rotation []f32
-				rotation = append(rotation, 0.0)
-				rotation = append(rotation, 0.0)
-				rotation = append(rotation, 0.0)
-				rotation = append(rotation, 1.0)
-				node.rotation = rotation
+			if node.hasRotation == false {
+				node.rotation = v4.ALPHA
 			}
 
-			if len(node.translation) != 3 {
-				var translation []f32
-				translation = append(translation, 0.0)
-				translation = append(translation, 0.0)
-				translation = append(translation, 0.0)
-				node.translation = translation
+			if node.hasTranslation == false {
+				node.translation = v3.ZERO
 			}
 
-			var sx f32 = node.scale[0]
-			var sy f32 = node.scale[1]
-			var sz f32 = node.scale[2]
-
-			var qx f32 = node.rotation[0]
-			var qy f32 = node.rotation[1]
-			var qz f32 = node.rotation[2]
-			var qw f32 = node.rotation[3]
-
-			var tx f32 = node.translation[0]
-			var ty f32 = node.translation[1]
-			var tz f32 = node.translation[2]
-
-			var m []f32 = node.matrix = mat.MatrixAlloc()
-			m = mat.MatrixCreate2(m, sx, sy, sz, qx, qy, qz, qw, tx, ty, tz)
-			node.matrix = m
-			node.hasMatrix = false
-		} else {
-			node.hasMatrix = true
+			node.matrix = m44.makev_SQT(node.scale, node.rotation, node.translation)
 		}
 
 		g_assets[id.asset].nodes = append(g_assets[id.asset].nodes, node)
@@ -1334,15 +1602,9 @@ func parsePbrSpecularGlossiness(file i32, id AssetId) (out AssetId, specularGlos
 
 	out = id
 
-	specularGlossiness.diffuseFactor[0] = 1.0
-	specularGlossiness.diffuseFactor[1] = 1.0
-	specularGlossiness.diffuseFactor[2] = 1.0
-	specularGlossiness.diffuseFactor[3] = 1.0
-
+	specularGlossiness.diffuseFactor = v4.ONE
 	specularGlossiness.glossinessFactor = 1.0
-	specularGlossiness.specularFactor[0] = 1.0
-	specularGlossiness.specularFactor[1] = 1.0
-	specularGlossiness.specularFactor[2] = 1.0
+	specularGlossiness.specularFactor = v3.ONE
 
 	specularGlossiness.diffuseTexture = InvalidTextureView()
 	specularGlossiness.specularGlossinessTexture = InvalidTextureView()
@@ -1360,8 +1622,8 @@ func parsePbrSpecularGlossiness(file i32, id AssetId) (out AssetId, specularGlos
 		}
 
 		if key == "diffuseFactor" {
-			var diffuseFactor [4]f32
-			if json.ReadF32Vec4(file, &diffuseFactor) == false {
+			var diffuseFactor mat.v4
+			if readV4F(file, &diffuseFactor) == false {
 				out = AssetInvalid()
 				return
 			}
@@ -1374,8 +1636,8 @@ func parsePbrSpecularGlossiness(file i32, id AssetId) (out AssetId, specularGlos
 			}
 			specularGlossiness.glossinessFactor = glossinessFactor
 		} else if key == "specularFactor" {
-			var specularFactor [3]f32
-			if json.ReadF32Vec3(file, &specularFactor) == false {
+			var specularFactor mat.v3
+			if readV3F(file, &specularFactor) == false {
 				out = AssetInvalid()
 				return
 			}
@@ -1414,11 +1676,7 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 
 	out = id
 
-	metallicRoughness.baseColorFactor[0] = 1.0
-	metallicRoughness.baseColorFactor[1] = 1.0
-	metallicRoughness.baseColorFactor[2] = 1.0
-	metallicRoughness.baseColorFactor[3] = 1.0
-
+	metallicRoughness.baseColorFactor = v4.ONE
 	metallicRoughness.metallicFactor = 1.0
 	metallicRoughness.roughnessFactor = 1.0
 
@@ -1438,8 +1696,8 @@ func parsePbrMetallicRoughness(file i32, id AssetId) (out AssetId, metallicRough
 		}
 
 		if key == "baseColorFactor" {
-			var baseColorFactor [4]f32
-			if json.ReadF32Vec4(file, &baseColorFactor) == false {
+			var baseColorFactor mat.v4
+			if readV4F(file, &baseColorFactor) == false {
 				out = AssetInvalid()
 				return
 			}
@@ -1575,16 +1833,13 @@ func parseMaterials(file i32, id AssetId) (out AssetId) {
 				}
 				material.emissiveTexture = texture
 			} else if key == "emissiveFactor" {
-				var emissiveFactor [3]f32
-				if json.ReadF32Vec3(file, &emissiveFactor) == false {
+				var emissiveFactor mat.v3
+				if readV3F(file, &emissiveFactor) == false {
 					out = AssetInvalid()
 					printf("failed to parse emissive factor\n")
 					return
 				}
-				material.emissiveFactor[0] = emissiveFactor[0]
-				material.emissiveFactor[1] = emissiveFactor[1]
-				material.emissiveFactor[2] = emissiveFactor[2]
-				material.emissiveFactor[3] = 1.0
+				material.emissiveFactor = v4.make_v31(emissiveFactor, 1.0)
 			} else if key == "doubleSided" {
 				var doubleSided bool
 				if json.ReadBool(file, &doubleSided) == false {
@@ -2539,60 +2794,31 @@ func NodeGetSkin(id AssetId, node i32) (out Skin) { // TODO : handle errors
 
 
 // NodeGetMatrix ...
-func NodeGetMatrix(id AssetId, node i32) (out []f32) {
+func NodeGetMatrix(id AssetId, node i32) (out mat.m44) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
-
 	var nodes []Node = g_assets[id.asset].nodes
 	out = nodes[node].matrix
 }
 
 // NodeGetRotation...
-func NodeGetRotation(id AssetId, node i32) (out v4) {
+func NodeGetRotation(id AssetId, node i32) (out mat.v4) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
-
 	var nodes []Node = g_assets[id.asset].nodes
-	var rotation []f32 = nodes[node].rotation
-	if len(rotation) == 4 {
-		out.x = rotation[0]
-		out.y = rotation[1]
-		out.z = rotation[2]
-		out.w = rotation[3]
-	} else {
-		out.x = 0.0
-		out.y = 0.0
-		out.z = 0.0
-		out.w = 1.0
-	}
+	out = nodes[node].rotation
 }
 
 // NodeGetTranslation ...
-func NodeGetTranslation(id AssetId, node i32) (out v3) {
+func NodeGetTranslation(id AssetId, node i32) (out mat.v3) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
-
 	var nodes []Node = g_assets[id.asset].nodes
-	var translation []f32 = nodes[node].translation
-	if len(translation) == 3 {
-		out.x = translation[0]
-		out.y = translation[1]
-		out.z = translation[2]
-	}
+	out = nodes[node].translation
 }
 
 // NodeGetScale ...
-func NodeGetScale(id AssetId, node i32) (out v3) {
+func NodeGetScale(id AssetId, node i32) (out mat.v3) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
-
 	var nodes []Node = g_assets[id.asset].nodes
-	var scale []f32 = nodes[node].scale
-	if len(scale) == 3 {
-		out.x = scale[0]
-		out.y = scale[1]
-		out.z = scale[2]
-	} else {
-		out.x = 1.0
-		out.y = 1.0
-		out.z = 1.0
-	}
+	out = nodes[node].scale
 }
 
 // NodeGetChildren ...
@@ -2609,8 +2835,8 @@ func AnimationGetLength(id AssetId, animation i32) (min f32, max f32) {
 	panicIfNot(AssetIsValid(id), "invalid asset")
 	var animations []Animation = g_assets[id.asset].animations
 	var count i32 = len(animations)
-	min = mat.FLOAT_MAX
-	max = mat.FLOAT_MIN
+	min = v1.MAX
+	max = v1.MIN
 	if animation >= 0 && animation < count {
 		var accessors []Accessor = g_assets[id.asset].accessors
 		var accessorCount i32 = len(accessors)
@@ -2793,6 +3019,48 @@ func AssetCreate(dataDir str, filename str, options i32) (out AssetId) {
 	var accessors []Accessor = g_assets[out.asset].accessors
 	var accessorCount i32 = len(accessors)
 
+	if (options & ASSET_GEOMETRY) != 0 {
+		var meshes []Mesh = g_assets[out.asset].meshes
+		var meshCount i32 = len(meshes)
+		for i := 0; i < meshCount; i++ {
+			var primitives []Primitive = meshes[i].primitives
+			var primitiveCount i32 = len(primitives)
+			for k := 0; k < primitiveCount; k++ {
+				var attributes []Attribute = primitives[k].attributes
+				var attributeCount i32 = len(attributes)
+				for l := 0; l < attributeCount; l++ {
+					var accessor i32 = attributes[l].accessor
+					accessors[accessor].loaded = true
+				}
+				var indicesAccessor i32 = primitives[k].indices
+				accessors[indicesAccessor].loaded = true
+			}
+		}
+	}
+
+
+	if (options & ASSET_ANIMATION) != 0 {
+		var animations []Animation = g_assets[out.asset].animations
+		var animationCount i32 = len(animations)
+		for i := 0; i < animationCount; i++ {
+			var samplers []AnimationSampler = animations[i].samplers
+			var samplerCount i32 = len(samplers)
+			for k := 0; k < samplerCount; k++ {
+				var inputAccessor i32 = samplers[k].inputA
+				var outputAccessor i32 = samplers[k].outputA
+				accessors[inputAccessor].loaded = true
+				accessors[outputAccessor].loaded = true
+			}
+		}
+	}
+
+	var skins []Skin = g_assets[out.asset].skins
+	var skinCount i32 = len(skins)
+	for i := 0; i < skinCount; i++ {
+		var ibmAccessor i32 = skins[i].inverseBindMatrices
+		accessors[ibmAccessor].loaded= true
+	}
+
 	var bufferViews []BufferView = g_assets[out.asset].bufferViews
 	var bufferViewCount i32 = len(bufferViews)
 
@@ -2800,72 +3068,70 @@ func AssetCreate(dataDir str, filename str, options i32) (out AssetId) {
 	var bufferCount i32 = len(buffers)
 
 	for a := 0; a < accessorCount; a++ {
-		var bufferViewIndex i32 = accessors[a].bufferView
-		if bufferViewIndex < 0 || bufferViewIndex >= bufferViewCount {
-			printf("invalid bufferView index : %d\n", bufferViewIndex)
-			out = AssetInvalid()
-			return
-		}
-
-
-		var bufferView BufferView = bufferViews[bufferViewIndex]
-		var bufferIndex i32 = bufferView.buffer
-		if bufferIndex < 0 || bufferIndex >= bufferCount {
-			printf("invalid buffer index : %d\n", bufferIndex)
-			out = AssetInvalid()
-			return
-		}
-
-
-		var buffer Buffer = buffers[bufferIndex]
-		var uri str = sprintf("%s%s", dataDir, buffer.uri)
-		os.Open(uri)
-
-		var dataF32 []f32
-		var dataUI16 []ui16
-		var dataUI32 []ui32
-
-		var byteOffset i64 = accessors[a].byteOffset
-		var bufferOffset i64 = bufferView.byteOffset + byteOffset
-
-		if bufferOffset > 0L {
-			os.Seek(uri, bufferOffset, os.SEEK_SET)
-		}
-		var count i32 = accessors[a].count
-		var componentCount i32 = accessors[a].componentCount
-		var componentType i32 = accessors[a].componentType
-		if componentType == gl.FLOAT {
-			for i := 0; i < count; i++ {
-				for c := 0; c < componentCount; c++ {
-					var value f32 = os.ReadF32(uri)
-					dataF32 = append(dataF32, value)
-				}
+		if accessors[a].loaded {
+			var bufferViewIndex i32 = accessors[a].bufferView
+			if bufferViewIndex < 0 || bufferViewIndex >= bufferViewCount {
+				out = AssetInvalid()
+				return
 			}
-		} else if componentType == gl.UNSIGNED_SHORT {
-			for i := 0; i < count; i++ {
-				for c := 0; c < componentCount; c++ {
-					var value ui16 = os.ReadUI16(uri)
-					dataUI16 = append(dataUI16, value)
-				}
+
+			var bufferView BufferView = bufferViews[bufferViewIndex]
+			var bufferIndex i32 = bufferView.buffer
+			if bufferIndex < 0 || bufferIndex >= bufferCount {
+				out = AssetInvalid()
+				return
 			}
-		} else if componentType == gl.UNSIGNED_INT {
-			for i := 0; i < count; i++ {
-				for c := 0; c < componentCount; c++ {
-					var value ui32 = os.ReadUI32(uri)
-					dataUI32 = append(dataUI32, value)
-				}
+
+			var buffer Buffer = buffers[bufferIndex]
+			var uri str = sprintf("%s%s", dataDir, buffer.uri)
+			os.Open(uri)
+
+			var dataF32 []f32
+			var dataUI16 []ui16
+			var dataUI32 []ui32
+
+			var byteOffset i64 = accessors[a].byteOffset
+			var bufferOffset i64 = bufferView.byteOffset + byteOffset
+
+			if bufferOffset > 0L {
+				os.Seek(uri, bufferOffset, os.SEEK_SET)
 			}
-		} else {
-			printf("unhandled buffer format %d\n", componentType)
-			out = AssetInvalid()
-			return
+			var count i32 = accessors[a].count
+			var componentCount i32 = accessors[a].componentCount
+			var componentType i32 = accessors[a].componentType
+			if componentType == gl.FLOAT {
+				for i := 0; i < count; i++ {
+					for c := 0; c < componentCount; c++ {
+						var value f32 = os.ReadF32(uri)
+						dataF32 = append(dataF32, value)
+					}
+				}
+			} else if componentType == gl.UNSIGNED_SHORT {
+				for i := 0; i < count; i++ {
+					for c := 0; c < componentCount; c++ {
+						var value ui16 = os.ReadUI16(uri)
+						dataUI16 = append(dataUI16, value)
+					}
+				}
+			} else if componentType == gl.UNSIGNED_INT {
+				for i := 0; i < count; i++ {
+					for c := 0; c < componentCount; c++ {
+						var value ui32 = os.ReadUI32(uri)
+						dataUI32 = append(dataUI32, value)
+					}
+				}
+			} else {
+				printf("unhandled buffer format %d\n", componentType)
+				out = AssetInvalid()
+				return
+			}
+
+			accessors[a].dataF32 = dataF32
+			accessors[a].dataUI16 = dataUI16
+			accessors[a].dataUI32 = dataUI32
+
+			os.Close(uri) // leaks if early out
 		}
-
-		accessors[a].dataF32 = dataF32
-		accessors[a].dataUI16 = dataUI16
-		accessors[a].dataUI32 = dataUI32
-
-		os.Close(uri) // leaks if early out
 	}
 
 	if json.Close(file) == false { // leaks if early out

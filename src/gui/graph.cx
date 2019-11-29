@@ -51,9 +51,9 @@ func GraphCreate(name str) (out GraphId) {
 
 	var graph Graph
 	graph.id = out
-	graph.unit = mat.v2_(50.0, 50.0)
-	graph.scale = mat.v2_(1.0, 1.0)
-	graph.offset = mat.v2_(0.0, 0.0)
+	graph.unit = v2.makef(50.0)
+	graph.scale = v2.ONE
+	graph.offset = v2.ZERO
 	graph.expX = 0
 	graph.expY = 0
 	graph.labelCount = 0
@@ -159,7 +159,7 @@ func GraphResize(id GraphId) () {
 	ControlResize(id.base)
 
 	var graphIndex i32 = id.graph
-	g_graphs[graphIndex].coord = mat.v2_(32.0, 32.0)
+	g_graphs[graphIndex].coord = v2.makef(32.0)
 
 	g_graphs[graphIndex].horz = resize(g_graphs[graphIndex].horz, 0)
 	g_graphs[graphIndex].vert = resize(g_graphs[graphIndex].vert, 0)
@@ -219,7 +219,7 @@ func GraphResize(id GraphId) () {
 	var endX f32 = graphPosition.x + size.x - offsetX - coord.x
 	var endY f32 = graphPosition.y + size.y - offsetY - coord.y
 
-	g_graphs[graphIndex].graphClips = mat.v4_(graphPosition.x, graphPosition.y, size.x - coord.x, size.y - coord.y)
+	g_graphs[graphIndex].graphClips = v4.make(graphPosition.x, graphPosition.y, size.x - coord.x, size.y - coord.y)
 
 	var graphLine GraphLine
 	var font FontId
@@ -230,26 +230,26 @@ func GraphResize(id GraphId) () {
 	for (x < endX) {
 		var color mat.v4 = g_gray_2
 
-		var labelBounds mat.v4 = mat.v4_(labelX, 0.0, stepX, coord.y)
+		var labelBounds mat.v4 = v4.make(labelX, 0.0, stepX, coord.y)
 		var big f32 = labelX - 2.0 * stepX
 		var bigW f32 = stepX * 4.0
 		if ((ix % 100) == 0) {
 			color = g_gray_3
 			font = g_boldFont
-			labelBounds = mat.v4_(big, 0.0, bigW, coord.y)
+			labelBounds = v4.make(big, 0.0, bigW, coord.y)
 		} else if ((ix % 10) == 0) {
-			color = mat.v4_mix(g_gray_2, g_gray_3, scale.x)
+			color = v4.lerpf(g_gray_2, g_gray_3, scale.x)
 			font = g_boldFont
-			labelBounds = mat.v4_(big, 0.0, bigW, coord.y)
+			labelBounds = v4.make(big, 0.0, bigW, coord.y)
 		} else {
-			color = mat.v4_mix(g_gray_0, g_gray_2, scale.x)
+			color = v4.lerpf(g_gray_0, g_gray_2, scale.x)
 			font = g_regularFont
 			var fTmp f32 = labelX - stepX / 2.0
-			labelBounds = mat.v4_(fTmp, 0.0, stepX, coord.y)
+			labelBounds = v4.make(fTmp, 0.0, stepX, coord.y)
 		}
 
 		graphLine.color = color
-		graphLine.bounds = mat.v4_(x, graphPosition.y, x, endY)
+		graphLine.bounds = v4.make(x, graphPosition.y, x, endY)
 		g_graphs[graphIndex].horz = append(g_graphs[graphIndex].horz, graphLine)
 
 		var label LabelId = GraphGetLabel(id)
@@ -278,27 +278,27 @@ func GraphResize(id GraphId) () {
 		//var font FontId
 
 		var fTmp f32 = labelY - stepY / 2.0
-		var labelBounds mat.v4 = mat.v4_(0.0, fTmp, coord.x, coord.y)
+		var labelBounds mat.v4 = v4.make(0.0, fTmp, coord.x, coord.y)
 		//var big f32 = labelY - 2.0 * stepY
 		//var bigW f32 = stepY * 4.0
 		if ((iy % 100) == 0) {
 			color = g_gray_3
 			font = g_boldFont
 			var fTmp0 f32 = labelY - coord.y / 2.0
-			labelBounds = mat.v4_(0.0, fTmp0, coord.x, coord.y)
+			labelBounds = v4.make(0.0, fTmp0, coord.x, coord.y)
 		} else if ((iy % 10) == 0) {
-			color = mat.v4_mix(g_gray_2, g_gray_3, scale.y)
+			color = v4.lerpf(g_gray_2, g_gray_3, scale.y)
 			font = g_boldFont
 			var fTmp0 f32 = labelY - coord.y / 2.0
-			labelBounds = mat.v4_(0.0, fTmp0, coord.x, coord.y)
+			labelBounds = v4.make(0.0, fTmp0, coord.x, coord.y)
 		} else {
-			color = mat.v4_mix(g_gray_0, g_gray_2, scale.y)
+			color = v4.lerpf(g_gray_0, g_gray_2, scale.y)
 			font = g_regularFont
-			labelBounds = mat.v4_(0.0, fTmp, coord.x, stepY)
+			labelBounds = v4.make(0.0, fTmp, coord.x, stepY)
 		}
 
 		graphLine.color = color
-		graphLine.bounds = mat.v4_(graphPosition.x, y, endX, y)
+		graphLine.bounds = v4.make(graphPosition.x, y, endX, y)
 		g_graphs[graphIndex].vert = append(g_graphs[graphIndex].vert, graphLine)
 
 		var label LabelId = GraphGetLabel(id)
@@ -330,7 +330,7 @@ func GraphRender(id GraphId, clip mat.v4, stack i32) () {
 	var controlIndex i32 = id.base.control
 	var graphIndex i32 = id.graph
 
-	var renderBounds mat.v4 = mat.v4_v2v2(g_controls[controlIndex].renderPosition, g_controls[controlIndex].size)
+	var renderBounds mat.v4 = v4.make_v22(g_controls[controlIndex].renderPosition, g_controls[controlIndex].size)
 	//ControlPrint("GraphRender : renderBounds ", id.base, false)
 	//  printf("renderBounds %f, %f, %f, %f\n", renderBounds.x, renderBounds.y, renderBounds.z, renderBounds.w)
 	var renderClips mat.v4 = gfx.PushScissor(g_controls[controlIndex].name, renderBounds)
@@ -352,7 +352,7 @@ func GraphRender(id GraphId, clip mat.v4, stack i32) () {
 		var bounds mat.v4 = g_graphs[graphIndex].vert[i].bounds
 		var color mat.v4 = g_graphs[graphIndex].vert[i].color
 		/*if (i == 3) {
-		  color = mat.v4_(0.0, 1.0, 0.0, 1.0)
+		  color = v4.make(0.0, 1.0, 0.0, 1.0)
 		  bounds.y = bounds.y + 0.01
 		  bounds.w = bounds.w + 0.01
 		  }*/

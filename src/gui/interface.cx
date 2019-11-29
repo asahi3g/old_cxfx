@@ -88,26 +88,25 @@ var g_skycoinAnim AnimationId
 var g_synthAnim AnimationId
 var g_synthAnim AnimationId
 
-var g_black             mat.v4 = mat.rgba_ui8( 30,  34,  39, 255)
-var g_white             mat.v4 = mat.rgba_ui8(255, 251, 251, 255)
-var g_blue              mat.v4 = mat.rgba_ui8(  0, 114, 255, 255)
-var g_lightBlue         mat.v4 = mat.rgba_ui8(  0, 195, 255, 255)
-var g_darkBlue          mat.v4 = mat.v4_mul(g_blue, mat.v4_(0.5, 0.5, 0.5, 1.0))
-var g_green             mat.v4 = mat.rgba_ui8(  0, 223, 128, 255)
-var g_red               mat.v4 = mat.rgba_ui8(255,   0,  78, 255)
-var g_pink              mat.v4 = mat.rgba_ui8(255, 0,  0, 255)
-var g_gold              mat.v4 = mat.rgba_ui8(255, 193,  37, 255)
-var g_gray_0            mat.v4 = mat.rgba_ui8( 34,  38,  43, 255)
-var g_gray_1            mat.v4 = mat.rgba_ui8( 41,  45,  50, 255)
-var g_gray_2            mat.v4 = mat.rgba_ui8( 74,  77,  81, 255)
-var g_gray_3            mat.v4 = mat.rgba_ui8(140, 142, 145, 255)
-var g_gray_4            mat.v4 = mat.rgba_ui8(206, 207, 208, 255)
-var g_gray_5            mat.v4 = mat.rgba_ui8(239, 240, 240, 255)
-var g_gray_6            mat.v4 = mat.rgba_ui8(247, 247, 247, 255)
-var g_gray_7            mat.v4 = mat.rgba_ui8(251, 251, 251, 255)
+var g_black             mat.v4 = v4.divf(v4.make( 30.0,  34.0,  39.0, 255.0), 255.0)
+var g_white             mat.v4 = v4.divf(v4.make(255.0, 251.0, 251.0, 255.0), 255.0)
+var g_blue              mat.v4 = v4.divf(v4.make(  0.0, 114.0, 255.0, 255.0), 255.0)
+var g_lightBlue         mat.v4 = v4.divf(v4.make(  0.0, 195.0, 255.0, 255.0), 255.0)
+var g_darkBlue          mat.v4 = v4.mul(g_blue, v4.make(0.5, 0.5, 0.5, 1.0))
+var g_green             mat.v4 = v4.divf(v4.make(  0.0, 223.0, 128.0, 255.0), 255.0)
+var g_red               mat.v4 = v4.divf(v4.make(255.0,   0.0,  78.0, 255.0), 255.0)
+var g_gold              mat.v4 = v4.divf(v4.make(255.0, 193.0,  37.0, 255.0), 255.0)
+var g_gray_0            mat.v4 = v4.divf(v4.make( 34.0,  38.0,  43.0, 255.0), 255.0)
+var g_gray_1            mat.v4 = v4.divf(v4.make( 41.0,  45.0,  50.0, 255.0), 255.0)
+var g_gray_2            mat.v4 = v4.divf(v4.make( 74.0,  77.0,  81.0, 255.0), 255.0)
+var g_gray_3            mat.v4 = v4.divf(v4.make(140.0, 142.0, 145.0, 255.0), 255.0)
+var g_gray_4            mat.v4 = v4.divf(v4.make(206.0, 207.0, 208.0, 255.0), 255.0)
+var g_gray_5            mat.v4 = v4.divf(v4.make(239.0, 240.0, 240.0, 255.0), 255.0)
+var g_gray_6            mat.v4 = v4.divf(v4.make(247.0, 247.0, 247.0, 255.0), 255.0)
+var g_gray_7            mat.v4 = v4.divf(v4.make(251.0, 251.0, 251.0, 255.0), 255.0)
 
-var g_black_a10 mat.v4 = mat.v4_mul(g_black, mat.v4_(0.7, 0.7, 0.7, 0.8))
-var g_black_a50 mat.v4 = mat.v4_mul(g_black, mat.v4_(0.7, 0.7, 0.7, 0.8))
+var g_black_a10 mat.v4 = v4.mul(g_black, v4.make(0.7, 0.7, 0.7, 0.8))
+var g_black_a50 mat.v4 = v4.mul(g_black, v4.make(0.7, 0.7, 0.7, 0.8))
 var g_blue_a50  mat.v4 = Alpha(g_blue, 0.5)
 var g_goldA50 mat.v4 = Alpha(g_gold, 0.5)
 
@@ -172,10 +171,10 @@ var g_boldFont FontId = InvalidFont()
 var g_regularFont FontId = InvalidFont()
 var g_awesomeBoldFont FontId = InvalidFont()
 
-var g_padding mat.v4 = mat.v4_(3.0, 3.0, 3.0, 3.0)
-var g_spacing_x mat.v2 = mat.v2_(0.0, 3.0)
-var g_spacing_y mat.v2 = mat.v2_(3.0, 0.0)
-var g_spacing mat.v2 = mat.v2_(3.0, 3.0)
+var g_padding mat.v4 = v4.makef(3.0)
+var g_spacing_x mat.v2 = v2.make(0.0, 3.0)
+var g_spacing_y mat.v2 = v2.make(3.0, 0.0)
+var g_spacing mat.v2 = v2.makef(3.0)
 
 var g_fontSizeTitle i32 = 64
 var g_fontSizeHeader i32 = 35
@@ -187,8 +186,9 @@ var g_hotScreen ScreenId
 var g_events []app.Event
 var CurrentEvent app.Event
 
-/*var g_profileRenderCurrentScreen fps.ProfileId
+var g_profileRenderCurrentScreen fps.ProfileId
 var g_profileRenderNextScreen fps.ProfileId
+var g_profileRenderModalScreens fps.ProfileId
 var g_profileRenderScreenEffect fps.ProfileId
 var g_profileRenderModals fps.ProfileId
 var g_profileRenderDefaultFramebuffer fps.ProfileId
@@ -200,11 +200,19 @@ var g_profileRenderAlphaVertexColoredTriangles fps.ProfileId
 var g_profileRenderAlphaTexturedTriangles fps.ProfileId
 var g_profileControlRender fps.ProfileId
 var g_profileControlRenderChild fps.ProfileId
-var g_profileRenderControlFull fps.ProfileId*/
+var g_profileRenderControlFull fps.ProfileId
 
-var g_depthTexture TextureId
 var g_freeTargets []TargetId
+var g_unlockedTargets []TargetId
+var g_allTargets []TargetId
 
+var g_renderExTarget TargetId
+
+func resizeFullscreenQuad(width i32, height i32) () {
+	gfx.MeshBegin(g_fullscreenQuad)
+	gfx.MeshAppendOrthoQuad(g_fullscreenQuad, gfx.gfx_viewportBounds, v4.make(0.0, 1.0, 1.0, 0.0), v4.ONE, gfx.gfx_viewportBounds, 0.0)
+	gfx.MeshEnd(g_fullscreenQuad)
+}
 
 // Init ...
 func Init(width i32, height i32, dataDir str) {
@@ -213,15 +221,13 @@ func Init(width i32, height i32, dataDir str) {
 	app.SetMousePositionCallback("gui", "ProcessCursor")
 	app.SetWindowResizeCallback("gui", "ProcessResize")
 
-	g_depthTexture = gfx.TextureCreate("", gfx.FORMAT_DEPTH24, app.Width(), app.Height(), 0, true)
-	gfx.TextureSamplerState(g_depthTexture, gfx.g_nearestClamp)
-
 	// meshes
 	g_opaqueVertexColoredTriangles = gfx.MeshCreate(gl.TRIANGLES, gl.UNSIGNED_SHORT, 2048 * 3, gfx.g_vertexLayout, 2048 * 3)
 	g_opaqueVertexColoredLines = gfx.MeshCreate(gl.LINES, gl.UNSIGNED_SHORT, 2048 * 2, gfx.g_vertexLayout, 2048 * 2)
 	g_alphaVertexColoredTriangles = gfx.MeshCreate(gl.TRIANGLES, gl.UNSIGNED_SHORT, 2048 * 3, gfx.g_vertexLayout, 2048 * 3)
 	g_alphaVertexColoredLines = gfx.MeshCreate(gl.LINES, gl.UNSIGNED_SHORT, 2048 * 2, gfx.g_vertexLayout, 2048 * 2)
 	g_fullscreenQuad = gfx.MeshCreate(gl.TRIANGLES, gl.UNSIGNED_SHORT, 6 * 3, gfx.g_vertexLayout, 6 * 3)
+    resizeFullscreenQuad(width, height)
 
 	// fonts
 	//  var skycoinRunes []ui32
@@ -261,15 +267,15 @@ func Init(width i32, height i32, dataDir str) {
 
 	// layers
 	g_blackLayer            = LayerCreate("black"            , g_black     , g_gray_3    , g_gray_3    , g_gray_3    , g_gray_3)
-	g_bootLayer             = LayerCreate("boot"             , gfx.gfx_black, gfx.gfx_black, gfx.gfx_black, gfx.gfx_black, gfx.gfx_black)
-	g_popupLayer            = LayerCreate("popup"            , g_black_a10 , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
-	g_modalLayer            = LayerCreate("modal"            , g_black_a50 , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
+	g_bootLayer             = LayerCreate("boot"             , v4.BLACK, v4.BLACK, v4.BLACK, v4.BLACK, v4.BLACK)
+	g_popupLayer            = LayerCreate("popup"            , g_black_a10 , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
+	g_modalLayer            = LayerCreate("modal"            , g_black_a50 , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
 	g_debugBlueLayer        = LayerCreate("debugBlue"        , g_blue      , g_gold      , g_gold      , g_gold      , g_gold  )
 	g_focusedLayer          = LayerCreate("focused"          , g_blue      , g_lightBlue , g_lightBlue , g_lightBlue , g_lightBlue)
-	g_pageFocusedBack       = LayerCreate("pageFocusedBack"  , g_blue      , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
-	g_blueLayer             = LayerCreate("blue"             , g_blue      , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
+	g_pageFocusedBack       = LayerCreate("pageFocusedBack"  , g_blue      , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
+	g_blueLayer             = LayerCreate("blue"             , g_blue      , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
 	g_selectedLayer         = LayerCreate("selected"         , g_darkBlue  , g_blue      , g_blue      , g_blue      , g_blue)
-	g_pageSelectedBack      = LayerCreate("pageSelectedBack" , g_darkBlue  , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
+	g_pageSelectedBack      = LayerCreate("pageSelectedBack" , g_darkBlue  , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
 	g_debugGoldLayer        = LayerCreate("debugGold"        , g_gold      , g_blue      , g_blue      , g_blue      , g_blue  )
 	g_goldLayer             = LayerCreate("gold"             , g_goldA50   , g_gold      , g_gold      , g_gold      , g_gold)
 	g_goldBorderLayer       = LayerCreate("gold"             , g_white     , g_gold      , g_gold      , g_gold      , g_gold)
@@ -277,15 +283,15 @@ func Init(width i32, height i32, dataDir str) {
 	g_stripLayer            = LayerCreate("strip"            , g_gray_2    , g_gray_2    , g_gray_2    , g_gray_2    , g_gray_2)
 	g_headerLayer           = LayerCreate("header"           , g_gray_2    , g_gray_3    , g_gray_3    , g_gray_3    , g_gray_3)
 	g_debugGreenLayer       = LayerCreate("debugGreen"       , g_green     , g_gold      , g_gold      , g_gold      , g_gold  )
-	g_greenLayer            = LayerCreate("green"            , g_green     , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
+	g_greenLayer            = LayerCreate("green"            , g_green     , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
 	g_debugRedLayer         = LayerCreate("debugRed"         , g_red       , g_gold      , g_gold      , g_gold      , g_gold  )
-	g_redLayer              = LayerCreate("red"              , g_red       , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
-	g_borderFocusedLayer    = LayerCreate("borderFocused"    , gfx.gfx_zero, g_blue      , g_blue      , g_blue      , g_blue)
-	g_pageSelectedFront     = LayerCreate("pageSelectedFront", gfx.gfx_zero, g_gray_3    , g_black     , g_gray_3    , g_gray_3)
-	g_zeroBorderLayer       = LayerCreate("zeroBorder"       , gfx.gfx_zero, g_gray_3    , g_gray_3    , g_gray_3    , g_gray_3)
-	g_pageFocusedFront      = LayerCreate("pageFocusedFront" , gfx.gfx_zero, g_lightBlue , g_lightBlue , g_lightBlue , g_lightBlue)
+	g_redLayer              = LayerCreate("red"              , g_red       , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
+	g_borderFocusedLayer    = LayerCreate("borderFocused"    , v4.ZERO, g_blue      , g_blue      , g_blue      , g_blue)
+	g_pageSelectedFront     = LayerCreate("pageSelectedFront", v4.ZERO, g_gray_3    , g_black     , g_gray_3    , g_gray_3)
+	g_zeroBorderLayer       = LayerCreate("zeroBorder"       , v4.ZERO, g_gray_3    , g_gray_3    , g_gray_3    , g_gray_3)
+	g_pageFocusedFront      = LayerCreate("pageFocusedFront" , v4.ZERO, g_lightBlue , g_lightBlue , g_lightBlue , g_lightBlue)
 	g_hoverLayer            = LayerCreate("blueA50"          , g_blue_a50  , g_lightBlue , g_lightBlue , g_lightBlue , g_lightBlue)
-	g_zeroLayer             = LayerCreate("zero"             , gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero, gfx.gfx_zero)
+	g_zeroLayer             = LayerCreate("zero"             , v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO, v4.ZERO)
 
 	// skins
 g_blackSkin      =SkinCreate("black"       , g_blackLayer     ,InvalidLayer(),InvalidLayer(),InvalidLayer(),InvalidLayer(),InvalidLayer(),g_borderFocusedLayer,InvalidLayer()   ,g_selectedLayer   ,InvalidLayer())
@@ -315,25 +321,26 @@ g_textboxSkin    =SkinCreate("textbox"     , g_textboxLayer   ,InvalidLayer(),In
 g_binderPageSkin =SkinCreate("binderPage"  , g_textboxLayer   ,InvalidLayer(),InvalidLayer(),g_goldLayer    ,InvalidLayer(),InvalidLayer(),g_pageFocusedBack   ,g_pageFocusedFront,g_pageSelectedBack,g_pageSelectedFront)
 g_zeroBorderSkin =SkinCreate("blackFocused", g_zeroBorderLayer,InvalidLayer(),InvalidLayer(),InvalidLayer(),InvalidLayer(),InvalidLayer(),g_focusedLayer      ,InvalidLayer()   ,g_selectedLayer   ,InvalidLayer())
 
-    /*g_profileRenderCurrentScreen = fps.CreateProfile("RenderCurrentScreen")
-    g_profileRenderNextScreen = fps.CreateProfile("RenderNextScreen")
-    g_profileRenderScreenEffect = fps.CreateProfile("RenderScreenEffect")
-    g_profileRenderModals = fps.CreateProfile("RenderModals")
-    g_profileRenderDefaultFramebuffer = fps.CreateProfile("RenderDefaultFramebuffer")
-    g_profileRenderScreenControl = fps.CreateProfile("RenderScreenControl")
-    g_profileRenderOpaqueVertexColoredTriangles = fps.CreateProfile("OpaqueVertexColoredTriangles")
-    g_profileRenderOpaqueTexturedTriangles = fps.CreateProfile("OpaqueTexturedTriangles")
-    g_profileRenderOpaqueVertexColoredLines = fps.CreateProfile("OpaqueVertexColoredLines")
-    g_profileRenderAlphaVertexColoredTriangles = fps.CreateProfile("AlphaVertexColoredTriangles")
-    g_profileRenderAlphaTexturedTriangles = fps.CreateProfile("AlphaTexturedTriangles")
-    g_profileControlRender = fps.CreateProfile("ControlRender")
-    g_profileControlRenderChild = fps.CreateProfile("ControlRenderChild")
-    g_profileRenderControlFull = fps.CreateProfile("ControlRenderFull")*/
+	g_profileRenderCurrentScreen = fps.CreateProfile("RenderCurrentScreen")
+	g_profileRenderNextScreen = fps.CreateProfile("RenderNextScreen")
+	g_profileRenderModalScreens = fps.CreateProfile("RenderModalScreens")
+	g_profileRenderScreenEffect = fps.CreateProfile("RenderScreenEffect")
+	g_profileRenderModals = fps.CreateProfile("RenderModals")
+	g_profileRenderDefaultFramebuffer = fps.CreateProfile("RenderDefaultFramebuffer")
+	g_profileRenderScreenControl = fps.CreateProfile("RenderScreenControl")
+	g_profileRenderOpaqueVertexColoredTriangles = fps.CreateProfile("OpaqueVertexColoredTriangles")
+	g_profileRenderOpaqueTexturedTriangles = fps.CreateProfile("OpaqueTexturedTriangles")
+	g_profileRenderOpaqueVertexColoredLines = fps.CreateProfile("OpaqueVertexColoredLines")
+	g_profileRenderAlphaVertexColoredTriangles = fps.CreateProfile("AlphaVertexColoredTriangles")
+	g_profileRenderAlphaTexturedTriangles = fps.CreateProfile("AlphaTexturedTriangles")
+	g_profileControlRender = fps.CreateProfile("ControlRender")
+	g_profileControlRenderChild = fps.CreateProfile("ControlRenderChild")
+	g_profileRenderControlFull = fps.CreateProfile("ControlRenderFull")
 }
 
 // Alpha ...
 func Alpha(color mat.v4, a f32) (out mat.v4) {
-	//out = mat.v4_(color.x, color.y, color.z, (color.w * a)) // ##issue_57  out.w == 0
+	//out = v4.make(color.x, color.y, color.z, (color.w * a)) // ##issue_57  out.w == 0
 	out.x = color.x
 	out.y = color.y
 	out.z = color.z
@@ -438,8 +445,6 @@ func ProcessEvent(event *app.Event) () {
 					var onExit ScreenId = g_screens[screen].on_exit
 					if (IsValidScreen(onExit) == true) {
 						ScreenShow(onExit)
-					} else {
-						//printf("INVALID ON EXIT SCREEN %d, %d\n", onExit.screen, onExit.base)
 					}
 				} else if (key == app.KEYCODE_ENTER && action == app.KEY_PRESS && mods == app.MOD_NONE) {
 					g_screens[screen].paused = true
@@ -491,6 +496,7 @@ func ProcessEvent(event *app.Event) () {
 // ProcessResize ...
 func ProcessResize(window str, width i32, height i32) (){
 	//printf("ProcessResize %s, %d, %d\n", window, width, height)
+	resizeFullscreenQuad(width, height)
 	app.Resize(width, height)
 	gfx.Resize(width, height)
 }
@@ -499,21 +505,19 @@ func ProcessResize(window str, width i32, height i32) (){
 func Update(deltaTime f64)() { // ##1 rewrite
 	gfx.ClearBatches()
 	ProcessEvents()
-	//printf("UPDATE %d, %d\n", g_currentScreen.screen, g_nextScreen.screen)
+
+	freeTargets()
+
 	if (IsValidScreen(g_currentScreen)) {
 		ScreenUpdate(g_currentScreen, deltaTime)
 		if (ScreenStateChanged(g_currentScreen, STATE_OPENED, STATE_CLOSING)) {
 			g_nextScreen = g_screens[g_currentScreen.screen].on_next // ##issue_58 issue array index with struct
-			//printf("NEXT_SCREEN %d\n", g_nextScreen.screen)
-			//printf("CURRENT %d, NEXT %d\n", g_currentScreen.screen, g_nextScreen.screen)
 			g_transitionTime = 0.0D
 			g_screens[g_currentScreen.screen].prevState= g_screens[g_currentScreen.screen].state
-			//printf("screen : %d, STATE_CLOSING\n", g_currentScreen.screen)
 		} else if (ScreenStateChanged(g_currentScreen, STATE_CLOSING, STATE_CLOSED)) {
 			g_screens[g_currentScreen.screen].time = 0.0D
 			g_screens[g_currentScreen.screen].prevState = g_screens[g_currentScreen.screen].state
 			g_currentScreen = g_nextScreen
-			//printf("screen : %d, STATE_CLOSED\n", g_currentScreen.screen)
 		}
 	}
 
@@ -523,25 +527,18 @@ func Update(deltaTime f64)() { // ##1 rewrite
 		}
 
 		if (g_transitionTime <= 0.0D) {
-			//printf("TRANSITION STARTED %f\n", f64.f32(g_transitionTime + deltaTime))
 			g_transitionTime = g_transitionTime + deltaTime
 		} else if (g_transitionTime <= g_transitionDuration) {
 			g_transitionTime = g_transitionTime + deltaTime
 		} else {
-			//printf("TRANSITION ENDED\n")
 			if (IsValidScreen(g_currentScreen)) {
-				//printf("CHANGE CLOSED\n")
 				ScreenChangeState(g_currentScreen, STATE_CLOSED)
-				//printf("prev screen : %d, %d, %s\n", g_currentScreen.screen, g_screens[g_currentScreen.screen].state, "STATE_CLOSED")
 			}
 
 			g_currentScreen = g_nextScreen
-			//printf("CURRENT_SCREEN %d\n", g_nextScreen.screen)
 			if (IsValidScreen(g_nextScreen)) {
 				var nextScreen ScreenId = g_screens[g_nextScreen.screen].on_next
-				//printf("CHANGE OPENED\n")
 				ScreenChangeState(g_nextScreen, STATE_OPENED)
-				//printf("next screen : %d, %d, %s\n", g_nextScreen.screen, g_screens[g_nextScreen.screen].state, "STATE_OPENED")
 				g_transitionTime = 0.0D
 			}
 		}
@@ -551,23 +548,19 @@ func Update(deltaTime f64)() { // ##1 rewrite
 
 // Resize ...
 func Resize() () {
-	gfx.MeshBegin(g_fullscreenQuad)
-	gfx.MeshAppendOrthoQuad(g_fullscreenQuad, gfx.gfx_viewportBounds, mat.v4_(0.0, 1.0, 1.0, 0.0), gfx.gfx_white, gfx.gfx_viewportBounds, 0.0)
-	gfx.MeshEnd(g_fullscreenQuad)
-
 	if (IsValidScreen(g_currentScreen)) {
 		ResetScope()
 		ScreenResize(g_currentScreen)
-		ControlRedock(g_currentScreen.base, mat.v4_zero)
+		ControlRedock(g_currentScreen.base, v4.ZERO)
 		//ScreenResize(g_currentScreen)
-		//ControlRedock(g_currentScreen.base, mat.v4_zero)
+		//ControlRedock(g_currentScreen.base, v4.ZERO)
 	}
 	if (IsValidScreen(g_nextScreen) && g_currentScreen.screen != g_nextScreen.screen) {
 		ResetScope()
 		ScreenResize(g_nextScreen)
-		ControlRedock(g_nextScreen.base, mat.v4_zero)
+		ControlRedock(g_nextScreen.base, v4.ZERO)
 		//ScreenResize(g_nextScreen)
-		//ControlRedock(g_nextScreen.base, mat.v4_zero)
+		//ControlRedock(g_nextScreen.base, v4.ZERO)
 	}
 
 	var i i32 = 0
@@ -576,118 +569,146 @@ func Resize() () {
 		//ControlPrint("before resize : ", g_modals[i].base, false)
 		ResetScope()
 		ScreenResize(g_modals[i])
-		ControlRedock(g_modals[i].base, mat.v4_zero)
+		ControlRedock(g_modals[i].base, v4.ZERO)
 		//ScreenResize(g_modals[i])
-		//ControlRedock(g_modals[i].base, mat.v4_zero)
+		//ControlRedock(g_modals[i].base, v4.ZERO)
 	}
+}
+
+func renderScreen(id ScreenId, prfScreen ProfileId) (renderTarget TargetId, renderEx bool) {
+	fps.StartProfile(prfScreen)
+	renderEx = false
+	renderTarget = gfx.InvalidTarget()
+	if IsValidScreen(id) {
+		renderEx = g_screens[id.screen].renderEx
+		if renderEx == false {
+			renderTarget = lockTarget()
+			gfx.ColorWrite(true, true, true, true)
+			gfx.DepthState(true, gl.GEQUAL, true)
+			//gfx.StencilState(true, gl.EQUAL, 0, 256, gl.KEEP, gl.KEEP, gl.KEEP, 0)
+			gfx.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT/* | gl.STENCIL_BUFFER_BIT*/, v4.BLACK, -1.0D, 255)
+		}
+		ScreenRender(id, gfx.gfx_viewportBounds, 0)
+		if renderEx {
+			renderTarget = g_renderExTarget
+		}
+	}
+	fps.StopProfile(prfScreen)
 }
 
 // Render ...
 func Render() () {
 
-	var clip mat.v4 = gfx.gfx_viewportBounds
-	var depthTest bool = true
-	var depthFunc i32 = gl.GEQUAL
-	var depthClear f64 = -1.0D
-	var depthWrite bool = true
-	var stencilClear i32 = 256
-
-	var clearColor mat.v4 = mat.v4_(0.0, 0.0, 0.0, 0.0)
-
 	var width i32 = app.Width()
 	var height i32 = app.Height()
-	//printf("FREE_TARGET_COUNT %d, TARGET_COUNT %d, TEXTURE_COUNT %d\n", len(g_freeTargets), len(gfx.g_targets), len(gfx.g_textures))
 
-	//fps.StartProfile(g_profileRenderCurrentScreen)
+	//gfx.SetViewport(gfx.gfx_viewportBounds)
+	//gfx.SetScissor(gfx.gfx_viewportBounds)
+
+	var currentScreen bool = IsValidScreen(g_currentScreen)
+	var nextScreen bool = IsValidScreen(g_nextScreen) && (g_currentScreen.screen != g_nextScreen.screen)
+	var modalCount i32 = len(g_modals)
+	var modalScreens bool = modalCount > 0
+
+	var renderEx0 bool
+	var renderEx1 bool
+
 	var target0 gfx.TargetId = gfx.InvalidTarget()
-	if (IsValidScreen(g_currentScreen)) {
-		target0 = lockTarget()
-		gfx.SetViewport(gfx.gfx_viewportBounds)
-		gfx.SetScissor(gfx.gfx_viewportBounds)
-		gfx.DepthState(depthTest, depthFunc, depthWrite)
-		gfx.ColorWrite(true, true, true, true)
-		gfx.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT/* | gl.STENCIL_BUFFER_BIT*/, gfx.gfx_black, depthClear, stencilClear)
-		ScreenRender(g_currentScreen, clip, 0)
-	}
-	//fps.StopProfile(g_profileRenderCurrentScreen)
-
-	//fps.StartProfile(g_profileRenderNextScreen)
 	var target1 gfx.TargetId = gfx.InvalidTarget()
-	if (IsValidScreen(g_nextScreen) && g_nextScreen.screen != g_currentScreen.screen) {
-		target1 = lockTarget()
-		gfx.DepthState(depthTest, depthFunc, depthWrite)
-		gfx.ColorWrite(true, true, true, true)
-		gfx.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT, gfx.gfx_black, depthClear, stencilClear)
-		ScreenRender(g_nextScreen, clip, 0)
-	}
-	//fps.StopProfile(g_profileRenderNextScreen)
-
-	//fps.StartProfile(g_profileRenderScreenEffect)
 	var target2 gfx.TargetId = gfx.InvalidTarget()
-	//if (gfx.IsValidTarget(target0) && gfx.IsValidTarget(target1)) {
+
+	if currentScreen && nextScreen == false && modalScreens == false {
+		target0, renderEx0 = renderScreen(g_currentScreen, g_profileRenderCurrentScreen)
+		target2 = target0
+	} else {
+		target0, renderEx0 = renderScreen(g_currentScreen, g_profileRenderCurrentScreen)
+		target1, renderEx1 = renderScreen(g_nextScreen, g_profileRenderNextScreen)
+
+		fps.StartProfile(g_profileRenderScreenEffect)
 		target2 = lockTarget()
 		gfx.ColorWrite(true, true, true, true)
-		gfx.Clear(gl.COLOR_BUFFER_BIT, gfx.gfx_zero, 0.0D, 0)
+		gfx.Clear(gl.COLOR_BUFFER_BIT, v4.ZERO, 0.0D, 0)
 		gfx.DisableDepth()
 		gfx.DisableStencil()
 		gfx.DisableBlending()
 		gfx.EffectUse(gfx.g_fxFade_0)
 		gfx.EffectAssignFloat(gfx.g_fxFade_0, gfx.UNIFORM_TIME, f64.f32(g_transitionTime / g_transitionDuration))
-		gfx.EffectAssignTexture(gfx.g_fxFade_0, gfx.SAMPLER_COLOR_0, gfx.TargetTryGetColor(target0), gfx.g_nearestClamp)
-		gfx.EffectAssignTexture(gfx.g_fxFade_0, gfx.SAMPLER_COLOR_1, gfx.TargetTryGetColor(target1), gfx.g_nearestClamp)
+		gfx.EffectAssignTexture(gfx.g_fxFade_0, gfx.SAMPLER_COLOR_0, gfx.TargetGetColor(target0, 0), gfx.g_nearestClamp)
+		gfx.EffectAssignTexture(gfx.g_fxFade_0, gfx.SAMPLER_COLOR_1, gfx.TargetGetColor(target1, 0), gfx.g_nearestClamp)
 		gfx.MeshRender(g_fullscreenQuad)
-		unlockTarget(target0)
-		unlockTarget(target1)
-	/*} else if (gfx.IsValidTarget(target0)) {
-		target2 = target0
-	} else if (gfx.IsValidTarget(target1)) {
-		target2 = target1
-	} else {
-		panicIfNot(false, "invalid target")
-	}*/
-	//fps.StopProfile(g_profileRenderScreenEffect)
+		fps.StopProfile(g_profileRenderScreenEffect)
 
-	//fps.StartProfile(g_profileRenderModals)
-	var i i32 = 0
-	var modalCount i32 = len(g_modals)
-	for i = 0; i < modalCount; i = i + 1 {
-		var target TargetId = lockTarget()
-		gfx.DepthState(depthTest, depthFunc, depthWrite)
-		//gfx.StencilState(true, gl.EQUAL, 0, 256, gl.KEEP, gl.KEEP, gl.KEEP, 0)
-		gfx.ColorWrite(true, true, true, true)
-		gfx.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT, gfx.gfx_zero, depthClear, stencilClear)
-		ScreenRender(g_modals[i], clip, 0)
+		fps.StartProfile(g_profileRenderModals)
+		for i := 0; i < modalCount; i = i + 1 {
+			var target TargetId = gfx.InvalidTarget()
+			var renderEx bool
+			target, renderEx = renderScreen(g_modals[i], g_profileRenderModalScreens)
 
-		var target3 TargetId = lockTarget()
-		gfx.ColorWrite(true, true, true, true)
-		gfx.Clear(gl.COLOR_BUFFER_BIT, gfx.gfx_zero, 0.0D, 0)
-		gfx.DisableDepth()
-		gfx.DisableStencil()
-		gfx.DisableBlending()
-		gfx.EffectUse(gfx.g_fxFade_1)
-		gfx.EffectAssignFloat(gfx.g_fxFade_1, gfx.UNIFORM_TIME, 1.0)
-		gfx.EffectAssignTexture(gfx.g_fxFade_1, gfx.SAMPLER_COLOR_0, gfx.TargetTryGetColor(target2), gfx.g_nearestClamp)
-		gfx.EffectAssignTexture(gfx.g_fxFade_1, gfx.SAMPLER_COLOR_1, gfx.TargetTryGetColor(target), gfx.g_nearestClamp)
-		gfx.MeshRender(g_fullscreenQuad)
-		unlockTarget(target)
-		unlockTarget(target2)
-		target2 = target3
+			var target3 TargetId = lockTarget()
+			gfx.ColorWrite(true, true, true, true)
+			gfx.Clear(gl.COLOR_BUFFER_BIT, v4.ZERO, 0.0D, 0)
+			gfx.DisableDepth()
+			gfx.DisableStencil()
+			gfx.DisableBlending()
+			gfx.EffectUse(gfx.g_fxFade_1)
+			gfx.EffectAssignFloat(gfx.g_fxFade_1, gfx.UNIFORM_TIME, 1.0)
+			gfx.EffectAssignTexture(gfx.g_fxFade_1, gfx.SAMPLER_COLOR_0, gfx.TargetGetColor(target2, 0), gfx.g_nearestClamp)
+			gfx.EffectAssignTexture(gfx.g_fxFade_1, gfx.SAMPLER_COLOR_1, gfx.TargetGetColor(target, 0), gfx.g_nearestClamp)
+			gfx.MeshRender(g_fullscreenQuad)
+			if renderEx == false {
+				unlockTarget(target)
+			}
+			unlockTarget(target2)
+			target2 = target3
+		}
+		fps.StopProfile(g_profileRenderModals)
 	}
-	//fps.StopProfile(g_profileRenderModals)
 
-	//fps.StartProfile(g_profileRenderDefaultFramebuffer)
-	// TODO fast path if no modals => render in default framebuffer 0
+	fps.StartProfile(g_profileRenderDefaultFramebuffer)
 	gfx.bindFramebuffer(0)
+	gfx.SetViewport(gfx.gfx_viewportBounds)
+	gfx.SetScissor(gfx.gfx_viewportBounds)
 	gfx.ColorWrite(true, true, true, true)
-	gfx.Clear(gl.COLOR_BUFFER_BIT, gfx.gfx_zero, 0.0D, 0)
+	gfx.Clear(gl.COLOR_BUFFER_BIT, v4.ZERO, 0.0D, 0)
 	gfx.DisableDepth()
 	gfx.DisableStencil()
 	gfx.DisableBlending()
 	gfx.EffectUse(gfx.g_fxTexture2D)
-	gfx.EffectTryAssignTexture(gfx.g_fxTexture2D, gfx.SAMPLER_COLOR_0, gfx.TargetTryGetColor(target2), gfx.g_nearestClamp)
+	gfx.EffectTryAssignTexture(gfx.g_fxTexture2D, gfx.SAMPLER_COLOR_0, gfx.TargetGetColor(target2, 0), gfx.g_nearestClamp)
 	gfx.MeshRender(g_fullscreenQuad)
-	unlockTarget(target2)
-	//fps.StopProfile(g_profileRenderDefaultFramebuffer)
+
+	if renderEx0 == false {
+		unlockTarget(target0)
+	}
+
+	if renderEx1 == false {
+		unlockTarget(target1)
+	}
+
+	if gfx.IsValidTarget(target0) == false || (target2.target != target0.target) {
+		unlockTarget(target2)
+	}
+	fps.StopProfile(g_profileRenderDefaultFramebuffer)
+}
+
+func freeTargets() {
+	//printf("FREE_TARGETS : TOTAL %d, FREE %d, UNLOCKED %d\n", len(g_allTargets), len(g_freeTargets), len(g_unlockedTargets))
+	var unlockedTargetCount i32 = len(g_unlockedTargets)
+	for i := 0; i < unlockedTargetCount; i++ {
+		var target gfx.TargetId = g_unlockedTargets[i]
+		var age i32 = gfx.TargetGetAge(target)
+		if age >= 1 {
+			g_freeTargets = append(g_freeTargets, target)
+			var newCount i32 = unlockedTargetCount - 1
+			g_unlockedTargets[i] = g_unlockedTargets[newCount]
+			g_unlockedTargets = resize(g_unlockedTargets, newCount)
+			gfx.TargetSetAge(target, 0)
+			i = i - 1
+			unlockedTargetCount = newCount
+		} else {
+			gfx.TargetSetAge(target, age + 1)
+		}
+	}
 }
 
 func lockTarget() (out TargetId) {
@@ -696,13 +717,17 @@ func lockTarget() (out TargetId) {
 		var newCount i32 = count - 1
 		out = g_freeTargets[newCount]
 		g_freeTargets = resize(g_freeTargets, newCount)
-		gfx.TargetBind(out)
+		//gfx.TargetBind(out)
 	} else {
-		out = gfx.TargetCreate()
+		out = gfx.TargetCreate(1, app.Width(), app.Height(), 1, true)
 		var color TextureId  = gfx.TextureCreate("", gfx.FORMAT_R8_G8_B8_A8, app.Width(), app.Height(), 0, true)
 		gfx.TextureSamplerState(color, gfx.g_nearestClamp)
-		gfx.TargetAttachColor(out, color)
-		gfx.TargetAttachDepth(out, g_depthTexture)
+		gfx.TargetAttachColor(out, color, 0)
+		var test TextureId = gfx.TargetGetColor(out, 0)
+		var depthTexture TextureId  = gfx.TextureCreate("", gfx.FORMAT_DEPTH24, app.Width(), app.Height(), 0, true)
+		gfx.TextureSamplerState(depthTexture, gfx.g_nearestClamp)
+		gfx.TargetAttachDepth(out, depthTexture)
+		g_allTargets = append(g_allTargets, out)
 	}
 	gfx.TargetBind(out)
 	//gfx.TargetPrint("lockTarget", out)
@@ -710,7 +735,7 @@ func lockTarget() (out TargetId) {
 
 func unlockTarget(id TargetId) {
 	if gfx.IsValidTarget(id) {
-		g_freeTargets = append(g_freeTargets, id)
+		g_unlockedTargets = append(g_unlockedTargets, id)
 	}
 }
 

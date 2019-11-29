@@ -10,7 +10,11 @@ package gfx
 // Constants ...
 var FORMAT_NONE i32 = 0
 var FORMAT_DEPTH24 i32 = 1
-var FORMAT_R8_G8_B8_A8 i32 = 2
+var FORMAT_STENCIL8 i32 = 2
+var FORMAT_DEPTH24_STENCIL8 i32 = 3
+var FORMAT_R8_G8_B8_A8 i32 = 4
+var FORMAT_RGBA_16F i32 = 5
+var FORMAT_R8 i32 = 6
 
 // Globals ...
 var g_textures []Texture
@@ -49,6 +53,14 @@ func GfxString(value i32) (out str) {
 		out = "FORMAT_DEPTH24"
 	} else if value == FORMAT_R8_G8_B8_A8 {
 		out = "FORMAT_R8_G8_B8_A8"
+	} else if value == FORMAT_RGBA_16F {
+		out = "FORMAT_RGBA_F16"
+	} else if value == FORMAT_R8 {
+		out = "FORMAT_R8"
+	} else if value == FORMAT_STENCIL8 {
+		out = "FORMAT_STENCIL8"
+	} else if value == FORMAT_DEPTH24_STENCIL8 {
+		out = "FORMAT_DEPTH24_STENCIL8"
 	} else {
 		out = "unknown gfx enum"
 	}
@@ -305,9 +317,25 @@ func getGlFormat(format i32) (internalFormat i32, pixelFormat i32, pixelType i32
 		internalFormat = gl.DEPTH_COMPONENT24
 		pixelFormat = gl.DEPTH_COMPONENT
 		pixelType = gl.UNSIGNED_BYTE
-	} else if format == FORMAT_R8_G8_B8_A8{
-		internalFormat = gl.RGBA
+	} else if format == FORMAT_DEPTH24_STENCIL8 {
+		internalFormat = gl.DEPTH24_STENCIL8
+		pixelFormat = gl.DEPTH_STENCIL
+		pixelType = gl.UNSIGNED_INT_24_8
+	} else if format == FORMAT_STENCIL8 {
+		internalFormat = gl.STENCIL_INDEX8
+		pixelFormat = gl.STENCIL_INDEX
+		pixelType = gl.UNSIGNED_BYTE
+	} else if format == FORMAT_R8_G8_B8_A8 {
+		internalFormat = gl.RGBA8
 		pixelFormat = gl.RGBA
+		pixelType = gl.UNSIGNED_BYTE
+	} else if format == FORMAT_RGBA_16F {
+		internalFormat = gl.RGBA16F
+		pixelFormat = gl.RGBA
+		pixelType = gl.HALF_FLOAT
+	} else if format == FORMAT_R8 {
+		internalFormat = gl.R8
+		pixelFormat = gl.RED
 		pixelType = gl.UNSIGNED_BYTE
 	}
 }

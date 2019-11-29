@@ -1,49 +1,48 @@
 package mat
 
-// TODO : replace dummy constants
-
-// Float32 ...
-var FLOAT_MAX f32 =  1000000000.0 // ##0 fixme
-var FLOAT_MIN f32 = -1000000000.0
-var PI f32 = 3.14159265358979323846264338327950288
-
-func min(a f32, b f32) (out f32) {
-	out = a
-	if (b < a) {
-		out = b
-	}
+type v2 struct {
+    x f32
+    y f32
 }
 
-func max(a f32, b f32) (out f32) {
-	out = a
-	if (b > a) {
-		out = b
-	}
+type v3 struct {
+    x f32
+    y f32
+    z f32
 }
 
-// Float64 ...
-var F64_MAX f64 =  10000000000000.0D // ##0 fixme
-var F64_MIN f64 = -10000000000000.0D
-
-func min_f64(a f64, b f64) (out f64) {
-	out = a
-	if (b < a) {
-		out = b
-	}
+type v4 struct {
+    x f32
+    y f32
+    z f32
+    w f32
 }
 
-func max_f64(a f64, b f64) (out f64) {
-	out = a
-	if (b > a) {
-		out = b
-	}
+type m44 struct {
+    v00 f32
+    v01 f32
+    v02 f32
+    v03 f32
+
+    v10 f32
+    v11 f32
+    v12 f32
+    v13 f32
+
+    v20 f32
+    v21 f32
+    v22 f32
+    v23 f32
+
+    v30 f32
+    v31 f32
+    v32 f32
+    v33 f32
 }
 
-func rgba_ui8(x i32, y i32, z i32, w i32) (out v4) {
-	out.x = i32.f32(x) / 255.0
-	out.y = i32.f32(y) / 255.0
-	out.z = i32.f32(z) / 255.0
-	out.w = i32.f32(w) / 255.0
+type TRS struct {
+    t v3
+    r v4
+    s v3
 }
-
 

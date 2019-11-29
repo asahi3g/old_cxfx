@@ -3,6 +3,8 @@ package gui
 import "app"
 import "gfx"
 import "mat"
+import "v2"
+import "v4"
 
 // Globals ...
 var g_labels []Label
@@ -53,7 +55,7 @@ func LabelCreate(name str) (out LabelId) {
 	label.rune = -1
 	label.textSize = 16
 	label.textAlign = ALIGN_NONE
-	label.textPosition = mat.v2_zero
+	label.textPosition = v2.ZERO
 	label.color_0 = g_red
 	label.color_1 = g_green
 	label.onState = invalid_func_i32_i32()
@@ -185,13 +187,13 @@ func LabelMeasure(id LabelId) (width f32, height f32) { // ##1 factorize with La
 		i32Width, i32Height = gfx.MeasureText(fontName, text)
 	}
 
-	var pixelBounds mat.v2 = mat.v2_(i32.f32(i32Width), i32.f32(i32Height))
+	var pixelBounds mat.v2 = v2.make(i32.f32(i32Width), i32.f32(i32Height))
 
 	var padding mat.v4 = g_controls[id.base.control].padding
 	var paddingX f32 = padding.x + padding.z
 	var paddingY f32 = padding.y + padding.w
-	//var bounds mat.v2 = mat.v2_div(pixelBounds, gfx.gfx_viewport_size)
-	var autoBounds mat.v2 = mat.v2_add(pixelBounds, mat.v2_(paddingX, paddingY))
+	//var bounds mat.v2 = v2.div(pixelBounds, gfx.gfx_viewport_size)
+	var autoBounds mat.v2 = v2.add(pixelBounds, v2.make(paddingX, paddingY))
 
 	width = autoBounds.x
 	height = autoBounds.y
@@ -222,15 +224,14 @@ func LabelResize(id LabelId) () {
 		i32Width, i32Height = gfx.MeasureText(fontName, text)
 	}
 
-
-	var pixelBounds mat.v2 = mat.v2_(i32.f32(i32Width), i32.f32(i32Height))
+	var pixelBounds mat.v2 = v2.make(i32.f32(i32Width), i32.f32(i32Height))
 
 	var controlIndex i32 = id.base.control
 	var padding mat.v4 = g_controls[controlIndex].padding
 	var paddingX f32 = padding.x + padding.z
 	var paddingY f32 = padding.y + padding.w
-	//var bounds mat.v2 = mat.v2_div(pixelBounds, gfx.gfx_viewport_size)
-	var autoBounds mat.v2 = mat.v2_add(pixelBounds, mat.v2_(paddingX, paddingY))
+	//var bounds mat.v2 = v2.div(pixelBounds, gfx.gfx_viewport_size)
+	var autoBounds mat.v2 = v2.add(pixelBounds, v2.make(paddingX, paddingY))
 	/*if (id.base.control == 36) {
 	  printf("AUTOBOUNDS %f, %f, PADDING %f, %f\n", bounds.x, bounds.y, paddingX, paddingY)
 	  }*/
@@ -242,7 +243,7 @@ func LabelResize(id LabelId) () {
 	var scale mat.v2 = g_controls[controlIndex].scale
 	//printf("LABEL_SCALE %f, %f, width %f, height %f, scale.x * width %f, scale.y * height %f\n", scale.x, scale.y, width, height, scale.x * width, scale.y * height)
 
-	var newSize mat.v2 = mat.v2_mul(scale, pixelBounds)
+	var newSize mat.v2 = v2.mul(scale, pixelBounds)
 	/*if (id.base.control == 57) {
 	  printf("PIXEL_BOUNDS %f, %f, AUTO_BOUNSD %f, %f, SCALE %f, %f\n", pixelBounds.x, pixelBounds.y, autoBounds.x, autoBounds.y, scale.x, scale.y)
 	  }*/
@@ -281,7 +282,7 @@ func LabelRender(id LabelId, clip mat.v4, stack i32) () {
 		panicIfNot(gfx.IsValidBatch(batch), "invalid batch")
 		//gfx.append_text(&(gfx.g_meshes[g_batches[batch.batch].mesh.mesh]), fontTexture, fontName, // ##pending
 		var meshId gfx.MeshId = gfx.BatchGetMesh(batch)
-		var renderBounds mat.v4 =  mat.v4_v2v2(renderPosition, g_controls[control].size)
+		var renderBounds mat.v4 =  v4.make_v22(renderPosition, g_controls[control].size)
 		//ControlPrint("LabelRender : renderBounds ", id.base, false)
 		var renderClips mat.v4 = gfx.PushScissor(g_controls[control].name, renderBounds)
 		//gfx.g_debugMesh = g_opaqueVertexColoredTriangles
@@ -289,11 +290,11 @@ func LabelRender(id LabelId, clip mat.v4, stack i32) () {
 		if (rune >= 0) {
 			gfx.MeshAppendGlyph(meshId, fontTexture, fontName,
 			renderPosition, g_controls[control].scale,
-			mat.v4_(1.0, 1.0, 1.0, 1.0), rune, true, g_labels[id.label].color_0, g_labels[id.label].color_1, renderClips, ComputeDepth(stack))
+			v4.make(1.0, 1.0, 1.0, 1.0), rune, true, g_labels[id.label].color_0, g_labels[id.label].color_1, renderClips, ComputeDepth(stack))
 		} else {
 			gfx.MeshAppendText(meshId, fontTexture, fontName,
 			renderPosition, g_controls[control].scale,
-			mat.v4_(1.0, 1.0, 1.0, 1.0), g_labels[id.label].text, true, g_labels[id.label].color_0, g_labels[id.label].color_1, renderClips, ComputeDepth(stack))
+			v4.make(1.0, 1.0, 1.0, 1.0), g_labels[id.label].text, true, g_labels[id.label].color_0, g_labels[id.label].color_1, renderClips, ComputeDepth(stack))
 		}
 		gfx.PopScissor()
 	}

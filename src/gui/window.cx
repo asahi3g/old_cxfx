@@ -53,10 +53,10 @@ func WindowAddButton(id WindowId, name str, caption str, packageName str, functi
 
    var button LabelId = LabelCreate(name)
    ControlSetSkin(button.base, g_buttonSkin)
-   ControlSetBounds(button.base, mat.v4_(0.0, 0.0, 50.0, 0.0))
+   ControlSetBounds(button.base, v4.make(0.0, 0.0, 50.0, 0.0))
    ControlSetDock(button.base, DOCK_RIGHT)
    ControlSetAutosize(button.base, AUTOSIZE_Y)
-   ControlSetPadding(button.base, mat.v4_(0.0, 0.0, 0.0, 0.0))
+   ControlSetPadding(button.base, v4.ZERO)
    ControlSetFocusable(button.base, 1)
    LabelSetAlign(button, ALIGN_CENTER)
    LabelSetColor(button, g_white)
@@ -77,13 +77,13 @@ func WindowCreate(name str) (out WindowId) {
 	var window Window
 	window.id = out
 
-	var padding mat.v4 = mat.v4_(5.0, 5.0, 5.0, 5.0)
-	var padding1 mat.v4 = mat.v4_(3.0, 3.0, 3.0, 3.0)
+	var padding mat.v4 = v4.makef(5.0)
+	var padding1 mat.v4 = v4.makef(3.0)
 	{
 		var header ControlId = ControlCreate("header") // ##pending := 
 		ControlAddChild(out.base, header)
 		ControlSetSkin(header, g_headerSkin)
-		ControlSetSize(header, mat.v2_(0.0, 0.1))
+		ControlSetSize(header, v2.make(0.0, 0.1))
 		ControlSetDock(header, DOCK_TOP)
 		ControlSetAutosize(header, AUTOSIZE_Y)
 		window.header = header
@@ -115,7 +115,7 @@ func WindowCreate(name str) (out WindowId) {
 		var strip ControlId = ControlCreate("strip")
 		ControlAddChild(out.base, strip)
 		//ControlSetSkin(strip, g_blueSkin)
-		ControlSetBounds(strip, mat.v4_(0.0, 0.0, 0.0, 0.12))
+		ControlSetBounds(strip, v4.make(0.0, 0.0, 0.0, 0.12))
 		ControlSetDock(strip, DOCK_TOP)
 		ControlSetAutosize(strip, AUTOSIZE_Y)
 		ControlSetPadding(strip, padding)

@@ -2,6 +2,8 @@ package gui
 
 import "app"
 import "mat"
+import "v1"
+import "v2"
 
 // Globals ...
 var g_controls []Control
@@ -92,11 +94,11 @@ func controlCreate(name str, gui_type i32, gui_index i32) (out ControlId) {
 	control.autosize  = AUTOSIZE_NONE
 	control.autoscale = AUTOSCALE_NONE
 
-	control.position = mat.v2_zero
-	control.size	 = mat.v2_zero
-	control.scale	= mat.v2_one
-	control.padding  = mat.v4_zero
-	control.spacing  = mat.v2_zero
+	control.position = v2.ZERO
+	control.size = v2.ZERO
+	control.scale = v2.ONE
+	control.padding = v4.ZERO
+	control.spacing = v2.ZERO
 
 	g_controls = append(g_controls, control)
 
@@ -178,13 +180,13 @@ func ControlSetAutoscale(id ControlId, autoscale i32) {
 }
 
 // ControlSetPosition ...
-func ControlSetPosition(id ControlId, position v2) {
+func ControlSetPosition(id ControlId, position mat.v2) {
 	panicIfNot(IsValidControl(id), "invalid id")
 	g_controls[id.control].position = position
 }
 
 // ControlSetSize ...
-func ControlSetSize(id ControlId, size v2) {
+func ControlSetSize(id ControlId, size mat.v2) {
 	panicIfNot(IsValidControl(id), "invalid id")
 	g_controls[id.control].size = size
 }
@@ -192,12 +194,12 @@ func ControlSetSize(id ControlId, size v2) {
 // ControlSetBounds ...
 func ControlSetBounds(id ControlId, bounds v4) {
 	panicIfNot(IsValidControl(id), "invalid id")
-	g_controls[id.control].position = mat.v4_xy(bounds)
-	g_controls[id.control].size = mat.v4_zw(bounds)
+	g_controls[id.control].position = v4.xy(bounds)
+	g_controls[id.control].size = v4.zw(bounds)
 }
 
 // ControlSetScale ...
-func ControlSetScale(id ControlId, scale v2) {
+func ControlSetScale(id ControlId, scale mat.v2) {
 	panicIfNot(IsValidControl(id), "invalid id")
 	g_controls[id.control].scale = scale
 }
@@ -239,7 +241,7 @@ func ControlSetPadding(id ControlId, padding mat.v4) {
 // ControlSetSpacing ...
 func ControlSetSpacing(id ControlId, spacing mat.v2) {
 	panicIfNot(IsValidControl(id), "invalid id")
-	g_controls[id.control].spacing = mat.v2_mul(spacing, mat.v2_(1.0, gfx.gfx_ratio_y)) // ##1 id viewport resize
+	g_controls[id.control].spacing = v2.mul(spacing, v2.make(1.0, gfx.gfx_ratio_y)) // ##1 id viewport resize
 }
 
 // ControlSetFocusIndex ...
@@ -397,11 +399,11 @@ func controlResize(id ControlId, pixelBounds mat.v2, autoBounds mat.v2) () {
 	}*/
 
 
-	var minX f32 = mat.FLOAT_MAX
-	var minY f32 = mat.FLOAT_MAX
+	var minX f32 = v1.MAX
+	var minY f32 = v1.MAX
 
-	var maxX f32 = mat.FLOAT_MIN
-	var maxY f32 = mat.FLOAT_MIN
+	var maxX f32 = v1.MIN
+	var maxY f32 = v1.MIN
 
 	var count i32 = len(g_controls[index].children)
 	for i := 0; i < count; i = i + 1 {
@@ -450,13 +452,13 @@ func controlResize(id ControlId, pixelBounds mat.v2, autoBounds mat.v2) () {
 			var position mat.v2 = g_controls[child.control].renderPosition
 				var size mat.v2 = g_controls[child.control].size
 
-				maxWidth = mat.max(maxWidth, size.x)
-				maxHeight = mat.max(maxHeight, size.y)
+				maxWidth = v1.max(maxWidth, size.x)
+				maxHeight = v1.max(maxHeight, size.y)
 
-				minX = mat.min(minX, position.x)
-				minY = mat.min(minY, position.y)
-				maxX = mat.max(maxX, position.x + size.x)
-				maxY = mat.max(maxY, position.y + size.y)
+				minX = v1.min(minX, position.x)
+				minY = v1.min(minY, position.y)
+				maxX = v1.max(maxX, position.x + size.x)
+				maxY = v1.max(maxY, position.y + size.y)
 
 				/*if (index == 36) {
 				  ControlPrint("controlResize child ", child, false)
@@ -501,17 +503,17 @@ func controlResize(id ControlId, pixelBounds mat.v2, autoBounds mat.v2) () {
 			if (autoscale == AUTOSCALE) {
 				if (scaleW < scaleH) {
 					scaleH = scaleW
-					var newScale mat.v2 = mat.v2_(scaleW, scaleH/* / gfx.gfx_ratio_y*/)
+					var newScale mat.v2 = v2.make(scaleW, scaleH/* / gfx.gfx_ratio_y*/)
 					g_controls[index].scale = newScale
 					//ControlPrint("after_pop", id, false)
 
 				} else {
 					scaleW = scaleH
-					var newScale mat.v2 = mat.v2_(scaleW/* * gfx.gfx_ratio_x*/, scaleH)
+					var newScale mat.v2 = v2.make(scaleW/* * gfx.gfx_ratio_x*/, scaleH) // TODO : remove tmp
 					g_controls[index].scale = newScale
 				}
 			} else {
-				var newScale mat.v2 = mat.v2_(scaleW, scaleH)
+				var newScale mat.v2 = v2.make(scaleW, scaleH) // TODO : remove tmp
 				g_controls[index].scale = newScale
 			}
 		}
@@ -523,7 +525,7 @@ func controlResize(id ControlId, pixelBounds mat.v2, autoBounds mat.v2) () {
 		if ((autosize & AUTOSIZE_X) == AUTOSIZE_X) {
 			//panicIfNot(dock == DOCK_NONE || dock == DOCK_LEFT || dock == DOCK_RIGHT, "AUTOSIZE_X is not compatible with DOCK_Y")
 			panicIfNot((autoscale & AUTOSCALE_X) == 0, "AUTOSIZE_X is not compatible with AUTOSCALE_X")
-			newWidth = mat.max(maxWidth + paddingX, autoBounds.x) * scaleW// - paddingX
+			newWidth = v1.max(maxWidth + paddingX, autoBounds.x) * scaleW// - paddingX
 			//if (index == 36) {
 			//	printf("NEW_WIDTH %f, MAX_WIDTH %f, AUTO_BOUNDS_X %f, PADDING %f\n", newWidth, maxWidth, autoBounds.x, paddingX)
 			//}
@@ -531,13 +533,13 @@ func controlResize(id ControlId, pixelBounds mat.v2, autoBounds mat.v2) () {
 		if ((autosize & AUTOSIZE_Y) == AUTOSIZE_Y) {
 			//panicIfNot(dock == DOCK_NONE || dock == DOCK_BOTTOM || dock == DOCK_TOP, "AUTOSIZE_Y is not compatible with DOCK_X")
 			panicIfNot((autoscale & AUTOSCALE_Y) == 0, "AUTOSIZE_Y is not compatible with AUTOSCALE_Y")
-			newHeight = mat.max(maxHeight +  paddingY, autoBounds.y) * scaleH// - paddingY
+			newHeight = v1.max(maxHeight +  paddingY, autoBounds.y) * scaleH// - paddingY
 			/*if (index == 36) {
 			  printf("NEW_HEIGHT %f, AUTO_BOUNDS_Y %f\n", maxHeight, autoBounds.y)
 			  }*/
 		}
 
-		g_controls[index].size = mat.v2_(newWidth, newHeight)
+		g_controls[index].size = v2.make(newWidth, newHeight)
 		//ControlPrint("NEW_SIZE : ", id, false)
 	} else {
 		panicIfNot(autosize == AUTOSIZE_NONE, "invalid AUTOSIZE value")
@@ -554,8 +556,8 @@ func ControlResize(id ControlId) () {
 	var visible i32 = g_controls[id.control].visible
 	if (visible > 0) {
 		var pixelBounds mat.v2 = g_controls[id.control].size
-		//var pixelBounds mat.v2 = mat.v2_mul(bounds, gfx.gfx_viewport_size)
-		controlResize(id, pixelBounds, mat.v2_zero)
+		//var pixelBounds mat.v2 = v2.mul(bounds, gfx.gfx_viewport_size)
+		controlResize(id, pixelBounds, v2.ZERO)
 	}
 }
 
@@ -835,10 +837,10 @@ func ControlRedock(id ControlId, padding mat.v4) () {
 			}
 		}
 
-		g_controls[index].renderPosition = mat.v2_(g_offset.x, g_offset.y)
+		g_controls[index].renderPosition = v2.make(g_offset.x, g_offset.y)
 		//panicIfNot(mat.is_nan(g_offset.y) == false, "nan")
 		//ControlPrint("after ControlRedock : ", id, false)
-		//g_controls[index].renderSize = mat.v2_(g_offset.width, g_offset.height)
+		//g_controls[index].renderSize = v2.make(g_offset.width, g_offset.height)
 		var newWidth f32 = g_offset.width
 		var newHeight f32 = g_offset.height
 
@@ -858,7 +860,7 @@ func ControlRedock(id ControlId, padding mat.v4) () {
 			//newHeight = newHeight - paddingY // ##pending_7
 			//printf("AUTOSIZE NEW HEIGHT %f, %f, %f\n", newHeight, g_controls[index].size.y, paddingY)
 		}
-		g_controls[index].size = mat.v2_(newWidth, newHeight)
+		g_controls[index].size = v2.make(newWidth, newHeight)
 
 		/*if (id.control == 50) {
 		  ControlPrint("end_ControlRedock", id, false)
@@ -876,7 +878,7 @@ func ControlRender(id ControlId, clip mat.v4, stack i32) () {
 	var index i32 = id.control
 	var visible i32 = g_controls[index].visible
 	if (visible > 0) {
-		var renderBounds mat.v4 = mat.v4_v2v2(g_controls[index].renderPosition, g_controls[index].size)
+		var renderBounds mat.v4 = v4.make_v22(g_controls[index].renderPosition, g_controls[index].size)
 		var renderClips mat.v4 = gfx.PushScissor(g_controls[index].name, renderBounds)
 		//fps.StartProfile(g_profileControlRender)
 		var skin SkinId = g_controls[index].skin

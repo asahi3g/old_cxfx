@@ -178,7 +178,7 @@ func LifterCreate(name str) (out LifterId) {
 
 	ControlAddChild(out.base, carret)
 	//ControlSetDock(carret, DOCK_TOP)
-	//ControlSetSize(carret, mat.v2_(0.03, 0.03 * gfx.gfx_ratio_y))
+	//ControlSetSize(carret, v2.make(0.03, 0.03 * gfx.gfx_ratio_y))
 	ControlSetSkin(carret, g_buttonSkin)
 	ControlSetFocusable(carret, 1)
 
@@ -199,12 +199,12 @@ func LifterProcessEvent(id LifterId, event *app.Event) (out i32) {
 			if dragged {
 				var begin mat.v2 = g_lifters[id.lifter].dragBegin
 				var end mat.v2 = g_lifters[id.lifter].dragEnd
-				var delta mat.v2 = mat.v2_sub(begin, end)
+				var delta mat.v2 = v2.sub(begin, end)
 			}
 			g_lifters[id.lifter].dragged = false
-			g_lifters[id.lifter].dragBegin = mat.v2_(0.0, 0.0)
-			g_lifters[id.lifter].dragEnd = mat.v2_(0.0, 0.0)
-			g_lifters[id.lifter].dragDelta = mat.v2_(0.0, 0.0)
+			g_lifters[id.lifter].dragBegin = v2.ZERO
+			g_lifters[id.lifter].dragEnd = v2.ZERO
+			g_lifters[id.lifter].dragDelta = v2.ZERO
 			g_lifters[id.lifter].dragOffset = LifterGetOffset(id)
 			printf("app.MOUSE_RELEASE %f, %f\n", (*event).mouse.position.x, (*event).mouse.position.y)
 		}
@@ -249,7 +249,7 @@ func LifterProcessEvent(id LifterId, event *app.Event) (out i32) {
 					g_lifters[id.lifter].dragBegin = (*event).mouse.position
 					g_lifters[id.lifter].dragEnd = (*event).mouse.position
 					g_lifters[id.lifter].dragOffset = LifterGetOffset(id)
-					g_lifters[id.lifter].dragDelta = mat.v2_(0.0, 0.0)
+					g_lifters[id.lifter].dragDelta = v2.ZERO
 					printf("app.MOUSE_PRESS %f, %f\n", (*event).mouse.position.x, (*event).mouse.position.y)
 					out = app.EVENT_CONSUMED
 				} else if (mouseAction == app.MOUSE_MOVE) {
@@ -259,7 +259,7 @@ func LifterProcessEvent(id LifterId, event *app.Event) (out i32) {
 						var begin mat.v2 = g_lifters[id.lifter].dragBegin
 						var end mat.v2 = g_lifters[id.lifter].dragEnd
 						var dragOffset f32 = g_lifters[id.lifter].dragOffset
-						var delta mat.v2 = mat.v2_sub(begin, end)
+						var delta mat.v2 = v2.sub(begin, end)
 
 						printf("BEGIN %f, %f, END %f, %f\n", begin.x, begin.y, end.x, end.y)
 						var dragDelta f32 = 0.0
